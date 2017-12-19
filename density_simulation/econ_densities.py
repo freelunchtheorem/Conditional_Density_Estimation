@@ -2,17 +2,21 @@ import scipy.stats as stats
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.model_selection import train_test_split
 
 def econ_conditional_pdf_1_sample(x, n_samples = 1000):
   y = x ** 2 + np.random.normal(loc=0, scale=0.5, size=[n_samples])
   return y
 
-
 def econ_pdf_1_sample(n_samples = 1000):
-  x = np.abs(np.random.standard_normal(size=[n_samples]))
-  y = x**2 + np.random.normal(loc=0, scale=0.5, size=[n_samples])
+  x = np.abs(np.random.standard_normal(size=[n_samples, 1]))
+  y = x**2 + np.random.normal(loc=0, scale=0.5, size=[n_samples, 1])
   return np.stack([x,y], axis=1)
 
+def build_econ1_dataset(n_samples=2000):
+  sim_data = econ_pdf_1_sample(n_samples=n_samples)
+  X_train, X_test, y_train, y_test = train_test_split(sim_data[:,0], sim_data[:,1], random_state=42, train_size=0.6)
+  return X_train, X_test, y_train.ravel(), y_test.ravel()
 
 def plot_histogram_pdf_econ1(n_samples=100000):
   sim_data = econ_pdf_1_sample(n_samples=n_samples)
@@ -40,11 +44,3 @@ def plot_histogram_conditional_pdf_econ1(x, n_samples = 100000):
   sim_data = econ_conditional_pdf_1_sample(x, n_samples=n_samples)
   plt.hist(sim_data, bins=100)
   plt.show()
-
-def main():
-  plot_histogram_conditional_pdf_econ1(x=1)
-
-
-
-if __name__ == "__main__":
-  main()
