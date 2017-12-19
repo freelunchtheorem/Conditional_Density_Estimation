@@ -104,6 +104,10 @@ ENV/
 .xml
 
 # misc
-.idea
+.idea/
 .iml
 .dropbox
+
+# media files
+.png
+.jpg
