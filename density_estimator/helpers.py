@@ -22,7 +22,13 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
 
   # retain outer points to ensure expressiveness at the target borders
   if keep_edges:
-    Y = np.sort(Y)
+    y_s = pd.DataFrame(Y)
+    # calculate distance of datapoint to the "center of mass"
+    dist = pd.Series(np.linalg.norm(Y - Y.mean(axis=0), axis=1), name='distance')
+    df = pd.concat([dist, y_s], axis=1).sort_values('distance')
+
+    # Y sorted by their distance to the "center of mass"
+    Y = df.as_matrix(np.arange(Y.shape[1]))
     centers = np.array([Y[0], Y[-1]])
     Y = Y[1:-1]
     # adjust k such that the final output has size k
