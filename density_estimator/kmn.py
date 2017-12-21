@@ -3,70 +3,21 @@
 #
 
 import numpy as np
-from sklearn.cluster import KMeans, AgglomerativeClustering
-import pandas as pd
+
 from sklearn.base import BaseEstimator
 from edward.models import Categorical, Mixture, Normal
 from keras.layers import Dense, Dropout
+from density_estimator.helpers import sample_center_points
 import math
 import edward as ed
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
-def sample_center_points(y, method='all', k=100, keep_edges=False):
-    """
-    function to define kernel centers with various downsampling alternatives
-    """
-
-    # make sure y is 1D
-    y = y.ravel()
-
-    # keep all points as kernel centers
-    if method == 'all':
-        return y
-
-    # retain outer points to ensure expressiveness at the target borders
-    if keep_edges:
-        y = np.sort(y)
-        centers = np.array([y[0], y[-1]])
-        y = y[1:-1]
-        # adjust k such that the final output has size k
-        k -= 2
-    else:
-        centers = np.empty(0)
-
-    if method == 'random':
-        cluster_centers = np.random.choice(y, k, replace=False)
-
-    # iteratively remove part of pairs that are closest together until everything is at least 'd' apart
-    elif method == 'distance':
-        raise NotImplementedError
-
-    # use 1-D k-means clustering
-    elif method == 'k_means':
-        model = KMeans(n_clusters=k, n_jobs=-2)
-        model.fit(y.reshape(-1, 1))
-        cluster_centers = model.cluster_centers_
-
-    # use agglomerative clustering
-    elif method == 'agglomerative':
-        model = AgglomerativeClustering(n_clusters=k, linkage='complete')
-        model.fit(y.reshape(-1, 1))
-        labels = pd.Series(model.labels_, name='label')
-        y_s = pd.Series(y, name='y')
-        df = pd.concat([y_s, labels], axis=1)
-        cluster_centers = df.groupby('label')['y'].mean().values
-
-    else:
-        raise ValueError("unknown method '{}'".format(method))
-
-    return np.append(centers, cluster_centers)
-
 
 class KernelMixtureNetwork(BaseEstimator):
 
-    def __init__(self, n_samples=10, center_sampling_method='k_means', n_centers=20, keep_edges=False,
+    def __init__(self, center_sampling_method='k_means', n_centers=20, keep_edges=False,
                  init_scales='default', estimator=None, X_ph=None, train_scales=False):
         """
         Main class for Kernel Mixture Network
@@ -80,7 +31,6 @@ class KernelMixtureNetwork(BaseEstimator):
             X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
                   but should be easy to extend to a list of placeholders
             train_scales: Boolean that describes whether or not to make the scales trainable
-            n_samples: Determine how many samples to return
         """
 
         self.sess = ed.get_session()
@@ -89,7 +39,6 @@ class KernelMixtureNetwork(BaseEstimator):
         self.estimator = estimator
         self.X_ph = X_ph
 
-        self.n_samples = n_samples
         self.center_sampling_method = center_sampling_method
         self.n_centers = n_centers
         self.keep_edges = keep_edges
@@ -206,7 +155,7 @@ class KernelMixtureNetwork(BaseEstimator):
 
         # locations of the gaussian kernel centers
         n_locs = self.n_centers
-        self.locs = locs = sample_center_points(y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
+        self.locs = locs = sample_center_points(y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges).flatten()
         self.locs_array = locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, n_locs)), locs)))
 
         # scales of the gaussian kernels
@@ -222,7 +171,6 @@ class KernelMixtureNetwork(BaseEstimator):
         self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(y_ph))
 
         # tensor to store samples
-        #self.samples = mixtures.sample(sample_shape=self.n_samples)
         self.samples = mixtures.sample()
 
         # store minmax of training target values for a sensible default grid for self.predict_density()
