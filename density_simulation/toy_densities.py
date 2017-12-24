@@ -13,7 +13,8 @@ def build_toy_dataset(n_samples=40000):
   X_train, X_test, y_train, y_test = train_test_split(x_data, y_data, random_state=42, train_size=0.5)
   return X_train, X_test, y_train.ravel(), y_test.ravel()
 
-def bild_toy_dataset2(n_samples=40000):
+def build_toy_dataset2(n_samples=40000):
+  # circle shaped density function
   radius = np.float32(np.random.normal(loc=4, scale=1, size=(1, n_samples))).T
   angle = np.float32(np.random.uniform(-np.pi, np.pi, size=(1, n_samples))).T
   x_data = radius * np.cos(angle)
