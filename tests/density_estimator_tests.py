@@ -24,8 +24,8 @@ class TestHelpers(unittest.TestCase):
   def test_shape_center_point_keep_edges(self):
     methods = ["random", "k_means", "agglomerative"]
     for m in methods:
-      Y = np.random.uniform(size=(10,2))
-      centers = sample_center_points(Y, method=m, k=3, keep_edges=True)
+      Y = np.random.uniform(size=(100,2))
+      centers = sample_center_points(Y, method=m, k=5, keep_edges=True)
       self.assertEquals(centers.ndim, Y.ndim)
       self.assertEquals(centers.shape[1], Y.shape[1])
 
