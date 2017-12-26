@@ -1,13 +1,8 @@
 import numpy as np
-import pandas as pd
 from sklearn.base import BaseEstimator
 from density_estimator.helpers import sample_center_points
-import matplotlib.pyplot as plt
-from density_simulation.econ_densities import build_econ1_dataset
-from scipy.spatial.distance import euclidean
 import itertools
-import time
-import scipy.optimize
+
 
 class LQConditionalDensityEstimation(BaseEstimator):
 
