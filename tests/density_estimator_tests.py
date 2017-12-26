@@ -3,6 +3,8 @@ import unittest
 
 class TestHelpers(unittest.TestCase):
 
+  """ sample center points """
+
   def test_shape_center_point(self):
     methods = ["all", "random", "k_means" , "agglomerative"]
     for m in methods:
@@ -28,6 +30,30 @@ class TestHelpers(unittest.TestCase):
       centers = sample_center_points(Y, method=m, k=5, keep_edges=True)
       self.assertEquals(centers.ndim, Y.ndim)
       self.assertEquals(centers.shape[1], Y.shape[1])
+
+  """ norm along axis """
+
+  def test_1_norm_along_axis_1(self):
+    A = np.asarray([[1.0, 0.0], [1.0, 0.0]])
+    B = np.asarray([[0.0,0.0], [0.0,0.0]])
+    dist1 = norm_along_axis_1(A, B, squared=True)
+    dist2 = norm_along_axis_1(A, B, squared=False)
+    self.assertEquals(np.mean(dist1), 1.0)
+    self.assertEquals(np.mean(dist2), 1.0)
+
+  def test_1_norm_along_axis_2(self):
+    A = np.asarray([[1.0, 0.0]])
+    B = np.asarray([[0.0,0.0]])
+    dist1 = norm_along_axis_1(A, B, squared=True)
+    dist2 = norm_along_axis_1(A, B, squared=False)
+    self.assertEquals(np.mean(dist1), 1.0)
+    self.assertEquals(np.mean(dist2), 1.0)
+
+  def test_1_norm_along_axis_3(self):
+    A = np.random.uniform(size=[20, 3])
+    B = np.random.uniform(size=[10, 3])
+    dist = norm_along_axis_1(A, B, squared=True)
+    self.assertEquals(dist.shape, (20,10))
 
 
 

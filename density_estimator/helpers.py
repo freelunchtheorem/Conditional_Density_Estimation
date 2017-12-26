@@ -2,6 +2,26 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 import pandas as pd
 import numpy as np
 
+
+def norm_along_axis_1(A, B, squared=False):
+  """
+  calculates the (squared) euclidean distance along the axis 1 of both 2d arrays
+  :param A: numpy array of shape (n, k)
+  :param B: numpy array of shape (m, k)
+  :param squared: boolean that indicates whether the squared euclidean distance shall be returned
+  :return: numpy array of shape (n.m)
+  """
+  assert A.shape[1] == B.shape[1]
+  result = np.zeros(shape=(A.shape[0], B.shape[0]))
+
+  if squared:
+    for i in range(B.shape[0]):
+      result[:, i] = np.sum(np.square(A - B[i, :]), axis=1)
+  else:
+    for i in range(B.shape[0]):
+      result[:, i] = np.linalg.norm(A - B[i, :], axis=1)
+  return result
+
 def sample_center_points(Y, method='all', k=100, keep_edges=False):
   """
   function to define kernel centers with various downsampling alternatives
@@ -23,11 +43,11 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
   # retain outer points to ensure expressiveness at the target borders
   if keep_edges:
     y_s = pd.DataFrame(Y)
-    # calculate distance of datapoint to the "center of mass"
+    # calculate distance of datapoint from "center of mass"
     dist = pd.Series(np.linalg.norm(Y - Y.mean(axis=0), axis=1), name='distance')
     df = pd.concat([dist, y_s], axis=1).sort_values('distance')
 
-    # Y sorted by their distance to the "center of mass"
+    # Y sorted by their distance to the
     Y = df.as_matrix(np.arange(Y.shape[1]))
     centers = np.array([Y[0], Y[-1]])
     Y = Y[1:-1]
