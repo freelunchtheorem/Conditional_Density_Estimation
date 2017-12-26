@@ -4,8 +4,10 @@ from sklearn.base import BaseEstimator
 from density_estimator.helpers import sample_center_points
 import matplotlib.pyplot as plt
 from density_simulation.econ_densities import build_econ1_dataset
+from scipy.spatial.distance import euclidean
 import itertools
 import time
+import scipy.optimize
 
 class LQConditionalDensityEstimation(BaseEstimator):
 
@@ -23,7 +25,6 @@ class LQConditionalDensityEstimation(BaseEstimator):
     self.regularization = regularization
 
     self.fitted = False
-
 
   def _build_model(self, X, Y):
     # get locations of the gaussian kernel centers
@@ -47,15 +48,7 @@ class LQConditionalDensityEstimation(BaseEstimator):
     # define the full model
     self._build_model(X, Y)
 
-    # calculate weight vector alpha
-    # phi_x =compute_kernel_Gaussian(X.flatten(), self.centr_x, sigma=self.bandwidth)
-    # phi_y =compute_kernel_Gaussian(Y.flatten(), self.centr_y, sigma=self.bandwidth)
-    # phi = np.multiply(phi_x, phi_y)
-    #
-    # self.H = phi_x.T.dot(phi_y) / Y.shape[0]
-    #
-    # phi = np.zeros(shape=(X.shape[0], self.n_centers))
-
+    # determine the kernel weights alpha
     self.h = np.mean(self._gaussian_kernel(X, Y), axis=0)
 
     a = np.mean(norm_along_axis_1(X,self.centr_x),axis=0)
@@ -67,13 +60,10 @@ class LQConditionalDensityEstimation(BaseEstimator):
     self.alpha = np.linalg.solve(self.H + self.regularization * np.identity(self.n_centers), self.h)
     self.alpha[self.alpha < 0] = 0
 
-    loss_fun = 0.5 * self.alpha.T * self.H * self.alpha - self.h.T * self.alpha + \
-               self.regularization * self.alpha.T * self.alpha
-    # print(loss_fun)
-    # print(self.alpha)
-    # print(self.centr_x, self.centr_y)
-
     self.fitted = True
+
+  def _loss_fun(self, alpha):
+    return 0.5 * alpha.T.dot(self.H).dot(alpha) - self.h.T.dot(alpha) + self.regularization * alpha.T.dot(alpha)
 
   def predict(self, X, Y):
     """
@@ -94,16 +84,38 @@ class LQConditionalDensityEstimation(BaseEstimator):
     assert X.shape[1] == self.ndim_x
     assert Y.shape[1] == self.ndim_y
 
-    print(self.centr_x, self. centr_y)
-    print(self.alpha)
-
-    #self._gaussian_kernel(u, v)
-
-    p = np.dot(self.alpha.T, self._gaussian_kernel(X,Y).T)
+    p = np.dot(self.alpha.T, self._gaussian_kernel(X, Y).T)
     p_normalization = (np.sqrt(2*np.pi)*self.bandwidth)**self.ndim_y * np.dot(self.alpha.T, self._gaussian_kernel(X).T)
 
-    return p #/ p_normalization
+    return p / p_normalization
 
+  def predict_density(self, X, Y=None, resolution=50):
+    """
+    conditional density p(y|x) over a predefined grid of target values
+    :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+    :param (optional) Y - y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
+    :param resulution of evaluation grid
+    :return density p(y|x) shape: (n_instances, resolution**n_dim_y), Y - grid with with specified resolution - shape: (resolution**n_dim_y, n_dim_y)
+    """
+    assert X.shape[1] == self.ndim_x
+
+    if Y is None:
+      y_min = np.min(self.centr_y, axis=0)
+      y_max = np.max(self.centr_y, axis=0)
+      linspaces = []
+      for d in range(self.ndim_y):
+        x = np.linspace(y_min[d] - 2.5 * self.bandwidth, y_max[d] + 2.5 * self.bandwidth, num=resolution)
+        linspaces.append(x)
+      Y = np.asmatrix(list(itertools.product(linspaces[0], linspaces[1])))
+
+    assert Y.shape[1] == self.ndim_y
+
+    density = np.zeros(shape=[X.shape[0],Y.shape[0]])
+    for i in range(X.shape[0]):
+      x = np.tile(X[i,:], (Y.shape[0],1))
+      density[i, :] = self.predict(x, Y)
+
+    return density, Y
 
   def _gaussian_kernel(self, X, Y=None):
     """
@@ -116,15 +128,22 @@ class LQConditionalDensityEstimation(BaseEstimator):
 
     if Y is not None:
       for i in range(phi.shape[1]):
-        phi[:, i] = np.exp( - np.linalg.norm(X - self.centr_x[i,:], axis=1, ord=2) / (2 * self.bandwidth**2)) * \
-                    np.exp( - np.linalg.norm(Y - self.centr_y[i,:], axis=1, ord=2) / (2 * self.bandwidth**2))
+
+        #suqared distances from center point i
+        sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
+        sq_d_y = np.sum(np.square(Y - self.centr_y[i, :]), axis=1)
+
+        phi[:, i] = np.exp( - sq_d_x / (2 * self.bandwidth**2)) * np.exp( - sq_d_y / (2 * self.bandwidth**2))
     else:
       for i in range(phi.shape[1]):
-        phi[:, i] = np.exp( - np.linalg.norm(X - self.centr_x[i,:], axis=1, ord=2) / (2 * self.bandwidth**2))
+        # suqared distances from center point i
+        sq_d_x = np.sum((X - self.centr_x[i, :]) ** 2, axis=1)
+        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2))
+
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
 
-def norm_along_axis_1(A,B):
+def norm_along_axis_1(A, B):
   """
   calculates the euclidean distance along the axis 1 of both 2d arrays
   :param A: numpy array of shape (n, k)
@@ -135,55 +154,8 @@ def norm_along_axis_1(A,B):
   result = np.zeros(shape=(A.shape[0], B.shape[0]))
 
   for i in range(B.shape[1]):
-    result[:, i] = np.linalg.norm(A - B[i,:], axis=1)
+    result[:, i] = np.sum((A - B[i, :]) ** 2, axis=1)
 
   return result
-
-# TODO: delete the two functions
-def compute_kernel_Gaussian(x, centers, sigma):
-  result = [[kernel_Gaussian(row, center, sigma) for center in centers] for row in x]
-  result = np.matrix(result)
-  return result
-
-
-def kernel_Gaussian(x, y, sigma):
-  return np.exp(- np.linalg.norm(x - y) / (2 * sigma * sigma))
-
-
-# def eucliden_distance_along_axis_1(A, B):
-#   """
-#   calculates the euclidean distance along the axis 1 of both 2d arrays
-#   :param A: numpy array of shape (n, k)
-#   :param B: numpy array of shape (m, k)
-#   :return: numpy array of shape (n.m)
-#   """
-#   assert A.shape[1] == B.shape[1]
-#
-#   d = (A ** 2).sum(axis=-1)[:, np.newaxis] + (B ** 2).sum(axis=-1)
-#   d -= 2 * np.squeeze(A.dot(B[..., np.newaxis]), axis=-1)
-#   d **= 0.5
-#   return d
-
-
-if __name__ == "__main__":
-  n_observations = 2000  # number of data points
-  n_features = 3  # number of features
-
-  X_train, X_test, Y_train, Y_test = build_econ1_dataset(n_observations)
-  model = LQConditionalDensityEstimation()
-
-  #X_train = np.random.uniform(size=[n_observations, n_features])
-  #Y_train = np.random.uniform(size=[n_observations, 2])
-  model.fit(X_train, Y_train)
-
-  n_samples = 2000
-  X_plot = np.expand_dims(np.zeros(n_samples), axis=1)
-  Y_plot = np.linspace(-2, 4, num=n_samples)
-  print(X_plot.shape, Y_plot.shape)
-  result = model.predict(X_plot, Y_plot)
-  print(result.shape)
-  plt.plot(Y_plot, result)
-  plt.show()
-
 
 
