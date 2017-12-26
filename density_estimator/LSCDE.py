@@ -1,10 +1,9 @@
 import numpy as np
 from sklearn.base import BaseEstimator
-from density_estimator.helpers import sample_center_points
+from density_estimator.helpers import sample_center_points, norm_along_axis_1
 import itertools
 
-
-class LQConditionalDensityEstimation(BaseEstimator):
+class LSConditionalDensityEstimation(BaseEstimator):
 
   def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1, keep_edges=False):
     """
@@ -132,25 +131,11 @@ class LQConditionalDensityEstimation(BaseEstimator):
     else:
       for i in range(phi.shape[1]):
         # suqared distances from center point i
-        sq_d_x = np.sum((X - self.centr_x[i, :]) ** 2, axis=1)
+        sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
         phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2))
 
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
 
-def norm_along_axis_1(A, B):
-  """
-  calculates the euclidean distance along the axis 1 of both 2d arrays
-  :param A: numpy array of shape (n, k)
-  :param B: numpy array of shape (m, k)
-  :return: numpy array of shape (n.m)
-  """
-  assert A.shape[1] == B.shape[1]
-  result = np.zeros(shape=(A.shape[0], B.shape[0]))
-
-  for i in range(B.shape[1]):
-    result[:, i] = np.sum((A - B[i, :]) ** 2, axis=1)
-
-  return result
 
 

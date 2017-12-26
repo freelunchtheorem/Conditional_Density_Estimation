@@ -1,5 +1,5 @@
 #
-# Code from https://github.com/janvdvegt/KernelMixtureNetwork
+# Code basis from https://github.com/janvdvegt/KernelMixtureNetwork
 #
 
 import numpy as np
@@ -173,10 +173,6 @@ class KernelMixtureNetwork(BaseEstimator):
         # tensor to store samples
         self.samples = mixtures.sample()
 
-        # store minmax of training target values for a sensible default grid for self.predict_density()
-        #self.y_range = y.max() - y.min()
-        #self.y_min = y.min() - 0.1 * self.y_range
-        #self.y_max = y.max() + 0.1 * self.y_range
         self.y_min = y.min()
         self.y_max = y.max()
 
