@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator
-from density_estimator.helpers import sample_center_points, norm_along_axis_1
+from density_estimator.helpers import sample_center_points, norm_along_axis_1, handle_input_dimensionality
 import itertools
 
 class LSConditionalDensityEstimation(BaseEstimator):
@@ -31,13 +31,9 @@ class LSConditionalDensityEstimation(BaseEstimator):
 
   def fit(self, X, Y, **kwargs):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    if X.ndim == 1:
-      X = np.expand_dims(X, axis=1)
-    if Y.ndim == 1:
-      Y = np.expand_dims(Y, axis=1)
-
+    X, Y = handle_input_dimensionality(X, Y)
     self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
-    assert X.ndim == Y.ndim == 2
+
 
     # define the full model
     self._build_model(X, Y)
@@ -69,12 +65,7 @@ class LSConditionalDensityEstimation(BaseEstimator):
     assert self.fitted, "model must be fitted for predictions"
 
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    if X.ndim == 1:
-      X = np.expand_dims(X, axis=1)
-    if Y.ndim == 1:
-      Y = np.expand_dims(Y, axis=1)
-
-    assert X.ndim == Y.ndim == 2
+    X, Y = handle_input_dimensionality(X, Y)
     assert X.shape[1] == self.ndim_x
     assert Y.shape[1] == self.ndim_y
 

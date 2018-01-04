@@ -85,3 +85,14 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
     return np.concatenate([centers, cluster_centers], axis=0)
   else:
     return cluster_centers
+
+def handle_input_dimensionality(X, Y):
+  # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
+  if X.ndim == 1:
+    X = np.expand_dims(X, axis=1)
+  if Y.ndim == 1:
+    Y = np.expand_dims(Y, axis=1)
+
+  assert X.shape[0] == Y.shape[0], "X and Y must have the same length along axis 0"
+  assert X.ndim == Y.ndim == 2, "X and Y must be matrices"
+  return X, Y
