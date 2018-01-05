@@ -63,9 +63,9 @@ class LSConditionalDensityEstimation(BaseEstimator):
   def predict(self, X, Y):
     """
     copmutes the contitional likelihood p(y|x) given the fitted model
-    :param X: nummpy array to be conditioned on
-    :param Y: nummpy array of y targets
-    :return: numpy array of shape (n_samples, ) holding the contitional likelihood p(y|x)
+    :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
+    :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
+    :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
     """
     assert self.fitted, "model must be fitted for predictions"
 
