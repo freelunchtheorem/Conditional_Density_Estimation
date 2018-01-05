@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from density_estimator.kmn import KernelMixtureNetwork
+from density_estimator.KMN import KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
 
@@ -20,6 +20,7 @@ def build_toy_dataset2(n_samples=40000):
   x_data = radius * np.cos(angle)
   y_data = radius * np.sin(angle)
 
-  X_train, X_test, y_train, y_test = train_test_split(x_data, y_data, random_state=42, train_size=0.5)
+  train_size = 0.5
+  X_train, X_test, y_train, y_test = train_test_split(x_data, y_data, random_state=42, train_size=train_size, test_size=1-train_size)
   return X_train, X_test, y_train.ravel(), y_test.ravel()
 

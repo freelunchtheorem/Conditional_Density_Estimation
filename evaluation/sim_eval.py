@@ -1,8 +1,7 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from density_estimator.kmn import KernelMixtureNetwork
-from density_estimator.LDRE import LQConditionalDensityEstimation
+from density_estimator import LSConditionalDensityEstimation, NeighborKernelDensityEstimation, KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
 from density_simulation.econ_densities import build_econ1_dataset
@@ -12,42 +11,56 @@ from matplotlib import cm
 
 
 def plot_fitted_distribution():
-  n_observations = 2000  # number of data points
+  n_observations = 1000  # number of data points
   n_features = 3  # number of features
 
   np.random.seed(22)
 
   X_train, X_test, Y_train, Y_test = build_toy_dataset2(n_observations)
-  model = LQConditionalDensityEstimation(center_sampling_method='random', bandwidth=1, n_centers=1)
+  model = NeighborKernelDensityEstimation(bandwidth=2, epsilon=1, weighted=False)
 
   X_train = np.random.normal(loc=0, size=[n_observations, 1])
   Y_train = 3 * X_train + np.random.normal(loc=0, size=[n_observations, 1])
-  X_test = np.random.normal(loc=0, size=[400, 1])
-  Y_test = 3 * X_test + np.random.normal(loc=0, size=[400, 1])
+  X_test = np.random.normal(loc=0, size=[100, 1])
+  Y_test = 3 * X_test + np.random.normal(loc=0, size=[100, 1])
 
   model.fit(X_train, Y_train)
+  print(model.score(X_test, Y_test))
+  print(model.fit_by_cv(X_train, Y_train))
 
 
-  fig, ax = plt.subplots()
-  fig.set_size_inches(10, 8)
-  sns.regplot(X_train, Y_train, fit_reg=False)
-  plt.show()
 
+  # plt.scatter(model.X_train, model.Y_test)
+  # plt.scatter(model.centr_x, model.centr_y, s=10*model.alpha)
+  # plt.show()
+  #
+  # fig, ax = plt.subplots()
+  # fig.set_size_inches(10, 8)
+  # sns.regplot(X_train, Y_train, fit_reg=False)
+  # plt.show()
+  #
+  #
+  n_samples = 1000
 
-  n_samples = 2000
-  X_plot = np.expand_dims(np.asarray([-4 for _ in range(n_samples)]), axis=1)
   Y_plot = np.linspace(-10, 10, num=n_samples)
+
+  X_plot = np.expand_dims(np.asarray([-1 for _ in range(n_samples)]), axis=1)
   result = model.predict(X_plot, Y_plot)
   plt.plot(Y_plot, result)
+  #plt.show()
+
+  X_plot = np.expand_dims(np.asarray([2 for _ in range(n_samples)]), axis=1)
+  result = model.predict(X_plot, Y_plot)
+  plt.plot(Y_plot, result)
+
   plt.show()
 
-  n_samples = 500
+  n_samples = 100
   linspace_x = np.linspace(-15, 15, num=n_samples)
   linspace_y = np.linspace(-15, 15, num=n_samples)
   X, Y = np.meshgrid(linspace_x, linspace_y)
   X, Y = X.flatten(), Y.flatten()
 
-  print(X,Y, Y)
   Z = model.predict(X, Y)
 
   X, Y, Z = X.reshape([n_samples, n_samples]), Y.reshape([n_samples, n_samples]), Z.reshape([n_samples, n_samples])
@@ -98,7 +111,7 @@ def eval1():
 
 def main():
   plot_fitted_distribution()
-
+  #eval1()
 
 
 
