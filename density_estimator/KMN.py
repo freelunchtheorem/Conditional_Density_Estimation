@@ -55,11 +55,12 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         self.fitted = False
 
-    def fit(self, X, y, n_epoch, **kwargs):
+    def fit(self, X, y, n_epoch=500, **kwargs):
         """
         build and train model
         """
         # define the full model
+        y = y.flatten()
         self._build_model(X, y)
 
         # setup inference procedure
@@ -204,3 +205,17 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         plt.show()
 
         return fig, axes
+
+    def _param_grid(self):
+        n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]
+
+        param_grid = {
+            "n_centers": n_centers,
+            "center_sampling_method": ["agglomerative", "k_means", "random"],
+            "keep_edges": [True, False]
+        }
+        return param_grid
+
+    def fit_by_cv(self, X, Y, n_folds=5):
+        # TODO: do cross validation in a loop since tensorflow locks cannot be pickled
+        raise NotImplementedError

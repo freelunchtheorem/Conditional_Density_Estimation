@@ -22,6 +22,10 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.fitted = False
 
   def _build_model(self, X, Y):
+    # save variance of data
+    self.x_std = np.std(X, axis=0)
+    self.y_std = np.std(Y, axis=0)
+
     # get locations of the gaussian kernel centers
     n_locs = self.n_centers
     X_Y = np.concatenate([X,Y], axis=1)
@@ -39,7 +43,6 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = handle_input_dimensionality(X, Y)
     self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
-
 
     # define the full model
     self._build_model(X, Y)
@@ -133,6 +136,22 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
+
+  def _param_grid(self):
+    mean_var = np.mean(self.y_std)
+    bandwidths = np.asarray([0.01, 0.1, 0.5, 1, 2, 3]) * mean_var
+
+    n_centers = [int(self.n_samples/2), int(self.n_samples/4), int(self.n_samples/10), 50, 20, 10, 5]
+
+    param_grid = {
+      "bandwidth": bandwidths,
+      "n_centers": n_centers,
+      "regularization": [0.01, 0.1],
+      "keep_edges": [True, False]
+    }
+    return param_grid
+
+
 
 
 

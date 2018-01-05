@@ -41,6 +41,10 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
 
   def _build_model(self, X, Y):
+    # save variance of data
+    self.x_std = np.std(X, axis=0)
+    self.y_std = np.std(Y, axis=0)
+
     self.n_train_points = X.shape[0]
 
     # lazy learner - just store training data
@@ -117,6 +121,19 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
       return neighbor_weight * self.components[kernel_id].pdf(y)
     else:
       return 0
+
+  def _param_grid(self):
+    mean_std_y = np.mean(self.y_std)
+    mean_std_x = np.mean(self.x_std)
+    bandwidths = np.asarray([0.01, 0.1, 0.5, 1, 2, 5]) * mean_std_y
+    epsilons = np.asarray([0.001, 0.1, 0.5, 1]) * mean_std_x
+
+    param_grid = {
+      "bandwidth": bandwidths,
+      "epsilon": epsilons,
+      "weighted": [True, False]
+    }
+    return param_grid
 
 
 
