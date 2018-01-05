@@ -30,6 +30,11 @@ class LSConditionalDensityEstimation(BaseEstimator):
     assert self.centr_x.shape == (n_locs, self.ndim_x) and self.centr_y.shape == (n_locs, self.ndim_y)
 
   def fit(self, X, Y, **kwargs):
+    """
+    fits the model by determining the weight vector alpha
+    :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
+    :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
+    """
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = handle_input_dimensionality(X, Y)
     self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
@@ -59,8 +64,8 @@ class LSConditionalDensityEstimation(BaseEstimator):
     """
     copmutes the contitional likelihood p(y|x) given the fitted model
     :param X: nummpy array to be conditioned on
-    :param Y:
-    :return:
+    :param Y: nummpy array of y targets
+    :return: numpy array of shape (n_samples, ) holding the contitional likelihood p(y|x)
     """
     assert self.fitted, "model must be fitted for predictions"
 
