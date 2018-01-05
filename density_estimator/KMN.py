@@ -3,11 +3,10 @@
 #
 
 import numpy as np
-
-from sklearn.base import BaseEstimator
 from edward.models import Categorical, Mixture, Normal
 from keras.layers import Dense, Dropout
 from density_estimator.helpers import sample_center_points
+from density_estimator.base import BaseDensityEstimator
 import math
 import edward as ed
 import tensorflow as tf
@@ -15,7 +14,7 @@ import matplotlib.pyplot as plt
 
 
 
-class KernelMixtureNetwork(BaseEstimator):
+class KernelMixtureNetwork(BaseDensityEstimator):
 
     def __init__(self, center_sampling_method='k_means', n_centers=20, keep_edges=False,
                  init_scales='default', estimator=None, X_ph=None, train_scales=False):

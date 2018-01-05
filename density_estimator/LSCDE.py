@@ -1,9 +1,10 @@
 import numpy as np
 from sklearn.base import BaseEstimator
 from density_estimator.helpers import sample_center_points, norm_along_axis_1, handle_input_dimensionality
+from density_estimator.base import BaseDensityEstimator
 import itertools
 
-class LSConditionalDensityEstimation(BaseEstimator):
+class LSConditionalDensityEstimation(BaseDensityEstimator):
 
   def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1, keep_edges=False):
     """
