@@ -58,7 +58,11 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
     def fit(self, X, Y, n_epoch=500, **kwargs):
         """
-        build and train model
+        builds the Kernel Density Network model and fits the parameters by minimizing the negative
+        log-likelihood of the provided data
+        :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
+        :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
+        :param n_epoch: positive integer denoting the number of training epochs that shall be performed for fitting the model
         """
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
@@ -72,10 +76,10 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         tf.global_variables_initializer().run()
 
         # train the model
-        self.partial_fit(X, Y, n_epoch=n_epoch, **kwargs)
+        self._partial_fit(X, Y, n_epoch=n_epoch, **kwargs)
         self.fitted = True
 
-    def partial_fit(self, X, Y, n_epoch=1, eval_set=None):
+    def _partial_fit(self, X, Y, n_epoch=1, eval_set=None):
         """
         update model
         """
@@ -107,7 +111,10 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
     def predict(self, X, Y):
         """
-        likelihood of a given target value
+        copmutes the contitional likelihood p(y|x) given the fitted model
+        :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
+        :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
+        :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
         """
         assert self.fitted, "model must be fitted to compute likelihood score"
 
@@ -116,7 +123,11 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
     def predict_density(self, X, Y=None, resolution=100):
         """
-        conditional density over a predefined grid of target values
+        conditional density p(y|x) over a predefined grid of target values
+        :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+        :param (optional) Y - y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
+        :param resulution of evaluation grid
+        :return density p(y|x) shape: (n_instances, resolution**n_dim_y), Y - grid with with specified resolution - shape: (resolution**n_dim_y, n_dim_y)
         """
         if Y is None:
             max_scale = np.max(self.sess.run(self.scales))
@@ -127,6 +138,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
     def sample(self, X):
         """
         sample from the conditional mixture distributions
+         :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
         """
         assert self.fitted, "model must be fitted to compute likelihood score"
         return self.sess.run(self.samples, feed_dict={self.X_ph: X})
