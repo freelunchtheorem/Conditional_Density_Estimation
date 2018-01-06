@@ -19,16 +19,18 @@ class BaseDensityEstimator(BaseEstimator):
 
   def score(self, X, Y):
     """
-    computes the conditional log-likelihood of the provided data (X, Y)
+    computes the mean conditional log-likelihood of the provided data (X, Y)
     :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
     :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
     :return: negative log likelihood of data
     """
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+
     assert self.fitted, "model must be fitted to compute likelihood score"
     with warnings.catch_warnings():
       warnings.simplefilter("ignore")  # don't print division by zero warning
       conditional_log_likelihoods = np.log(self.predict(X, Y))
-    return np.sum(conditional_log_likelihoods)
+    return np.mean(conditional_log_likelihoods)
 
   def fit_by_cv(self, X, Y, n_folds=5):
     # save properties of data

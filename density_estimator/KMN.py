@@ -109,6 +109,8 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         """
         likelihood of a given target value
         """
+        assert self.fitted, "model must be fitted to compute likelihood score"
+
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
         return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
 
@@ -126,15 +128,8 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         """
         sample from the conditional mixture distributions
         """
+        assert self.fitted, "model must be fitted to compute likelihood score"
         return self.sess.run(self.samples, feed_dict={self.X_ph: X})
-
-    def score(self, X, Y):
-        """
-        return mean log likelihood
-        """
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        likelihoods = self.predict(X, Y)
-        return np.log(likelihoods).mean()
 
     def _build_model(self, X, Y):
         """
