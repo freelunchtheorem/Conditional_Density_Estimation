@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator
-from density_estimator.helpers import sample_center_points, norm_along_axis_1, handle_input_dimensionality
+from density_estimator.helpers import sample_center_points, norm_along_axis_1
 from density_estimator.base import BaseDensityEstimator
 import itertools
 
@@ -41,7 +41,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
     """
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    X, Y = handle_input_dimensionality(X, Y)
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
     self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
 
     # define the full model
@@ -73,10 +73,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     """
     assert self.fitted, "model must be fitted for predictions"
 
-    # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    X, Y = handle_input_dimensionality(X, Y)
-    assert X.shape[1] == self.ndim_x
-    assert Y.shape[1] == self.ndim_y
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
     p = np.dot(self.alpha.T, self._gaussian_kernel(X, Y).T)
     p_normalization = (np.sqrt(2*np.pi)*self.bandwidth)**self.ndim_y * np.dot(self.alpha.T, self._gaussian_kernel(X).T)

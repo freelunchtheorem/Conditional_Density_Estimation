@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import BaseEstimator
-from density_estimator.helpers import norm_along_axis_1, handle_input_dimensionality
+from density_estimator.helpers import norm_along_axis_1
 from density_estimator.base import BaseDensityEstimator
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
@@ -30,10 +30,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
     :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
     """
-    # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    x, Y = handle_input_dimensionality(X, Y)
-
-    self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     self._build_model(X, Y)
 
@@ -66,7 +63,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     """
 
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    X, Y = handle_input_dimensionality(X, Y)
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
     assert X.shape[1] == self.ndim_x
     assert Y.shape[1] == self.ndim_y
 
@@ -100,7 +97,6 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
       conditional_densities[i] = self._density(neighbor_weights[i, :], Y[i, :])
 
     return conditional_densities
-
 
   def _density(self, neighbor_weights, y):
     assert neighbor_weights.shape[0] == self.n_train_points
