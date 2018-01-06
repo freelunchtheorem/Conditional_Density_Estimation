@@ -1,9 +1,10 @@
 #
-# Code basis from https://github.com/janvdvegt/KernelMixtureNetwork
+# code skeleton from https://github.com/janvdvegt/KernelMixtureNetwork
+# this version additionally supports fit_by_crossval and multidimentional Y
 #
 
 import numpy as np
-from edward.models import Categorical, Mixture, Normal
+from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
 from keras.layers import Dense, Dropout
 from density_estimator.helpers import sample_center_points
 from density_estimator.base import BaseDensityEstimator
@@ -48,20 +49,22 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         if init_scales == 'default':
             init_scales = np.array([1])
 
+        self.n_scales = len(init_scales)
         # Transform scales so that the softplus will result in passed init_scales
         self.init_scales = [math.log(math.exp(s) - 1) for s in init_scales]
-        self.n_scales = len(self.init_scales)
         self.train_scales = train_scales
 
         self.fitted = False
 
-    def fit(self, X, y, n_epoch=500, **kwargs):
+    def fit(self, X, Y, n_epoch=500, **kwargs):
         """
         build and train model
         """
+
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+
         # define the full model
-        y = y.flatten()
-        self._build_model(X, y)
+        self._build_model(X, Y)
 
         # setup inference procedure
         self.inference = ed.MAP(data={self.mixtures: self.y_ph})
@@ -69,10 +72,10 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         tf.global_variables_initializer().run()
 
         # train the model
-        self.partial_fit(X, y, n_epoch=n_epoch, **kwargs)
+        self.partial_fit(X, Y, n_epoch=n_epoch, **kwargs)
         self.fitted = True
 
-    def partial_fit(self, X, y, n_epoch=1, eval_set=None):
+    def partial_fit(self, X, Y, n_epoch=1, eval_set=None):
         """
         update model
         """
@@ -82,9 +85,9 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         for i in range(n_epoch):
 
             # run inference, update trainable variables of the model
-            info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: y})
+            info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
 
-            train_loss = info_dict['loss'] / len(y)
+            train_loss = info_dict['loss'] / len(Y)
             self.train_loss = np.append(self.train_loss, -train_loss)
 
             if eval_set is not None:
@@ -102,21 +105,22 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         print("optimal scales: {}".format(self.sess.run(self.scales)))
 
-    def predict(self, X, y):
+    def predict(self, X, Y):
         """
         likelihood of a given target value
         """
-        return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: y})
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+        return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
 
-    def predict_density(self, X, y=None, resolution=100):
+    def predict_density(self, X, Y=None, resolution=100):
         """
         conditional density over a predefined grid of target values
         """
-        if y is None:
+        if Y is None:
             max_scale = np.max(self.sess.run(self.scales))
-            y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
+            Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
 
-        return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: y})
+        return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
 
     def sample(self, X):
         """
@@ -124,27 +128,25 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         """
         return self.sess.run(self.samples, feed_dict={self.X_ph: X})
 
-    def score(self, X, y):
+    def score(self, X, Y):
         """
         return mean log likelihood
         """
-        likelihoods = self.predict(X, y)
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+        likelihoods = self.predict(X, Y)
         return np.log(likelihoods).mean()
 
-    def _build_model(self, X, y):
+    def _build_model(self, X, Y):
         """
         implementation of the KMN
         """
         # create a placeholder for the target
-        self.y_ph = y_ph = tf.placeholder(tf.float32, [None])
+        self.y_ph = y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
         self.n_sample_ph = tf.placeholder(tf.int32, None)
-
-        #  store feature dimension size for placeholder
-        self.n_features = X.shape[1]
 
         # if no external estimator is provided, create a default neural network
         if self.estimator is None:
-            self.X_ph = tf.placeholder(tf.float32, [None, self.n_features])
+            self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
             # two dense hidden layers with 15 nodes each
             x = Dense(15, activation='relu')(self.X_ph)
             x = Dense(15, activation='relu')(x)
@@ -155,26 +157,26 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         # locations of the gaussian kernel centers
         n_locs = self.n_centers
-        self.locs = locs = sample_center_points(y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges).flatten()
-        self.locs_array = locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, n_locs)), locs)))
+        self.locs = locs = sample_center_points(Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
+        self.locs_array = locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, n_locs, self.ndim_y)), locs), perm=[1,0,2]))
 
         # scales of the gaussian kernels
         self.scales = scales = tf.nn.softplus(tf.Variable(self.init_scales, dtype=tf.float32, trainable=self.train_scales))
-        self.scales_array = scales_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.n_scales)), scales)))
+        self.scales_array = scales_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.ndim_y, self.n_scales)), scales), perm=[2,0,1]))
 
         # kernel weights, as output by the neural network
         self.weights = weights = Dense(n_locs * self.n_scales, activation='softplus')(self.estimator)
 
         # mixture distributions
         self.cat = cat = Categorical(logits=weights)
-        self.components = components = [Normal(loc=loc, scale=scale) for loc in locs_array for scale in scales_array]
+        self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in locs_array for scale in scales_array]
         self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(y_ph))
 
         # tensor to store samples
         self.samples = mixtures.sample()
 
-        self.y_min = y.min()
-        self.y_max = y.max()
+        self.y_min = Y.min()
+        self.y_max = Y.max()
 
         # placeholder for the grid
         self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
