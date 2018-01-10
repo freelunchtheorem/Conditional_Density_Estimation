@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.model_selection import train_test_split
+from density_simulation import ConditionalDensity
+
+
 
 def econ_conditional_pdf_1_sample(x, n_samples = 1000):
   y = x ** 2 + np.random.normal(loc=0, scale=0.5, size=[n_samples])

@@ -26,7 +26,7 @@ def plot_fitted_distribution():
 
   model.fit(X_train, Y_train)
   print(model.score(X_test, Y_test))
-  print(model.fit_by_cv(X_train, Y_train))
+  #print(model.fit_by_cv(X_train, Y_train))
 
 
 
@@ -40,6 +40,8 @@ def plot_fitted_distribution():
   # plt.show()
   #
   #
+
+
   n_samples = 1000
 
   Y_plot = np.linspace(-10, 10, num=n_samples)
@@ -49,12 +51,14 @@ def plot_fitted_distribution():
   plt.plot(Y_plot, result)
   #plt.show()
 
+  #2d plot
   X_plot = np.expand_dims(np.asarray([2 for _ in range(n_samples)]), axis=1)
   result = model.predict(X_plot, Y_plot)
   plt.plot(Y_plot, result)
 
   plt.show()
 
+  #3d plot
   n_samples = 100
   linspace_x = np.linspace(-15, 15, num=n_samples)
   linspace_y = np.linspace(-15, 15, num=n_samples)
