@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from density_estimator import LSConditionalDensityEstimation, NeighborKernelDensityEstimation, KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
-from density_simulation.econ_densities import build_econ1_dataset
+from density_simulation.EconDensity import build_econ1_dataset
 from density_simulation.toy_densities import build_toy_dataset, build_toy_dataset2
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
