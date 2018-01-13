@@ -2,6 +2,9 @@ from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, GridSearchCV
 import numpy as np
 import warnings
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 
 class BaseDensityEstimator(BaseEstimator):
 
@@ -50,6 +53,35 @@ class BaseDensityEstimator(BaseEstimator):
     print("Best params:", best_params)
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
+
+  def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100):
+    """
+    Plots the fitted conditional distribution in mode if x and y are 1-dimensional each
+    :param xlim: 2-tuple specifying the x axis limits
+    :param ylim: 2-tuple specifying the y axis limits
+    :param resolution: integer specifying the resolution of plot
+    """
+    assert self.fitted, "model must be fitted to plot"
+    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+
+    # prepare mesh
+    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+    X, Y = np.meshgrid(linspace_x, linspace_y)
+    X, Y = X.flatten(), Y.flatten()
+
+    # calculate values of distribution
+    Z = self.predict(X, Y)
+
+    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+      [resolution, resolution])
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+                           linewidth=100, antialiased=True)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.show()
 
   def _handle_input_dimensionality(self, X, Y, fitting=False):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
