@@ -13,7 +13,7 @@ class EconDensity(ConditionalDensity):
   """
   # todo: generalize to ndim_x, ndim_y-usage
 
-  def __init__(self, std):
+  def __init__(self, std=1):
     self.std = std
     self.ndim = 2
     self.ndim_x = 1
@@ -21,16 +21,18 @@ class EconDensity(ConditionalDensity):
 
   def pdf(self, X, Y):
     mean = X**2
-    return stats.norm.pdf(Y, loc=mean, scale=self.std)
+    return np.where(X<0, 0, stats.norm.pdf(Y, loc=mean, scale=self.std))
 
   def cdf(self, X, Y):
     mean = X**2
-    return stats.norm.cdf(Y, loc=mean, scale=self.std)
+    return np.where(X<0, 0, stats.norm.cdf(Y, loc=mean, scale=self.std))
 
   def joint_pdf(self, X, Y):
+    raise NotImplementedError
 
   def simulate_conditional(self, X):
     assert X.ndim == 1
+    assert all(X > 0), "can only condition on positive X"
     n_samples = X.shape[0]
     Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=[n_samples])
     return X, Y
@@ -40,36 +42,3 @@ class EconDensity(ConditionalDensity):
     X = np.abs(np.random.standard_normal(size=[n_samples]))
     Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=[n_samples])
     return X, Y
-
-  def plot(self, xlim, ylim):
-    # todo
-    raise NotImplementedError
-
-
-
-def plot_histogram_pdf_econ1(n_samples=100000):
-  sim_data = econ_pdf_1_sample(n_samples=n_samples)
-  print(sim_data.shape)
-
-  fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  x, y = sim_data[:, 0], sim_data[:, 1]
-  hist, xedges, yedges = np.histogram2d(x, y, bins=50, range=[[0, 2], [0, 2]])
-
-  xpos, ypos = np.meshgrid(xedges[:-1] + 0.25, yedges[:-1] + 0.25)
-  xpos = xpos.flatten('F')
-  ypos = ypos.flatten('F')
-  zpos = np.zeros_like(xpos)
-
-  # Construct arrays with the dimensions for the 16 bars.
-  dx = 0.5 * np.ones_like(zpos)
-  dy = dx.copy()
-  dz = hist.flatten()
-
-  ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color='b', zsort='average')
-  plt.show()
-
-def plot_histogram_conditional_pdf_econ1(x, n_samples = 100000):
-  sim_data = econ_conditional_pdf_1_sample(x, n_samples=n_samples)
-  plt.hist(sim_data, bins=100)
-  plt.show()
