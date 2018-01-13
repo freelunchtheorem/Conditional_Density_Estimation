@@ -141,6 +141,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
          :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
         """
         assert self.fitted, "model must be fitted to compute likelihood score"
+        X = self._handle_input_dimensionality(X)
         return self.sess.run(self.samples, feed_dict={self.X_ph: X})
 
     def _build_model(self, X, Y):

@@ -2,7 +2,6 @@ import scipy.stats as stats
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.model_selection import train_test_split
 from density_simulation import ConditionalDensity
 
 class EconDensity(ConditionalDensity):
@@ -21,7 +20,7 @@ class EconDensity(ConditionalDensity):
     return np.where(X<0, 0, stats.norm.pdf(Y, loc=mean, scale=self.std))
 
   def cdf(self, X, Y):
-    mean = X**2
+    mean = X ** 2
     return np.where(X<0, 0, stats.norm.cdf(Y, loc=mean, scale=self.std))
 
   def joint_pdf(self, X, Y):

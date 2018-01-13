@@ -11,7 +11,7 @@ class GaussianMixture(ConditionalDensity):
   A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the
   ConditionDensity class.
   """
-  def __init__(self, n_kernels=3, ndim_x=1, ndim_y=1, means_std=1.5):
+  def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5):
     """
     :param n_kernels: number of mixture components
     :param ndim_x: dimensionality of X / number of random variables in X
@@ -157,3 +157,8 @@ class GaussianMixture(ConditionalDensity):
     normalizing_term = np.sum(w_p, axis=1)
     result = w_p / normalizing_term[:,None]
     return result
+
+
+if __name__=="__main__":
+  model = GaussianMixture()
+  model.plot(mode="joint_pdf")

@@ -117,10 +117,12 @@ def plot_fitted_distribution():
 
 
 def test_goodness_of_fit():
-  kmn = KernelMixtureNetwork(train_scales=True, n_centers=5)
+  kmn = KernelMixtureNetwork(train_scales=True, n_centers=30)
   prob_model = EconDensity()
-  gof = GoodnessOfFit(kmn, prob_model, n_fit_epochs=100)
-
+  gof = GoodnessOfFit(kmn, prob_model, n_observations=10000, n_fit_epochs=100)
+  print(gof.jarque_bera_test())
+  print(gof.kolmogorov_smirnov_statistic())
+  print(gof.kolmogorov_smirnov_test())
 
 
 
