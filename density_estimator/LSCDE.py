@@ -1,8 +1,8 @@
 import numpy as np
-from sklearn.base import BaseEstimator
 from density_estimator.helpers import sample_center_points, norm_along_axis_1
 from density_estimator.base import BaseDensityEstimator
 import itertools
+import scipy.stats as stats
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 
@@ -32,6 +32,10 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     centroids = sample_center_points(X_Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
     self.centr_x = centroids[:,0:self.ndim_x]
     self.centr_y = centroids[:,self.ndim_x:]
+
+    #prepare gaussians for sampling
+    self.gaussians_y = [stats.multivariate_normal(mean=center, cov=self.bandwidth) for center in self.centr_y]
+
     assert self.centr_x.shape == (n_locs, self.ndim_x) and self.centr_y.shape == (n_locs, self.ndim_y)
 
   def fit(self, X, Y, **kwargs):
@@ -108,6 +112,19 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     return density, Y
 
+  def sample(self, X):
+    assert self.fitted
+    weights = np.multiply(self.alpha, self._gaussian_kernel(X))
+    weights = weights / np.sum(weights, axis=1)[:,None]
+
+    Y = np.zeros(shape=(X.shape[0], self.ndim_y))
+    for i in range(X.shape[0]):
+      discrete_dist = stats.rv_discrete(values=(range(weights.shape[1]), weights[i, :]))
+      idx = discrete_dist.rvs()
+      Y[i, :] = self.gaussians_y[idx].rvs()
+
+    return Y
+
   def _gaussian_kernel(self, X, Y=None):
     """
     if Y is set returns the product of the gaussian kernels for X and Y, else only the gaussian kernel for X
@@ -147,7 +164,6 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       "keep_edges": [True, False]
     }
     return param_grid
-
 
 
 
