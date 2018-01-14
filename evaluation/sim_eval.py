@@ -79,56 +79,48 @@ def plot_fitted_distribution():
 
 
 
-# def eval1():
-#   n_observations = 2000  # number of data points
-#   n_features = 1  # number of features
-#
-#   X_train, X_test, y_train, y_test = build_econ1_dataset(n_observations)
-#   print("Size of features in training data: {}".format(X_train.shape))
-#   print("Size of output in training data: {}".format(y_train.shape))
-#   print("Size of features in test data: {}".format(X_test.shape))
-#   print("Size of output in test data: {}".format(y_test.shape))
-#
-#   fig, ax = plt.subplots()
-#   fig.set_size_inches(10, 8)
-#   sns.regplot(X_train, y_train, fit_reg=False)
-#   # plt.savefig('toydata.png')
-#   # plt.show()
-#   # plot.figure.size = 100
-#   # plt.show()
-#
-#   kmn = KernelMixtureNetwork(train_scales=True, n_centers=20)
-#   kmn.fit(X_train, y_train, n_epoch=300, eval_set=(X_test, y_test))
-#   kmn.plot_loss()
-#   # plt.savefig('trainplot.png')
-#   samples = kmn.sample(X_test)
-#   print(X_test.shape, samples.shape)
-#   jp = sns.jointplot(X_test.ravel(), samples, kind="hex", stat_func=None, size=10)
-#   jp.ax_joint.add_line(Line2D([X_test[0][0], X_test[0][0]], [-40, 40], linewidth=3))
-#   jp.ax_joint.add_line(Line2D([X_test[1][0], X_test[1][0]], [-40, 40], color='g', linewidth=3))
-#   jp.ax_joint.add_line(Line2D([X_test[2][0], X_test[2][0]], [-40, 40], color='r', linewidth=3))
-#   plt.savefig('hexplot.png')
-#   plt.show()
-#   d = kmn.predict_density(X_test[0:3, :].reshape(-1, 1), resolution=1000)
-#   df = pd.DataFrame(d).transpose()
-#   df.index = np.linspace(kmn.y_min, kmn.y_max, num=1000)
-#   df.plot(legend=False, linewidth=3, figsize=(12.2, 8))
-#   plt.savefig('conditional_density.png')
+def eval1():
+  n_observations = 2000  # number of data points
+  n_features = 1  # number of features
+
+  X_train, X_test, y_train, y_test = build_econ1_dataset(n_observations)
+  print("Size of features in training data: {}".format(X_train.shape))
+  print("Size of output in training data: {}".format(y_train.shape))
+  print("Size of features in test data: {}".format(X_test.shape))
+  print("Size of output in test data: {}".format(y_test.shape))
+
+  fig, ax = plt.subplots()
+  fig.set_size_inches(10, 8)
+  sns.regplot(X_train, y_train, fit_reg=False)
+  # plt.savefig('toydata.png')
+  # plt.show()
+  # plot.figure.size = 100
+  # plt.show()
+
+  kmn = KernelMixtureNetwork(train_scales=True, n_centers=20)
+  kmn.fit(X_train, y_train, n_epoch=300, eval_set=(X_test, y_test))
+  kmn.plot_loss()
+  # plt.savefig('trainplot.png')
+  samples = kmn.sample(X_test)
+  print(X_test.shape, samples.shape)
+  jp = sns.jointplot(X_test.ravel(), samples, kind="hex", stat_func=None, size=10)
+  jp.ax_joint.add_line(Line2D([X_test[0][0], X_test[0][0]], [-40, 40], linewidth=3))
+  jp.ax_joint.add_line(Line2D([X_test[1][0], X_test[1][0]], [-40, 40], color='g', linewidth=3))
+  jp.ax_joint.add_line(Line2D([X_test[2][0], X_test[2][0]], [-40, 40], color='r', linewidth=3))
+  plt.savefig('hexplot.png')
+  plt.show()
+  d = kmn.predict_density(X_test[0:3, :].reshape(-1, 1), resolution=1000)
+  df = pd.DataFrame(d).transpose()
+  df.index = np.linspace(kmn.y_min, kmn.y_max, num=1000)
+  df.plot(legend=False, linewidth=3, figsize=(12.2, 8))
+  plt.savefig('conditional_density.png')
 
 
-def test_goodness_of_fit():
-  kmn = KernelMixtureNetwork(train_scales=True, n_centers=30)
-  prob_model = EconDensity()
-  gof = GoodnessOfFit(kmn, prob_model, n_observations=10000, n_fit_epochs=100)
-  print(gof.jarque_bera_test())
-  print(gof.kolmogorov_smirnov_statistic())
-  print(gof.kolmogorov_smirnov_test())
 
 
 
 def main():
-  test_goodness_of_fit()
-  #plot_fitted_distribution()
+  plot_fitted_distribution()
   #eval1()
 
 

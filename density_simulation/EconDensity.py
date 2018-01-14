@@ -28,13 +28,14 @@ class EconDensity(ConditionalDensity):
 
   def simulate_conditional(self, X):
     assert X.ndim == 1
-    assert all(X > 0), "can only condition on positive X"
     n_samples = X.shape[0]
-    Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=[n_samples])
+    Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=n_samples)
+    X = np.expand_dims(X, axis=1)
+    Y = np.expand_dims(Y, axis=1)
     return X, Y
 
   def simulate(self, n_samples=1000):
     assert n_samples > 0
     X = np.abs(np.random.standard_normal(size=[n_samples]))
-    Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=[n_samples])
+    Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=n_samples)
     return X, Y

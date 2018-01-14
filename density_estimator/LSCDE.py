@@ -114,6 +114,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
   def sample(self, X):
     assert self.fitted
+    X = self._handle_input_dimensionality(X)
+
     weights = np.multiply(self.alpha, self._gaussian_kernel(X))
     weights = weights / np.sum(weights, axis=1)[:,None]
 
@@ -123,7 +125,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       idx = discrete_dist.rvs()
       Y[i, :] = self.gaussians_y[idx].rvs()
 
-    return Y
+    return X, Y
 
   def _gaussian_kernel(self, X, Y=None):
     """

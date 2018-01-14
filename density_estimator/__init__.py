@@ -1,3 +1,4 @@
 from density_estimator.KMN import KernelMixtureNetwork
 from density_estimator.LSCDE import LSConditionalDensityEstimation
 from density_estimator.NKDE import NeighborKernelDensityEstimation
+from density_estimator.base import BaseDensityEstimator

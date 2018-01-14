@@ -142,7 +142,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         """
         assert self.fitted, "model must be fitted to compute likelihood score"
         X = self._handle_input_dimensionality(X)
-        return self.sess.run(self.samples, feed_dict={self.X_ph: X})
+        return X, self.sess.run(self.samples, feed_dict={self.X_ph: X})
 
     def _build_model(self, X, Y):
         """
