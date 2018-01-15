@@ -64,10 +64,16 @@ class GoodnessOfFit:
     sw, p = shapiro(self.estimator_conditional_samples)
     return sw, p
 
-  def kolmogorov_smirnov_cdf(self):
+  def kolmogorov_smirnov_cdf(self, repeat=10):
     np.random.seed(98765431)
-    ks, p = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
-    return ks, p
+    ks = []
+    p = []
+    for _ in range(repeat):
+      self.resample_new_conditional_samples()
+      ks_new, p_new = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
+      ks.append(ks_new), p.append(p_new)
+    return np.mean(ks), np.mean(p)
+
 
   def kolmogorov_smirnov_2sample(self, repeat=10):
     np.random.seed(98765431)
