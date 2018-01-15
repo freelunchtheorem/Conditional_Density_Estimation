@@ -43,9 +43,13 @@ class GoodnessOfFit:
       X_cond = np.asarray([0 for _ in range(n_x_cond)])
 
     self.X_cond = X_cond
-    _, self.estimator_conditional_samples = self.estimator.sample(self.X_cond)
-    _, self.proba_model_conditional_samples = probabilistic_model.simulate_conditional(self.X_cond)
 
+    self.resample_new_conditional_samples()
+
+
+  def resample_new_conditional_samples(self):
+    _, self.estimator_conditional_samples = self.estimator.sample(self.X_cond)
+    _, self.proba_model_conditional_samples = self.probabilistic_model.simulate_conditional(self.X_cond)
 
     """ kstest can't handle single-dimensional entries, therefore remove it"""
     if self.estimator_conditional_samples.ndim == 2:
@@ -54,7 +58,6 @@ class GoodnessOfFit:
     if self.proba_model_conditional_samples.ndim == 2:
       if self.proba_model_conditional_samples.shape[1] == 1:
         self.proba_model_conditional_samples = np.squeeze(self.proba_model_conditional_samples, axis=1)
-
 
 
   def shapiro_wilk_test(self):
@@ -66,12 +69,15 @@ class GoodnessOfFit:
     ks, p = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
     return ks, p
 
-  def kolmogorov_smirnov_2sample(self, repeat=2):
+  def kolmogorov_smirnov_2sample(self, repeat=10):
     np.random.seed(98765431)
-    for i in range(repeat):
-      d = GoodnessOfFit(self)
-    ks, p = ks_2samp(self.estimator_conditional_samples, self.proba_model_conditional_samples)
-    return ks, p
+    ks = []
+    p = []
+    for _ in range(repeat):
+      self.resample_new_conditional_samples()
+      ks_new, p_new = ks_2samp(self.estimator_conditional_samples, self.proba_model_conditional_samples)
+      ks.append(ks_new), p.append(p_new)
+    return np.mean(ks), np.mean(p)
 
   def jarque_bera_test(self):
     jb, p = jarque_bera(self.estimator_conditional_samples)
@@ -94,7 +100,6 @@ class GoodnessOfFit:
 
     Z_P = P(X,Y)
     Z_Q = Q(X,Y)
-
     # KL can't handle zero values -> replace with small values if zero values existent
     # Z_Q[Z_Q == 0] = np.finfo(np.double).tiny
     # Z_P[Z_P == 0] = np.finfo(np.double).tiny
