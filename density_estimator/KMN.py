@@ -111,7 +111,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
     def predict(self, X, Y):
         """
-        copmutes the conditional likelihood p(y|x) given the fitted model
+        computes the conditional likelihood p(y|x) given the fitted model
         :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
         :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
         :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)

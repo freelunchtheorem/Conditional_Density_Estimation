@@ -11,9 +11,9 @@ class EconDensity(ConditionalDensity):
 
   def __init__(self, std=1):
     self.std = std
-    self.ndim = 2
     self.ndim_x = 1
     self.ndim_y = 1
+    self.ndim = self.ndim_x + self.ndim_y
 
   def pdf(self, X, Y):
     mean = X**2

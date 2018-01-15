@@ -25,7 +25,7 @@ class GaussianDummy(BaseDensityEstimator):
   def cdf(self, X, Y):
     return self.gaussian.cdf(Y)
 
-  def predict_density(self, X, Y=None, resolution=50):
+  def predict(self, X, Y, resolution=50):
     return self.pdf(X,Y)
 
   def sample(self, X):

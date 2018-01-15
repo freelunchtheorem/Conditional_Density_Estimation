@@ -42,7 +42,8 @@ class GoodnessOfFit:
     if X_cond is None:
       """ generate X_cond data with shape (n_x_cond, estimator.ndim_x) """
       X_cond = np.stack([np.asarray([0 for _ in range(n_x_cond)]) for i in range(self.estimator.ndim_x)], axis=1)
-
+      # in the case X_Cond is (n_x_cond, 1) convert to (n_x_cond, )
+      X_cond = np.squeeze(X_cond)
 
     self.X_cond = X_cond
 
@@ -92,7 +93,7 @@ class GoodnessOfFit:
 
   def kl_divergence(self):
     P = self.probabilistic_model.pdf
-    Q = self.estimator.predict_density
+    Q = self.estimator.predict
 
     # prepare mesh
     linspace_x = np.linspace(-5, 5, num=100)

@@ -70,7 +70,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
   def predict(self, X, Y):
     """
-    copmutes the contitional likelihood p(y|x) given the fitted model
+    copmutes the conditional likelihood p(y|x) given the fitted model
     :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
     :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
     :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
@@ -92,8 +92,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     :param resulution of evaluation grid
     :return density p(y|x) shape: (n_instances, resolution**n_dim_y), Y - grid with with specified resolution - shape: (resolution**n_dim_y, n_dim_y)
     """
-    assert X.shape[1] == self.ndim_x
-
+    assert X.ndim == 1 or X.shape[1] == self.ndim_x
+    X = self._handle_input_dimensionality(X)
     if Y is None:
       y_min = np.min(self.centr_y, axis=0)
       y_max = np.max(self.centr_y, axis=0)
@@ -102,8 +102,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
         x = np.linspace(y_min[d] - 2.5 * self.bandwidth, y_max[d] + 2.5 * self.bandwidth, num=resolution)
         linspaces.append(x)
       Y = np.asmatrix(list(itertools.product(linspaces[0], linspaces[1])))
-
-    assert Y.shape[1] == self.ndim_y
+    assert Y.ndim == 1 or Y.shape[1] == self.ndim_y
 
     density = np.zeros(shape=[X.shape[0],Y.shape[0]])
     for i in range(X.shape[0]):
