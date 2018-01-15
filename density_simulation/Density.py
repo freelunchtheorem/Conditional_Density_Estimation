@@ -78,3 +78,30 @@ class ConditionalDensity:
     plt.ylabel("y")
     plt.show()
 
+
+  def _handle_input_dimensionality(self, X, Y=None, fitting=False):
+    # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
+    if np.size(X) == 1 and Y is None:
+      return X
+
+    if X.ndim == 1:
+      X = np.expand_dims(X, axis=1)
+
+    if Y is not None:
+      if Y.ndim == 1:
+        Y = np.expand_dims(Y, axis=1)
+
+      assert X.shape[0] == Y.shape[0], "X and Y must have the same length along axis 0"
+      assert X.ndim == Y.ndim == 2, "X and Y must be matrices"
+
+    if fitting: # store n_dim of training data
+      self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
+    else:
+      assert X.shape[1] == self.ndim_x, "X must have shape (?, %i) but provided X has shape %s" % (self.ndim_x, X.shape)
+      if Y is not None:
+        assert Y.shape[1] == self.ndim_y, "Y must have shape (?, %i) but provided Y has shape %s" % (self.ndim_y, Y.shape)
+
+    if Y is None:
+      return X
+    else:
+      return X, Y

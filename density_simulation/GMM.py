@@ -60,7 +60,7 @@ class GaussianMixture(ConditionalDensity):
        :param Y: the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)
        :return: the cond. cumulative distribution of Y given X, for the given realizations of X with shape:(n_samples,)
        """
-    X, Y = helpers.handle_input_dimensionality(X, Y)
+    X, Y = self._handle_input_dimensionality(X, Y)
 
     P_y = np.stack([self.gaussians_y[i].cdf(Y) for i in range(self.n_kernels)],
                    axis=1)  # shape(X.shape[0], n_kernels)
@@ -96,7 +96,7 @@ class GaussianMixture(ConditionalDensity):
        :param Y: variable Y for the distribution P(X, Y) array_like, shape:(n_samples, ndim_y)
        :return: the joint distribution of X and Y wih shape:(n_samples,)
        """
-    X, Y = helpers.handle_input_dimensionality(X,Y)
+    X, Y = self._handle_input_dimensionality(X,Y)
     XY = np.concatenate([X,Y], axis=1)
     a = [self.weights[i] * self.gaussians[i].pdf(XY) for i in range(self.n_kernels)]
     p_i = np.stack(a, axis=1)

@@ -40,7 +40,9 @@ class GoodnessOfFit:
     self.estimator = estimator
 
     if X_cond is None:
-      X_cond = np.asarray([0 for _ in range(n_x_cond)])
+      """ generate X_cond data with shape (n_x_cond, estimator.ndim_x) """
+      X_cond = np.stack([np.asarray([0 for _ in range(n_x_cond)]) for i in range(self.estimator.ndim_x)], axis=1)
+
 
     self.X_cond = X_cond
 
@@ -64,7 +66,7 @@ class GoodnessOfFit:
     sw, p = shapiro(self.estimator_conditional_samples)
     return sw, p
 
-  def kolmogorov_smirnov_cdf(self, repeat=10):
+  def kolmogorov_smirnov_cdf(self, repeat=20):
     np.random.seed(98765431)
     ks = []
     p = []
@@ -74,8 +76,7 @@ class GoodnessOfFit:
       ks.append(ks_new), p.append(p_new)
     return np.mean(ks), np.mean(p)
 
-
-  def kolmogorov_smirnov_2sample(self, repeat=10):
+  def kolmogorov_smirnov_2sample(self, repeat=20):
     np.random.seed(98765431)
     ks = []
     p = []
@@ -89,23 +90,20 @@ class GoodnessOfFit:
     jb, p = jarque_bera(self.estimator_conditional_samples)
     return jb, p
 
-
-
   def kl_divergence(self):
     P = self.probabilistic_model.pdf
     Q = self.estimator.predict_density
 
-
     # prepare mesh
     linspace_x = np.linspace(-5, 5, num=100)
     linspace_y = np.linspace(-5, 5, num=100)
-
 
     xv, yv = np.meshgrid(linspace_x, linspace_y, sparse=False, indexing='xy')
     X, Y = xv.flatten(), yv.flatten()
 
     Z_P = P(X,Y)
     Z_Q = Q(X,Y)
+
     # KL can't handle zero values -> replace with small values if zero values existent
     # Z_Q[Z_Q == 0] = np.finfo(np.double).tiny
     # Z_P[Z_P == 0] = np.finfo(np.double).tiny
