@@ -56,7 +56,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         self.fitted = False
 
-    def fit(self, X, Y, n_epoch=500, **kwargs):
+    def fit(self, X, Y, n_epoch=300, **kwargs):
         """
         builds the Kernel Density Network model and fits the parameters by minimizing the negative
         log-likelihood of the provided data
@@ -111,7 +111,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
     def predict(self, X, Y):
         """
-        copmutes the contitional likelihood p(y|x) given the fitted model
+        copmutes the conditional likelihood p(y|x) given the fitted model
         :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
         :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
         :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
@@ -132,7 +132,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         if Y is None:
             max_scale = np.max(self.sess.run(self.scales))
             Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
-
+        X = self._handle_input_dimensionality(X)
         return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
 
     def sample(self, X):

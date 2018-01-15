@@ -6,9 +6,9 @@ import numpy as np
 
 class GaussianDummy(BaseDensityEstimator):
 
-  def __init__(self, mean):
-    self.ndim_x = 1
-    self.ndim_y = 1
+  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
     self.mean = np.array(self.ndim_y*[mean])
@@ -25,15 +25,21 @@ class GaussianDummy(BaseDensityEstimator):
   def cdf(self, X, Y):
     return self.gaussian.cdf(Y)
 
+  def predict_density(self, X, Y=None, resolution=50):
+    return self.pdf(X,Y)
+
   def sample(self, X):
-    Y = self.gaussian.rvs(size=(X.shape[0]))
-    return X, Y
+    if np.size(X) == 1:
+      Y = self.gaussian.rvs(size=1)
+    else:
+      Y = self.gaussian.rvs(size=(X.shape[0]))
+    return X,Y
 
 
 class SimulationDummy(ConditionalDensity):
-  def __init__(self, mean):
-    self.ndim_x = 1
-    self.ndim_y = 1
+  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
     self.mean = np.array(self.ndim_y*[mean])

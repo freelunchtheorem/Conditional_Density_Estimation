@@ -1,5 +1,4 @@
 from density_simulation import ConditionalDensity
-
 import numpy as np
 import density_estimator.helpers as helpers
 import scipy.stats as stats

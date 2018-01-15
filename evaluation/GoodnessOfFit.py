@@ -4,8 +4,7 @@ from sklearn.model_selection import train_test_split
 from density_simulation import get_probabilistic_models_list
 from density_simulation import ConditionalDensity
 import numpy as np
-import matplotlib.pyplot as plt
-
+import scipy
 
 
 class GoodnessOfFit:
@@ -34,70 +33,76 @@ class GoodnessOfFit:
 
     if print_fit_result:
       estimator.plot_loss()
+      self.probabilistic_model.plot(mode="cdf")
+      self.probabilistic_model.plot(mode="pdf")
 
 
     self.estimator = estimator
 
     if X_cond is None:
-      self.X_cond = np.asarray([0 for _ in range(n_x_cond)])
+      X_cond = np.asarray([0 for _ in range(n_x_cond)])
 
-    _, self.estimator_cond_samples = self.estimator.sample(self.X_cond)
+    self.X_cond = X_cond
+    _, self.estimator_conditional_samples = self.estimator.sample(self.X_cond)
     _, self.proba_model_conditional_samples = probabilistic_model.simulate_conditional(self.X_cond)
 
+
+    """ kstest can't handle single-dimensional entries, therefore remove it"""
+    if self.estimator_conditional_samples.ndim == 2:
+      if self.estimator_conditional_samples.shape[1] == 1:
+        self.estimator_conditional_samples = np.squeeze(self.estimator_conditional_samples, axis = 1)
+    if self.proba_model_conditional_samples.ndim == 2:
+      if self.proba_model_conditional_samples.shape[1] == 1:
+        self.proba_model_conditional_samples = np.squeeze(self.proba_model_conditional_samples, axis=1)
 
 
 
   def shapiro_wilk_test(self):
-    sw, p = shapiro(self.estimator_cond_samples)
+    sw, p = shapiro(self.estimator_conditional_samples)
     return sw, p
 
   def kolmogorov_smirnov_cdf(self):
     np.random.seed(98765431)
-    ks, p = kstest(self.estimator_cond_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
+    ks, p = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
     return ks, p
 
-  def kolmogorov_smirnov_2sample(self):
+  def kolmogorov_smirnov_2sample(self, repeat=2):
     np.random.seed(98765431)
-    ks, p = ks_2samp(self.estimator_cond_samples, self.proba_model_conditional_samples)
+    for i in range(repeat):
+      d = GoodnessOfFit(self)
+    ks, p = ks_2samp(self.estimator_conditional_samples, self.proba_model_conditional_samples)
     return ks, p
 
   def jarque_bera_test(self):
-    jb, p = jarque_bera(self.estimator_cond_samples)
+    jb, p = jarque_bera(self.estimator_conditional_samples)
     return jb, p
 
+
+
   def kl_divergence(self):
-    Q = self.probabilistic_model.pdf
-    P = self.estimator.predict
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.predict_density
+
 
     # prepare mesh
     linspace_x = np.linspace(-5, 5, num=100)
     linspace_y = np.linspace(-5, 5, num=100)
 
-    kl_divergence = 0
 
-    X, Y = np.meshgrid(linspace_x, linspace_y)
-    X, Y = X.flatten(), Y.flatten()
+    xv, yv = np.meshgrid(linspace_x, linspace_y, sparse=False, indexing='xy')
+    X, Y = xv.flatten(), yv.flatten()
 
     Z_P = P(X,Y)
     Z_Q = Q(X,Y)
-    xv, yv = np.meshgrid(linspace_x, linspace_y, sparse=False, indexing='ij')
-    # for i in range(len(linspace_x)):
-    #   for j in range(len(linspace_y)):
-    #     X = xv[i,j]
-    #     Y = yv[i,j]
-    #     Z_P.append(P(X,Y))
-    #      Z_Q.append(Q(X,Y))
 
-    # todo: compute delta x
-    kl = np.sum(np.where(Z_P != 0, Z_P * np.log(Z_P / Z_Q), 0))
+    # KL can't handle zero values -> replace with small values if zero values existent
+    # Z_Q[Z_Q == 0] = np.finfo(np.double).tiny
+    # Z_P[Z_P == 0] = np.finfo(np.double).tiny
+
+    return scipy.stats.entropy(pk=Z_P, qk=Z_Q)
 
 
 
-    # treat xv[i,j], yv[i,j]
 
-
-
-    # todo implement kl divergence with meshgrid
-    raise NotImplementedError
 
 
