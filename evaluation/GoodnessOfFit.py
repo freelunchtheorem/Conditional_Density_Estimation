@@ -8,7 +8,8 @@ import scipy
 
 
 class GoodnessOfFit:
-  def __init__(self, estimator, probabilistic_model, X_cond = None, n_observations=10000, n_x_cond=10000, print_fit_result=False):
+  def __init__(self, estimator, probabilistic_model, X_cond = None, n_observations=10000, n_x_cond=10000, print_fit_result=False,
+               repeat_kolmogorov=20):
     """
 
     :param estimator:
@@ -22,6 +23,8 @@ class GoodnessOfFit:
     self.probabilistic_model = probabilistic_model
     self.n_observations = n_observations
 
+    self.n_x_cond = n_x_cond
+    self.repeat_kolmogorov = repeat_kolmogorov
 
     self.X, self.Y = probabilistic_model.simulate(self.n_observations)
 
@@ -41,7 +44,7 @@ class GoodnessOfFit:
 
     if X_cond is None:
       """ generate X_cond data with shape (n_x_cond, estimator.ndim_x) """
-      X_cond = np.stack([np.asarray([0 for _ in range(n_x_cond)]) for i in range(self.estimator.ndim_x)], axis=1)
+      X_cond = np.stack([np.asarray([0 for _ in range(self.n_x_cond)]) for i in range(self.estimator.ndim_x)], axis=1)
       # in the case X_Cond is (n_x_cond, 1) convert to (n_x_cond, )
       X_cond = np.squeeze(X_cond)
 
@@ -49,6 +52,7 @@ class GoodnessOfFit:
 
     self.resample_new_conditional_samples()
 
+    self.seed = np.random.seed(98765431)
 
   def resample_new_conditional_samples(self):
     _, self.estimator_conditional_samples = self.estimator.sample(self.X_cond)
@@ -67,21 +71,19 @@ class GoodnessOfFit:
     sw, p = shapiro(self.estimator_conditional_samples)
     return sw, p
 
-  def kolmogorov_smirnov_cdf(self, repeat=20):
-    np.random.seed(98765431)
+  def   kolmogorov_smirnov_cdf(self):
     ks = []
     p = []
-    for _ in range(repeat):
+    for _ in range(self.repeat_kolmogorov):
       self.resample_new_conditional_samples()
       ks_new, p_new = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
       ks.append(ks_new), p.append(p_new)
     return np.mean(ks), np.mean(p)
 
-  def kolmogorov_smirnov_2sample(self, repeat=20):
-    np.random.seed(98765431)
+  def kolmogorov_smirnov_2sample(self):
     ks = []
     p = []
-    for _ in range(repeat):
+    for _ in range(self.repeat_kolmogorov):
       self.resample_new_conditional_samples()
       ks_new, p_new = ks_2samp(self.estimator_conditional_samples, self.proba_model_conditional_samples)
       ks.append(ks_new), p.append(p_new)
@@ -111,6 +113,11 @@ class GoodnessOfFit:
 
     return scipy.stats.entropy(pk=Z_P, qk=Z_Q)
 
+  def __str__(self):
+    return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}\n repeat_kolmogorov: {}\n".format(self.estimator,
+                                                                                                                 self.probabilistic_model,
+                                                                                                                 self.n_observations,
+                                                                                                                 self.n_x_cond, self.repeat_kolmogorov))
 
 
 

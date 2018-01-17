@@ -39,3 +39,8 @@ class EconDensity(ConditionalDensity):
     X = np.abs(np.random.standard_normal(size=[n_samples]))
     Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=n_samples)
     return X, Y
+
+
+  def __str__(self):
+    return str("\nProbabilistic model type: {}\nstd: {}\nn_dim_x: {}\nn_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
+                                                                                                 self.ndim_y))

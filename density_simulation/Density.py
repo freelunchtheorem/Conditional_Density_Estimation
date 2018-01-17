@@ -78,6 +78,8 @@ class ConditionalDensity:
     plt.ylabel("y")
     plt.show()
 
+  def __str__(self):
+    raise NotImplementedError
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
@@ -105,3 +107,4 @@ class ConditionalDensity:
       return X
     else:
       return X, Y
+

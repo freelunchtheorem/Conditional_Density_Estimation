@@ -109,3 +109,6 @@ class BaseDensityEstimator(BaseEstimator):
       return X
     else:
       return X, Y
+
+  def __str__(self):
+    raise NotImplementedError

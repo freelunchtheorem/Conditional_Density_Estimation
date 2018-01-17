@@ -132,7 +132,6 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     return param_grid
 
 
-
-
-
-
+  def __str__(self):
+    return str("\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
+                                                                                             self.bandwidth))

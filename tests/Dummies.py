@@ -35,6 +35,11 @@ class GaussianDummy(BaseDensityEstimator):
       Y = self.gaussian.rvs(size=(X.shape[0]))
     return X,Y
 
+  def __str__(self):
+    return str('\nEstimator type: {}\n n_dim_x: {}\n n_dim_y: {}\n mean: {}\n' .format(self.__class__.__name__, self.ndim_x, self.ndim_y, self.mean))
+
+
+
 
 class SimulationDummy(ConditionalDensity):
   def __init__(self, mean=2, ndim_x=1, ndim_y=1):
@@ -62,3 +67,7 @@ class SimulationDummy(ConditionalDensity):
   def simulate_conditional(self, X):
     Y = self.gaussian.rvs(size=(X.shape[0]))
     return X, Y
+
+  def __str__(self):
+    return str('\nProbabilistic model type: {}\n n_dim_x: {}\n n_dim_y: {}\n mean: {}\n cov: {}\n'.format(self.__class__.__name__, self.ndim_x,
+                self.ndim_y, self.mean, self.cov))

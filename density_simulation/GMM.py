@@ -24,8 +24,9 @@ class GaussianMixture(ConditionalDensity):
     self.ndim = ndim_x + ndim_y
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
+    self.means_std = means_std
     self.weights = self._sample_weights(n_kernels) #shape(n_kernels,), sums to one
-    self.means = np.random.normal(loc=np.zeros([self.ndim]), scale=means_std, size=[n_kernels, self.ndim]) #shape(n_kernels, n_dims)
+    self.means = np.random.normal(loc=np.zeros([self.ndim]), scale=self.means_std, size=[n_kernels, self.ndim]) #shape(n_kernels, n_dims)
 
 
     """ Sample cov matrixes and assure that cov matrix is pos definite"""
@@ -156,6 +157,10 @@ class GaussianMixture(ConditionalDensity):
     normalizing_term = np.sum(w_p, axis=1)
     result = w_p / normalizing_term[:,None]
     return result
+
+  def __str__(self):
+    return str("\nProbabilistic model type: {}\nn_kernels: {}\nn_dim_x: {}\nn_dim_y: {}\nmeans_std: {}\n".format(self.__class__.__name__,
+                                                                                                self.n_kernels, self.ndim_x, self.ndim_y, self.means))
 
 
 if __name__=="__main__":

@@ -1,4 +1,5 @@
 import unittest
+import pytest
 from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
 from density_simulation import EconDensity, GaussianMixture
 from evaluation.GoodnessOfFit import GoodnessOfFit
@@ -15,9 +16,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=2, ndim_x=1, ndim_y=1)
     gof = GoodnessOfFit(est, prob_model, n_observations=10000)
     ks, p = gof.kolmogorov_smirnov_cdf()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("cdf-based KS test (t, p): ", ks, p)
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p, alpha)
 
   def test_gaussian_dummy_kolmogorov_2sample_1(self):
@@ -25,9 +25,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=2)
     gof = GoodnessOfFit(est, prob_model, n_observations=10000)
     ks, p = gof.kolmogorov_smirnov_2sample()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("2-sample-based KS test (t, p): ", ks, p)
+    print("2-sample-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p, alpha)
 
 
@@ -36,9 +35,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=3)
     gof = GoodnessOfFit(est, prob_model, n_observations=10000)
     ks, p = gof.kolmogorov_smirnov_cdf()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("cdf-based KS test (t, p): ", ks, p)
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertLess(p, alpha)
 
   def test_gaussian_dummy_kolmogorov_2sample_2(self):
@@ -46,9 +44,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=3)
     gof = GoodnessOfFit(est, prob_model, n_observations=10000)
     ks, p = gof.kolmogorov_smirnov_2sample()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("2-sample-based KS test (t, p): ", ks, p)
+    print("2-sample-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertLess(p, alpha)
 
 
@@ -61,9 +58,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=1)
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks, p = gof.kolmogorov_smirnov_2sample()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("2-sample-based KS test (t, p): ", ks, p)
+    print("2-sample-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p, alpha)
 
   def test_kmn_dummy_kolmogorov_cdf(self):
@@ -71,9 +67,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=1)
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks, p = gof.kolmogorov_smirnov_cdf()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("cdf-based KS test (t, p): ", ks, p)
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p, alpha)
 
   def test_kmn_econ_kolmogorov_cdf(self, alpha=0.05):
@@ -81,9 +76,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks_cdf, p_cdf = gof.kolmogorov_smirnov_cdf()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("cdf-based KS test (t, p): ", ks_cdf, p_cdf)
+    print("cdf-based KS test (t, p): ", ks_cdf, p_cdf, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p_cdf, alpha)
 
   def test_kmn_econ_kolmogorov_2sample(self, alpha=0.05):
@@ -91,9 +85,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks_2samp, p_2samp = gof.kolmogorov_smirnov_2sample()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("2-sample-based KS test (t, p): ", ks_2samp, p_2samp)
+    print("2-sample-based KS test (t, p): ", ks_2samp, p_2samp, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p_2samp, alpha)
 
   def test_lscde_econ_kolmogorov_2sample(self, alpha=0.05):
@@ -101,9 +94,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=4000)
     ks_2samp, p_2samp = gof.kolmogorov_smirnov_2sample()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("2-sample-based KS test (t, p): ", ks_2samp, p_2samp)
+    print("2-sample-based KS test (t, p): ", ks_2samp, p_2samp, "alpha: ", alpha)
+    print(gof)
     self.assertGreater(p_2samp, alpha)
 
   def test_gaussian_dummy_kl(self):
@@ -111,9 +103,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = SimulationDummy(mean=7)
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("KL-divergence: ", kl)
+    print("KL-divergence (pass if < 1)", kl)
+    print(gof)
     self.assertGreater(kl, 1)
 
   def test_kmn_econ_kl(self):
@@ -121,9 +112,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("KL-divergence: ", kl)
+    print("KL-divergence (pass if < 1)", kl)
+    print(gof)
     self.assertLess(kl, 1)
 
   def test_kmn_gmm_kl_1(self):
@@ -131,9 +121,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = GaussianMixture(n_kernels=5)
     gof = GoodnessOfFit(est, prob_model, n_observations=1000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("KL-divergence: ", kl)
+    print("KL-divergence (pass if < 1)", kl)
+    print(gof)
     self.assertLess(kl, 1)
 
   def test_kmn_gmm_kl_2(self):
@@ -141,9 +130,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = GaussianMixture(n_kernels=20, means_std=3)
     gof = GoodnessOfFit(est, prob_model, n_observations=1000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("KL-divergence: ", kl)
+    print("KL-divergence (pass if < 1)", kl)
+    print(gof)
     self.assertLess(kl, 1)
 
   def test_lscde_econ_kl(self):
@@ -151,9 +139,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
     print("KL-divergence: ", kl)
+    print(gof)
     self.assertLess(kl, 1)
 
   def test_lscde_gmm_kl(self):
@@ -161,12 +148,11 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     prob_model = GaussianMixture(n_kernels=20)
     gof = GoodnessOfFit(est, prob_model, n_observations=1000)
     kl = gof.kl_divergence()
-    print("Estimator: ", est.__class__.__name__)
-    print("Simulator: ", prob_model.__class__.__name__)
-    print("KL-divergence: ", kl)
+    print("KL-divergence (pass if < 1)", kl)
+    print(gof)
     self.assertLess(kl, 1)
 
 
-
 if __name__ == '__main__':
-  unittest.main()
+  pytest.main('--html=report.html --self-contained-html')
+

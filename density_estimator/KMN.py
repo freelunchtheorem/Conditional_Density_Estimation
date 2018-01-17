@@ -10,6 +10,8 @@ from density_estimator.helpers import sample_center_points
 from density_estimator.base import BaseDensityEstimator
 import math
 import edward as ed
+import logging
+logging.getLogger("tensorflow").setLevel(logging.WARNING)
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
@@ -18,7 +20,7 @@ import matplotlib.pyplot as plt
 class KernelMixtureNetwork(BaseDensityEstimator):
 
     def __init__(self, center_sampling_method='k_means', n_centers=20, keep_edges=False,
-                 init_scales='default', estimator=None, X_ph=None, train_scales=False):
+                 init_scales='default', estimator=None, X_ph=None, train_scales=False, n_training_epochs=300):
         """
         Main class for Kernel Mixture Network
         Args:
@@ -39,6 +41,8 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         self.estimator = estimator
         self.X_ph = X_ph
 
+        self.n_training_epochs = n_training_epochs
+
         self.center_sampling_method = center_sampling_method
         self.n_centers = n_centers
         self.keep_edges = keep_edges
@@ -56,7 +60,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         self.fitted = False
 
-    def fit(self, X, Y, n_epoch=300, **kwargs):
+    def fit(self, X, Y, **kwargs):
         """
         builds the Kernel Density Network model and fits the parameters by minimizing the negative
         log-likelihood of the provided data
@@ -72,11 +76,11 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         # setup inference procedure
         self.inference = ed.MAP(data={self.mixtures: self.y_ph})
-        self.inference.initialize(var_list=tf.trainable_variables(), n_iter=n_epoch)
+        self.inference.initialize(var_list=tf.trainable_variables(), n_iter=self.n_training_epochs)
         tf.global_variables_initializer().run()
 
         # train the model
-        self._partial_fit(X, Y, n_epoch=n_epoch, **kwargs)
+        self._partial_fit(X, Y, n_epoch=self.n_training_epochs, **kwargs)
         self.fitted = True
 
     def _partial_fit(self, X, Y, n_epoch=1, eval_set=None):
@@ -229,3 +233,8 @@ class KernelMixtureNetwork(BaseDensityEstimator):
     def fit_by_cv(self, X, Y, n_folds=5):
         # TODO: do cross validation in a loop since tensorflow locks cannot be pickled
         raise NotImplementedError
+
+    def __str__(self):
+        return str("\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {} "
+                   "n_training_epochs: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges,
+                                                    self.init_scales, self.train_scales, self.n_training_epochs))

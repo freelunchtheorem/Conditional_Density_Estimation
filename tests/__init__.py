@@ -1,0 +1,1 @@
+from tests.evaluation_tests import TestGoodnessOfFitTests
