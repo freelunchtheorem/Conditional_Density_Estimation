@@ -54,7 +54,7 @@ class BaseDensityEstimator(BaseEstimator):
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
 
-  def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100):
+  def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
     """
     Plots the fitted conditional distribution in mode if x and y are 1-dimensional each
     :param xlim: 2-tuple specifying the x axis limits

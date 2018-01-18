@@ -160,8 +160,8 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         if self.estimator is None:
             self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
             # two dense hidden layers with 15 nodes each
-            x = Dense(15, activation='relu')(self.X_ph)
-            x = Dense(15, activation='relu')(x)
+            x = Dense(15, activation='elu')(self.X_ph)
+            x = Dense(15, activation='elu')(x)
             self.estimator = x
 
         # get batch size

@@ -27,7 +27,10 @@ class EconDensity(ConditionalDensity):
     raise NotImplementedError
 
   def simulate_conditional(self, X):
+    if X.ndim == 2 and X.shape[1]:
+      X = X.flatten()
     assert X.ndim == 1
+
     n_samples = X.shape[0]
     Y = X ** 2 + np.random.normal(loc=0, scale=self.std, size=n_samples)
     X = np.expand_dims(X, axis=1)

@@ -4,11 +4,33 @@ import matplotlib.pyplot as plt
 from density_estimator import LSConditionalDensityEstimation, NeighborKernelDensityEstimation, KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
-from density_simulation import GMM, EconDensity
+from density_simulation import GaussianMixture, EconDensity
 from evaluation.GoodnessOfFit import GoodnessOfFit
 from density_simulation.toy_densities import build_toy_dataset, build_toy_dataset2
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+
+
+def generate_report():
+  econ_density = EconDensity()
+
+  X, Y = econ_density.simulate(n_samples=1000)
+  nke = NeighborKernelDensityEstimation()
+  nke.fit_by_cv(X, Y)
+
+  n_samples = 500
+  X_test = np.asarray([1 for _ in range(n_samples)])
+  Y_test = np.linspace(0, 8, num=n_samples)
+  Z = nke.predict(X_test, Y_test)
+
+
+
+def eval_econ_data():
+  econ_density = GaussianMixture(ndim_x=1, ndim_y=1)
+  kmn = KernelMixtureNetwork(n_centers=100)
+  gof = GoodnessOfFit(kmn, econ_density, n_observations=2000, print_fit_result=False, repeat_kolmogorov=1)
+  print("A")
+  print(gof.compute_results())
 
 
 
@@ -18,8 +40,9 @@ def plot_fitted_distribution():
 
   np.random.seed(22)
 
-  X_train, X_test, Y_train, Y_test = build_toy_dataset2(n_observations)
-  model = NeighborKernelDensityEstimation(bandwidth=2, epsilon=1, weighted=False)
+
+  X_train, X_test, Y_train, Y_test = econ_density.simulate(n_observations)
+  model = KernelMixtureNetwork()
 
   X_train = np.random.normal(loc=0, size=[n_observations, 1])
   Y_train = 3 * X_train + np.random.normal(loc=0, size=[n_observations, 1])
@@ -119,8 +142,11 @@ def eval1():
 
 
 
+
 def main():
-  plot_fitted_distribution()
+  #test_nkde()
+  eval_econ_data()
+  #plot_fitted_distribution()
   #eval1()
 
 
