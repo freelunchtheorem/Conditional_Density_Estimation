@@ -34,10 +34,8 @@ class GoodnessOfFit:
       estimator.fit(self.X, self.Y)
 
     if print_fit_result:
-      estimator.plot_loss()
-      self.probabilistic_model.plot(mode="cdf")
       self.probabilistic_model.plot(mode="pdf")
-
+      estimator.plot()
 
     self.estimator = estimator
 
@@ -111,12 +109,33 @@ class GoodnessOfFit:
 
     return scipy.stats.entropy(pk=Z_P, qk=Z_Q)
 
+  def compute_results(self):
+    gof_result = GoodnessOfFitResults()
+    # TODO: just a Dummy interface
+    return gof_result
+
+
+
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}\n repeat_kolmogorov: {}\n".format(self.estimator,
                                                                                                                  self.probabilistic_model,
                                                                                                                  self.n_observations,
 
                                                                                                                  self.n_x_cond, self.repeat_kolmogorov))
+
+  def eval_fit(self):
+    print("KL divergence:", self.kl_divergence())
+
+
+class GoodnessOfFitResults:
+
+  def __init__(self):
+    self.mean_kl = np.random.normal()
+    self.mean_ks_stat = np.random.normal()
+    self.mean_ks_pval = np.random.normal()
+
+
+
 
 """ closured functions cannot be pickled -> required to be outside for parallel computing """
 def ktest_cdf(cdf, X_cond, est_cond_samples):
@@ -125,3 +144,18 @@ def ktest_cdf(cdf, X_cond, est_cond_samples):
 
 def ktest_2sample(estimator_cond_samples, probabilistic_cond_samples):
   return scipy.stats.ks_2samp(estimator_cond_samples, probabilistic_cond_samples)
+
+def get_percentile_grid(X, resolution=20, low_percentile = 10, high_percentile=90):
+  if X.ndim == 1:
+    X = np.expand_dims(X, axis=1)
+
+  linspaces = []
+  for i in range(X.shape[1]):
+    low = np.percentile(X[:,i], low_percentile)
+    high = np.percentile(X[:,i], high_percentile)
+    linspaces.append(np.linspace(low,high, num=resolution))
+
+  grid = np.vstack([grid_dim.flatten() for grid_dim in np.meshgrid(*linspaces)]).T
+
+  assert grid.shape[1] == X.shape[1]
+  return grid
