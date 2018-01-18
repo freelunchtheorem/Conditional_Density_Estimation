@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <style>body {
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 12px;
+	min-width: 1200px;
+	color: #999;
+}
+h2 {
+	font-size: 16px;
+	color: black;
+}
+
+p {
+    color: black;
+}
+
+a {
+	color: #999;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+
+#environment td {
+	padding: 5px;
+	border: 1px solid #E6E6E6;
+}
+
+#environment tr:nth-child(odd) {
+	background-color: #f6f6f6;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed, .passed .col-result {
+	color: green;
+}
+span.skipped, span.xfailed, span.rerun, .skipped .col-result, .xfailed .col-result, .rerun .col-result {
+	color: orange;
+}
+span.error, span.failed, span.xpassed, .error .col-result, .failed .col-result, .xpassed .col-result  {
+	color: red;
+}
+
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+
+#results-table {
+	border: 1px solid #e6e6e6;
+	color: #999;
+	font-size: 12px;
+	width: 100%
+}
+
+#results-table th, #results-table td {
+	padding: 5px;
+	border: 1px solid #E6E6E6;
+	text-align: left
+}
+#results-table th {
+	font-weight: bold
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+
+.log:only-child {
+	height: inherit
+}
+.log {
+	background-color: #e6e6e6;
+	border: 1px solid #e6e6e6;
+	color: black;
+	display: block;
+	font-family: "Courier New", Courier, monospace;
+	height: 230px;
+	overflow-y: scroll;
+	padding: 5px;
+	white-space: pre-wrap
+}
+div.image {
+	border: 1px solid #e6e6e6;
+	float: right;
+	height: 240px;
+	margin-left: 5px;
+	overflow: hidden;
+	width: 320px
+}
+div.image img {
+	width: 320px
+}
+.collapsed {
+	display: none;
+}
+.expander::after {
+	content: " (show details)";
+	color: #BBB;
+	font-style: italic;
+	cursor: pointer;
+}
+.collapser::after {
+	content: " (hide details)";
+	color: #BBB;
+	font-style: italic;
+	cursor: pointer;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+	cursor: pointer;
+}
+
+.sort-icon {
+	font-size: 0px;
+	float: left;
+	margin-right: 5px;
+	margin-top: 5px;
+	/*triangle*/
+	width: 0;
+	height: 0;
+	border-left: 8px solid transparent;
+	border-right: 8px solid transparent;
+}
+
+.inactive .sort-icon {
+	/*finish triangle*/
+	border-top: 8px solid #E6E6E6;
+}
+
+.asc.active .sort-icon {
+	/*finish triangle*/
+	border-bottom: 8px solid #999;
+}
+
+.desc.active .sort-icon {
+	/*finish triangle*/
+	border-top: 8px solid #999;
+}
+</style></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function find_all(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sort_column(elem) {
+    toggle_sort_states(elem);
+    var colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    var key;
+    if (elem.classList.contains('numeric')) {
+        key = key_num;
+    } else if (elem.classList.contains('result')) {
+        key = key_result;
+    } else {
+        key = key_alpha;
+    }
+    sort_table(elem, key(colIndex));
+}
+
+function show_all_extras() {
+    find_all('.col-result').forEach(show_extras);
+}
+
+function hide_all_extras() {
+    find_all('.col-result').forEach(hide_extras);
+}
+
+function show_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.remove("collapsed");
+    expandcollapse.classList.remove("expander");
+    expandcollapse.classList.add("collapser");
+}
+
+function hide_extras(colresult_elem) {
+    var extras = colresult_elem.parentNode.nextElementSibling;
+    var expandcollapse = colresult_elem.firstElementChild;
+    extras.classList.add("collapsed");
+    expandcollapse.classList.remove("collapser");
+    expandcollapse.classList.add("expander");
+}
+
+function show_filters() {
+    var filter_items = document.getElementsByClassName('filter');
+    for (var i = 0; i < filter_items.length; i++)
+        filter_items[i].hidden = false;
+}
+
+function add_collapse() {
+    // Add links for show/hide all
+    var resulttable = find('table#results-table');
+    var showhideall = document.createElement("p");
+    showhideall.innerHTML = '<a href="javascript:show_all_extras()">Show all details</a> / ' +
+                            '<a href="javascript:hide_all_extras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    find_all('.col-result').forEach(function(elem) {
+        var extras = elem.parentNode.nextElementSibling;
+        var expandcollapse = document.createElement("span");
+        if (elem.innerHTML === 'Passed') {
+            extras.classList.add("collapsed");
+            expandcollapse.classList.add("expander");
+        } else {
+            expandcollapse.classList.add("collapser");
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener("click", function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains("collapsed")) {
+                show_extras(event.currentTarget);
+            } else {
+                hide_extras(event.currentTarget);
+            }
+        });
+    })
+}
+
+function init () {
+    reset_sort_headers();
+
+    add_collapse();
+
+    show_filters();
+
+    toggle_sort_states(find('.initial-sort'));
+
+    find_all('.sortable').forEach(function(elem) {
+        elem.addEventListener("click",
+                              function(event) {
+                                  sort_column(elem);
+                              }, false)
+    });
+
+};
+
+function sort_table(clicked, key_func) {
+    var rows = find_all('.results-table-row');
+    var reversed = !clicked.classList.contains('asc');
+    var sorted_rows = sort(rows, key_func, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    var thead = document.getElementById("results-table-head");
+    document.getElementById('results-table').remove();
+    var parent = document.createElement("table");
+    parent.id = "results-table";
+    parent.appendChild(thead);
+    sorted_rows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName("BODY")[0].appendChild(parent);
+}
+
+function sort(items, key_func, reversed) {
+    var sort_array = items.map(function(item, i) {
+        return [key_func(item), i];
+    });
+    var multiplier = reversed ? -1 : 1;
+
+    sort_array.sort(function(a, b) {
+        var key_a = a[0];
+        var key_b = b[0];
+        return multiplier * (key_a >= key_b ? 1 : -1);
+    });
+
+    return sort_array.map(function(item) {
+        var index = item[1];
+        return items[index];
+    });
+}
+
+function key_alpha(col_index) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[col_index].firstChild.data.toLowerCase();
+    };
+}
+
+function key_num(col_index) {
+    return function(elem) {
+        return parseFloat(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function key_result(col_index) {
+    return function(elem) {
+        var strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+                       'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[col_index].firstChild.data);
+    };
+}
+
+function reset_sort_headers() {
+    find_all('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    find_all('.sortable').forEach(function(elem) {
+        var icon = document.createElement("div");
+        icon.className = "sort-icon";
+        icon.textContent = "vvv";
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove("desc", "active");
+        elem.classList.add("asc", "inactive");
+    });
+}
+
+function toggle_sort_states(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        reset_sort_headers();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function is_all_rows_hidden(value) {
+  return value.hidden == false;
+}
+
+function filter_table(elem) {
+    var outcome_att = "data-test-result";
+    var outcome = elem.getAttribute(outcome_att);
+    class_outcome = outcome + " results-table-row";
+    var outcome_rows = document.getElementsByClassName(class_outcome);
+
+    for(var i = 0; i < outcome_rows.length; i++){
+        outcome_rows[i].hidden = !elem.checked;
+    }
+
+    var rows = find_all('.results-table-row').filter(is_all_rows_hidden);
+    var all_rows_hidden = rows.length == 0 ? true : false;
+    var not_found_message = document.getElementById("not-found-message");
+    not_found_message.hidden = !all_rows_hidden;
+}
+</script>
+    <p>Report generated on 18-Jan-2018 at 16:59:12 by<a href="https://pypi.python.org/pypi/pytest-html"> pytest-html</a> v1.16.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{&apos;pytest&apos;: &apos;3.3.1&apos;, &apos;pluggy&apos;: &apos;0.6.0&apos;, &apos;py&apos;: &apos;1.5.2&apos;}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>Darwin-17.3.0-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{&apos;metadata&apos;: &apos;1.5.1&apos;, &apos;instafail&apos;: &apos;0.3.0&apos;, &apos;html&apos;: &apos;1.16.1&apos;}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.5.2</td></tr></table>
+    <h2>Summary</h2>
+    <p>24 tests ran in 1050.47 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="passed">9 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="failed">15 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filter_table(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable numeric" col="duration">Duration</th>
+          <th>Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_dummy_kolmogorov_cdf</td>
+          <td class="col-duration">142.60</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_kmn_dummy_kolmogorov_cdf&gt;<br/><br/>    def test_kmn_dummy_kolmogorov_cdf(self):<br/>      est = KernelMixtureNetwork(train_scales=True, n_centers=50)<br/>      prob_model = SimulationDummy(mean=1)<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=8000)<br/>      ks, p = gof.kolmogorov_smirnov_cdf()<br/>      print(&quot;cdf-based KS test (t, p): &quot;, ks, p, &quot;alpha: &quot;, alpha)<br/>      print(gof)<br/>&gt;     self.assertGreater(p, alpha)<br/><span class="error">E     AssertionError: 0.032660787289048365 not greater than 0.05</span><br/><br/>evaluation_tests.py:72: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/300 [  0%]                                ETA: 10292s | Loss: 13813.419  3/300 [  1%]                                ETA: 3412s | Loss: 12460.916   6/300 [  2%]                                ETA: 1692s | Loss: 11641.174  9/300 [  3%]                                ETA: 1119s | Loss: 12016.500 12/300 [  4%] █                              ETA: 832s | Loss: 11592.142  15/300 [  5%] █                              ETA: 660s | Loss: 11447.518 18/300 [  6%] █                              ETA: 545s | Loss: 11456.371 21/300 [  7%] ██                             ETA: 463s | Loss: 11467.240 24/300 [  8%] ██                             ETA: 402s | Loss: 11456.192 27/300 [  9%] ██                             ETA: 354s | Loss: 11439.432 30/300 [ 10%] ███                            ETA: 316s | Loss: 11440.251 33/300 [ 11%] ███                            ETA: 284s | Loss: 11445.324 36/300 [ 12%] ███                            ETA: 258s | Loss: 11439.925 39/300 [ 13%] ███                            ETA: 236s | Loss: 11437.683 42/300 [ 14%] ████                           ETA: 217s | Loss: 11440.218 45/300 [ 15%] ████                           ETA: 201s | Loss: 11439.150 48/300 [ 16%] ████                           ETA: 186s | Loss: 11437.434 51/300 [ 17%] █████                          ETA: 174s | Loss: 11438.351 54/300 [ 18%] █████                          ETA: 162s | Loss: 11438.225 57/300 [ 19%] █████                          ETA: 152s | Loss: 11437.440 60/300 [ 20%] ██████                         ETA: 143s | Loss: 11437.797 63/300 [ 21%] ██████                         ETA: 135s | Loss: 11437.751 66/300 [ 22%] ██████                         ETA: 127s | Loss: 11437.437 69/300 [ 23%] ██████                         ETA: 120s | Loss: 11437.592 72/300 [ 24%] ███████                        ETA: 114s | Loss: 11437.546 75/300 [ 25%] ███████                        ETA: 108s | Loss: 11437.436 78/300 [ 26%] ███████                        ETA: 103s | Loss: 11437.510 81/300 [ 27%] ████████                       ETA: 98s | Loss: 11437.475  84/300 [ 28%] ████████                       ETA: 93s | Loss: 11437.438 87/300 [ 28%] ████████                       ETA: 89s | Loss: 11437.473 90/300 [ 30%] █████████                      ETA: 85s | Loss: 11437.437 93/300 [ 31%] █████████                      ETA: 81s | Loss: 11437.441 96/300 [ 32%] █████████                      ETA: 78s | Loss: 11437.440 99/300 [ 33%] █████████                      ETA: 74s | Loss: 11437.432102/300 [ 34%] ██████████                     ETA: 71s | Loss: 11437.440105/300 [ 35%] ██████████                     ETA: 68s | Loss: 11437.441108/300 [ 36%] ██████████                     ETA: 65s | Loss: 11437.442111/300 [ 37%] ███████████                    ETA: 63s | Loss: 11437.438114/300 [ 38%] ███████████                    ETA: 60s | Loss: 11437.445117/300 [ 39%] ███████████                    ETA: 58s | Loss: 11437.441120/300 [ 40%] ████████████                   ETA: 56s | Loss: 11437.439123/300 [ 41%] ████████████                   ETA: 53s | Loss: 11437.438126/300 [ 42%] ████████████                   ETA: 51s | Loss: 11437.439129/300 [ 43%] ████████████                   ETA: 49s | Loss: 11437.447132/300 [ 44%] █████████████                  ETA: 47s | Loss: 11437.438135/300 [ 45%] █████████████                  ETA: 46s | Loss: 11437.438138/300 [ 46%] █████████████                  ETA: 44s | Loss: 11437.438141/300 [ 47%] ██████████████                 ETA: 42s | Loss: 11437.433144/300 [ 48%] ██████████████                 ETA: 41s | Loss: 11437.436147/300 [ 49%] ██████████████                 ETA: 39s | Loss: 11437.441150/300 [ 50%] ███████████████                ETA: 38s | Loss: 11437.438153/300 [ 51%] ███████████████                ETA: 36s | Loss: 11437.439156/300 [ 52%] ███████████████                ETA: 35s | Loss: 11437.430159/300 [ 53%] ███████████████                ETA: 34s | Loss: 11437.432162/300 [ 54%] ████████████████               ETA: 32s | Loss: 11437.439165/300 [ 55%] ████████████████               ETA: 31s | Loss: 11437.441168/300 [ 56%] ████████████████               ETA: 30s | Loss: 11437.434171/300 [ 56%] █████████████████              ETA: 29s | Loss: 11437.434174/300 [ 57%] █████████████████              ETA: 28s | Loss: 11437.434177/300 [ 59%] █████████████████              ETA: 27s | Loss: 11437.436180/300 [ 60%] ██████████████████             ETA: 26s | Loss: 11437.437183/300 [ 61%] ██████████████████             ETA: 25s | Loss: 11437.433186/300 [ 62%] ██████████████████             ETA: 24s | Loss: 11437.436189/300 [ 63%] ██████████████████             ETA: 23s | Loss: 11437.439192/300 [ 64%] ███████████████████            ETA: 22s | Loss: 11437.436195/300 [ 65%] ███████████████████            ETA: 21s | Loss: 11437.439198/300 [ 66%] ███████████████████            ETA: 20s | Loss: 11437.434201/300 [ 67%] ████████████████████           ETA: 19s | Loss: 11437.434204/300 [ 68%] ████████████████████           ETA: 18s | Loss: 11437.439207/300 [ 69%] ████████████████████           ETA: 17s | Loss: 11437.440210/300 [ 70%] █████████████████████          ETA: 17s | Loss: 11437.438213/300 [ 71%] █████████████████████          ETA: 16s | Loss: 11437.435216/300 [ 72%] █████████████████████          ETA: 15s | Loss: 11437.437219/300 [ 73%] █████████████████████          ETA: 14s | Loss: 11437.439222/300 [ 74%] ██████████████████████         ETA: 14s | Loss: 11437.438225/300 [ 75%] ██████████████████████         ETA: 13s | Loss: 11437.436228/300 [ 76%] ██████████████████████         ETA: 12s | Loss: 11437.436231/300 [ 77%] ███████████████████████        ETA: 12s | Loss: 11437.438234/300 [ 78%] ███████████████████████        ETA: 11s | Loss: 11437.439237/300 [ 79%] ███████████████████████        ETA: 10s | Loss: 11437.438240/300 [ 80%] ████████████████████████       ETA: 10s | Loss: 11437.436243/300 [ 81%] ████████████████████████       ETA: 9s | Loss: 11437.437 246/300 [ 82%] ████████████████████████       ETA: 8s | Loss: 11437.438249/300 [ 83%] ████████████████████████       ETA: 8s | Loss: 11437.438252/300 [ 84%] █████████████████████████      ETA: 7s | Loss: 11437.437255/300 [ 85%] █████████████████████████      ETA: 7s | Loss: 11437.437258/300 [ 86%] █████████████████████████      ETA: 6s | Loss: 11437.437261/300 [ 87%] ██████████████████████████     ETA: 6s | Loss: 11437.437264/300 [ 88%] ██████████████████████████     ETA: 5s | Loss: 11437.437267/300 [ 89%] ██████████████████████████     ETA: 5s | Loss: 11437.437270/300 [ 90%] ███████████████████████████    ETA: 4s | Loss: 11437.437273/300 [ 91%] ███████████████████████████    ETA: 4s | Loss: 11437.437276/300 [ 92%] ███████████████████████████    ETA: 3s | Loss: 11437.437279/300 [ 93%] ███████████████████████████    ETA: 3s | Loss: 11437.436282/300 [ 94%] ████████████████████████████   ETA: 2s | Loss: 11437.436285/300 [ 95%] ████████████████████████████   ETA: 2s | Loss: 11437.437288/300 [ 96%] ████████████████████████████   ETA: 1s | Loss: 11437.437291/300 [ 97%] █████████████████████████████  ETA: 1s | Loss: 11437.437294/300 [ 98%] █████████████████████████████  ETA: 0s | Loss: 11437.437297/300 [ 99%] █████████████████████████████  ETA: 0s | Loss: 11437.437300/300 [100%] ██████████████████████████████ Elapsed: 41s | Loss: 11437.436
+mean log-loss train: 1.430
+optimal scales: [ 1.0107969]
+cdf-based KS test (t, p):  0.0176470263255 0.032660787289 alpha:  0.05
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 50
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 300
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [1]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_econ_kl</td>
+          <td class="col-duration">95.57</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_kmn_econ_kl&gt;<br/><br/>    def test_kmn_econ_kl(self):<br/>      est = KernelMixtureNetwork(train_scales=True, n_centers=60, n_training_epochs=600)<br/>      prob_model = EconDensity()<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=8000)<br/>      kl = gof.kl_divergence()<br/>      print(&quot;KL-divergence (pass if &lt; 1)&quot;, kl)<br/>      print(gof)<br/>&gt;     self.assertLess(kl, 1)<br/><span class="error">E     AssertionError: inf not less than 1</span><br/><br/>evaluation_tests.py:117: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/600 [  0%]                                ETA: 26706s | Loss: 17663.176  6/600 [  1%]                                ETA: 4427s | Loss: 15303.911  12/600 [  2%]                                ETA: 2199s | Loss: 13556.369 18/600 [  3%]                                ETA: 1456s | Loss: 12972.768 24/600 [  4%] █                              ETA: 1084s | Loss: 12706.539 30/600 [  5%] █                              ETA: 862s | Loss: 12202.344  36/600 [  6%] █                              ETA: 713s | Loss: 11814.439 42/600 [  7%] ██                             ETA: 607s | Loss: 11551.559 48/600 [  8%] ██                             ETA: 527s | Loss: 11509.703 54/600 [  9%] ██                             ETA: 465s | Loss: 11481.348 60/600 [ 10%] ███                            ETA: 415s | Loss: 11469.535 66/600 [ 11%] ███                            ETA: 375s | Loss: 11464.345 72/600 [ 12%] ███                            ETA: 341s | Loss: 11451.410 78/600 [ 13%] ███                            ETA: 312s | Loss: 11444.923 84/600 [ 14%] ████                           ETA: 287s | Loss: 11446.686 90/600 [ 15%] ████                           ETA: 266s | Loss: 11446.920 96/600 [ 16%] ████                           ETA: 247s | Loss: 11443.246102/600 [ 17%] █████                          ETA: 231s | Loss: 11440.288108/600 [ 18%] █████                          ETA: 216s | Loss: 11439.660114/600 [ 19%] █████                          ETA: 203s | Loss: 11438.545120/600 [ 20%] ██████                         ETA: 191s | Loss: 11438.672126/600 [ 21%] ██████                         ETA: 180s | Loss: 11437.965132/600 [ 22%] ██████                         ETA: 170s | Loss: 11440.711138/600 [ 23%] ██████                         ETA: 161s | Loss: 11441.347144/600 [ 24%] ███████                        ETA: 153s | Loss: 11442.539150/600 [ 25%] ███████                        ETA: 145s | Loss: 11440.912156/600 [ 26%] ███████                        ETA: 138s | Loss: 11438.814162/600 [ 27%] ████████                       ETA: 132s | Loss: 11438.708168/600 [ 28%] ████████                       ETA: 126s | Loss: 11438.021174/600 [ 28%] ████████                       ETA: 120s | Loss: 11436.178180/600 [ 30%] █████████                      ETA: 115s | Loss: 11443.072186/600 [ 31%] █████████                      ETA: 110s | Loss: 11438.850192/600 [ 32%] █████████                      ETA: 105s | Loss: 11437.128198/600 [ 33%] █████████                      ETA: 101s | Loss: 11437.871204/600 [ 34%] ██████████                     ETA: 97s | Loss: 11433.516 210/600 [ 35%] ██████████                     ETA: 93s | Loss: 11438.820216/600 [ 36%] ██████████                     ETA: 89s | Loss: 11433.100222/600 [ 37%] ███████████                    ETA: 86s | Loss: 11432.576228/600 [ 38%] ███████████                    ETA: 82s | Loss: 11432.941234/600 [ 39%] ███████████                    ETA: 79s | Loss: 11432.051240/600 [ 40%] ████████████                   ETA: 76s | Loss: 11431.644246/600 [ 41%] ████████████                   ETA: 73s | Loss: 11431.307252/600 [ 42%] ████████████                   ETA: 71s | Loss: 11433.683258/600 [ 43%] ████████████                   ETA: 68s | Loss: 11431.675264/600 [ 44%] █████████████                  ETA: 65s | Loss: 11433.258270/600 [ 45%] █████████████                  ETA: 63s | Loss: 11433.678276/600 [ 46%] █████████████                  ETA: 61s | Loss: 11436.272282/600 [ 47%] ██████████████                 ETA: 59s | Loss: 11438.446288/600 [ 48%] ██████████████                 ETA: 56s | Loss: 11433.672294/600 [ 49%] ██████████████                 ETA: 54s | Loss: 11431.272300/600 [ 50%] ███████████████                ETA: 52s | Loss: 11432.490306/600 [ 51%] ███████████████                ETA: 50s | Loss: 11431.258312/600 [ 52%] ███████████████                ETA: 49s | Loss: 11430.754318/600 [ 53%] ███████████████                ETA: 47s | Loss: 11430.069324/600 [ 54%] ████████████████               ETA: 45s | Loss: 11430.130330/600 [ 55%] ████████████████               ETA: 43s | Loss: 11431.475336/600 [ 56%] ████████████████               ETA: 42s | Loss: 11430.867342/600 [ 56%] █████████████████              ETA: 40s | Loss: 11430.420348/600 [ 57%] █████████████████              ETA: 39s | Loss: 11429.539354/600 [ 59%] █████████████████              ETA: 37s | Loss: 11429.503360/600 [ 60%] ██████████████████             ETA: 36s | Loss: 11432.560366/600 [ 61%] ██████████████████             ETA: 34s | Loss: 11429.896372/600 [ 62%] ██████████████████             ETA: 33s | Loss: 11432.818378/600 [ 63%] ██████████████████             ETA: 32s | Loss: 11429.858384/600 [ 64%] ███████████████████            ETA: 31s | Loss: 11438.105390/600 [ 65%] ███████████████████            ETA: 29s | Loss: 11433.527396/600 [ 66%] ███████████████████            ETA: 28s | Loss: 11432.030402/600 [ 67%] ████████████████████           ETA: 27s | Loss: 11430.975408/600 [ 68%] ████████████████████           ETA: 26s | Loss: 11429.778414/600 [ 69%] ████████████████████           ETA: 25s | Loss: 11429.733420/600 [ 70%] █████████████████████          ETA: 24s | Loss: 11429.080426/600 [ 71%] █████████████████████          ETA: 22s | Loss: 11429.235432/600 [ 72%] █████████████████████          ETA: 21s | Loss: 11429.024438/600 [ 73%] █████████████████████          ETA: 20s | Loss: 11428.904444/600 [ 74%] ██████████████████████         ETA: 19s | Loss: 11429.244450/600 [ 75%] ██████████████████████         ETA: 18s | Loss: 11428.865456/600 [ 76%] ██████████████████████         ETA: 18s | Loss: 11429.684462/600 [ 77%] ███████████████████████        ETA: 17s | Loss: 11431.371468/600 [ 78%] ███████████████████████        ETA: 16s | Loss: 11429.164474/600 [ 79%] ███████████████████████        ETA: 15s | Loss: 11429.629480/600 [ 80%] ████████████████████████       ETA: 14s | Loss: 11430.718486/600 [ 81%] ████████████████████████       ETA: 13s | Loss: 11435.017492/600 [ 82%] ████████████████████████       ETA: 12s | Loss: 11433.486498/600 [ 83%] ████████████████████████       ETA: 11s | Loss: 11430.630504/600 [ 84%] █████████████████████████      ETA: 11s | Loss: 11428.234510/600 [ 85%] █████████████████████████      ETA: 10s | Loss: 11427.787516/600 [ 86%] █████████████████████████      ETA: 9s | Loss: 11427.824 522/600 [ 87%] ██████████████████████████     ETA: 8s | Loss: 11427.659528/600 [ 88%] ██████████████████████████     ETA: 8s | Loss: 11427.539534/600 [ 89%] ██████████████████████████     ETA: 7s | Loss: 11427.461540/600 [ 90%] ███████████████████████████    ETA: 6s | Loss: 11427.742546/600 [ 91%] ███████████████████████████    ETA: 5s | Loss: 11427.537552/600 [ 92%] ███████████████████████████    ETA: 5s | Loss: 11427.622558/600 [ 93%] ███████████████████████████    ETA: 4s | Loss: 11427.841564/600 [ 94%] ████████████████████████████   ETA: 3s | Loss: 11431.275570/600 [ 95%] ████████████████████████████   ETA: 3s | Loss: 11432.339576/600 [ 96%] ████████████████████████████   ETA: 2s | Loss: 11429.829582/600 [ 97%] █████████████████████████████  ETA: 1s | Loss: 11428.687588/600 [ 98%] █████████████████████████████  ETA: 1s | Loss: 11428.561594/600 [ 99%] █████████████████████████████  ETA: 0s | Loss: 11427.475600/600 [100%] ██████████████████████████████ Elapsed: 61s | Loss: 11428.299
+mean log-loss train: 1.429
+optimal scales: [ 0.95312124]
+KL-divergence (pass if &lt; 1) inf
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 60
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 600
+
+
+Probabilistic model type: EconDensity
+ std: 1
+ n_dim_x: 1
+ n_dim_y: 1
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_econ_kolmogorov_2sample</td>
+          <td class="col-duration">161.96</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_kmn_econ_kolmogorov_2sample&gt;<br/><br/>    def test_kmn_econ_kolmogorov_2sample(self):<br/>      est = KernelMixtureNetwork(train_scales=True, n_centers=60, n_training_epochs=600)<br/>      prob_model = EconDensity()<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=8000)<br/>      ks_2samp, p_2samp = gof.kolmogorov_smirnov_2sample()<br/>      print(&quot;2-sample-based KS test (t, p): &quot;, ks_2samp, p_2samp, &quot;alpha: &quot;, alpha)<br/>      print(gof)<br/>&gt;     self.assertGreater(p_2samp, alpha)<br/><span class="error">E     AssertionError: 0.0018713745105341851 not greater than 0.05</span><br/><br/>evaluation_tests.py:90: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/600 [  0%]                                ETA: 26002s | Loss: 17931.236  6/600 [  1%]                                ETA: 4310s | Loss: 15271.084  12/600 [  2%]                                ETA: 2141s | Loss: 13580.648 18/600 [  3%]                                ETA: 1418s | Loss: 12883.268 24/600 [  4%] █                              ETA: 1056s | Loss: 12681.972 30/600 [  5%] █                              ETA: 839s | Loss: 12621.519  36/600 [  6%] █                              ETA: 695s | Loss: 12560.512 42/600 [  7%] ██                             ETA: 591s | Loss: 12345.599 48/600 [  8%] ██                             ETA: 513s | Loss: 12270.191 54/600 [  9%] ██                             ETA: 453s | Loss: 12115.092 60/600 [ 10%] ███                            ETA: 405s | Loss: 11921.086 66/600 [ 11%] ███                            ETA: 365s | Loss: 11652.426 72/600 [ 12%] ███                            ETA: 332s | Loss: 11607.050 78/600 [ 13%] ███                            ETA: 304s | Loss: 11542.432 84/600 [ 14%] ████                           ETA: 280s | Loss: 11525.494 90/600 [ 15%] ████                           ETA: 259s | Loss: 11507.139 96/600 [ 16%] ████                           ETA: 241s | Loss: 11500.805102/600 [ 17%] █████                          ETA: 225s | Loss: 11493.563108/600 [ 18%] █████                          ETA: 211s | Loss: 11488.291114/600 [ 19%] █████                          ETA: 198s | Loss: 11485.566120/600 [ 20%] ██████                         ETA: 186s | Loss: 11483.523126/600 [ 21%] ██████                         ETA: 176s | Loss: 11481.222132/600 [ 22%] ██████                         ETA: 166s | Loss: 11475.660138/600 [ 23%] ██████                         ETA: 157s | Loss: 11471.215144/600 [ 24%] ███████                        ETA: 149s | Loss: 11468.137150/600 [ 25%] ███████                        ETA: 142s | Loss: 11463.217156/600 [ 26%] ███████                        ETA: 135s | Loss: 11456.524162/600 [ 27%] ████████                       ETA: 129s | Loss: 11454.342168/600 [ 28%] ████████                       ETA: 123s | Loss: 11452.822174/600 [ 28%] ████████                       ETA: 117s | Loss: 11454.189180/600 [ 30%] █████████                      ETA: 112s | Loss: 11450.471186/600 [ 31%] █████████                      ETA: 107s | Loss: 11459.995192/600 [ 32%] █████████                      ETA: 103s | Loss: 11453.204198/600 [ 33%] █████████                      ETA: 99s | Loss: 11448.798 204/600 [ 34%] ██████████                     ETA: 95s | Loss: 11445.994210/600 [ 35%] ██████████                     ETA: 91s | Loss: 11445.426216/600 [ 36%] ██████████                     ETA: 87s | Loss: 11444.898222/600 [ 37%] ███████████                    ETA: 84s | Loss: 11443.913228/600 [ 38%] ███████████                    ETA: 80s | Loss: 11443.055234/600 [ 39%] ███████████                    ETA: 77s | Loss: 11442.643240/600 [ 40%] ████████████                   ETA: 74s | Loss: 11443.379246/600 [ 41%] ████████████                   ETA: 72s | Loss: 11450.143252/600 [ 42%] ████████████                   ETA: 69s | Loss: 11444.379258/600 [ 43%] ████████████                   ETA: 66s | Loss: 11442.898264/600 [ 44%] █████████████                  ETA: 64s | Loss: 11445.128270/600 [ 45%] █████████████                  ETA: 61s | Loss: 11449.047276/600 [ 46%] █████████████                  ETA: 59s | Loss: 11442.835282/600 [ 47%] ██████████████                 ETA: 57s | Loss: 11441.555288/600 [ 48%] ██████████████                 ETA: 55s | Loss: 11442.802294/600 [ 49%] ██████████████                 ETA: 53s | Loss: 11440.371300/600 [ 50%] ███████████████                ETA: 51s | Loss: 11441.405306/600 [ 51%] ███████████████                ETA: 49s | Loss: 11438.920312/600 [ 52%] ███████████████                ETA: 47s | Loss: 11438.297318/600 [ 53%] ███████████████                ETA: 46s | Loss: 11437.367324/600 [ 54%] ████████████████               ETA: 44s | Loss: 11436.820330/600 [ 55%] ████████████████               ETA: 42s | Loss: 11436.330336/600 [ 56%] ████████████████               ETA: 41s | Loss: 11435.564342/600 [ 56%] █████████████████              ETA: 39s | Loss: 11434.770348/600 [ 57%] █████████████████              ETA: 38s | Loss: 11434.096354/600 [ 59%] █████████████████              ETA: 36s | Loss: 11433.951360/600 [ 60%] ██████████████████             ETA: 35s | Loss: 11437.441366/600 [ 61%] ██████████████████             ETA: 34s | Loss: 11435.854372/600 [ 62%] ██████████████████             ETA: 32s | Loss: 11437.645378/600 [ 63%] ██████████████████             ETA: 31s | Loss: 11438.505384/600 [ 64%] ███████████████████            ETA: 30s | Loss: 11433.770390/600 [ 65%] ███████████████████            ETA: 29s | Loss: 11438.607396/600 [ 66%] ███████████████████            ETA: 27s | Loss: 11434.467402/600 [ 67%] ████████████████████           ETA: 26s | Loss: 11433.817408/600 [ 68%] ████████████████████           ETA: 25s | Loss: 11433.355414/600 [ 69%] ████████████████████           ETA: 24s | Loss: 11432.597420/600 [ 70%] █████████████████████          ETA: 23s | Loss: 11431.854426/600 [ 71%] █████████████████████          ETA: 22s | Loss: 11431.686432/600 [ 72%] █████████████████████          ETA: 21s | Loss: 11431.521438/600 [ 73%] █████████████████████          ETA: 20s | Loss: 11431.348444/600 [ 74%] ██████████████████████         ETA: 19s | Loss: 11431.259450/600 [ 75%] ██████████████████████         ETA: 18s | Loss: 11431.137456/600 [ 76%] ██████████████████████         ETA: 17s | Loss: 11431.100462/600 [ 77%] ███████████████████████        ETA: 16s | Loss: 11437.404468/600 [ 78%] ███████████████████████        ETA: 15s | Loss: 11435.535474/600 [ 79%] ███████████████████████        ETA: 14s | Loss: 11432.379480/600 [ 80%] ████████████████████████       ETA: 14s | Loss: 11430.807486/600 [ 81%] ████████████████████████       ETA: 13s | Loss: 11444.955492/600 [ 82%] ████████████████████████       ETA: 12s | Loss: 11433.244498/600 [ 83%] ████████████████████████       ETA: 11s | Loss: 11433.568504/600 [ 84%] █████████████████████████      ETA: 10s | Loss: 11432.455510/600 [ 85%] █████████████████████████      ETA: 10s | Loss: 11431.759516/600 [ 86%] █████████████████████████      ETA: 9s | Loss: 11431.256 522/600 [ 87%] ██████████████████████████     ETA: 8s | Loss: 11430.928528/600 [ 88%] ██████████████████████████     ETA: 7s | Loss: 11430.507534/600 [ 89%] ██████████████████████████     ETA: 7s | Loss: 11430.439540/600 [ 90%] ███████████████████████████    ETA: 6s | Loss: 11430.275546/600 [ 91%] ███████████████████████████    ETA: 5s | Loss: 11430.141552/600 [ 92%] ███████████████████████████    ETA: 5s | Loss: 11430.047558/600 [ 93%] ███████████████████████████    ETA: 4s | Loss: 11429.995564/600 [ 94%] ████████████████████████████   ETA: 3s | Loss: 11430.564570/600 [ 95%] ████████████████████████████   ETA: 3s | Loss: 11437.410576/600 [ 96%] ████████████████████████████   ETA: 2s | Loss: 11433.961582/600 [ 97%] █████████████████████████████  ETA: 1s | Loss: 11432.717588/600 [ 98%] █████████████████████████████  ETA: 1s | Loss: 11431.135594/600 [ 99%] █████████████████████████████  ETA: 0s | Loss: 11431.147600/600 [100%] ██████████████████████████████ Elapsed: 59s | Loss: 11431.447
+mean log-loss train: 1.429
+optimal scales: [ 0.96369541]
+2-sample-based KS test (t, p):  0.030165 0.00187137451053 alpha:  0.05
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 60
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 600
+
+
+Probabilistic model type: EconDensity
+ std: 1
+ n_dim_x: 1
+ n_dim_y: 1
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_econ_kolmogorov_cdf</td>
+          <td class="col-duration">141.86</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_kmn_econ_kolmogorov_cdf&gt;<br/><br/>    def test_kmn_econ_kolmogorov_cdf(self):<br/>      est = KernelMixtureNetwork(train_scales=True, n_centers=60)<br/>      prob_model = EconDensity()<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=8000)<br/>      ks_cdf, p_cdf = gof.kolmogorov_smirnov_cdf()<br/>      print(&quot;cdf-based KS test (t, p): &quot;, ks_cdf, p_cdf, &quot;alpha: &quot;, alpha)<br/>      print(gof)<br/>&gt;     self.assertGreater(p_cdf, alpha)<br/><span class="error">E     AssertionError: 0.044178371359737824 not greater than 0.05</span><br/><br/>evaluation_tests.py:81: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/300 [  0%]                                ETA: 13150s | Loss: 17878.539  3/300 [  1%]                                ETA: 4359s | Loss: 16612.281   6/300 [  2%]                                ETA: 2161s | Loss: 15124.582  9/300 [  3%]                                ETA: 1428s | Loss: 14024.194 12/300 [  4%] █                              ETA: 1062s | Loss: 13218.803 15/300 [  5%] █                              ETA: 842s | Loss: 12718.224  18/300 [  6%] █                              ETA: 696s | Loss: 12445.267 21/300 [  7%] ██                             ETA: 591s | Loss: 12256.117 24/300 [  8%] ██                             ETA: 512s | Loss: 12167.739 27/300 [  9%] ██                             ETA: 451s | Loss: 11904.429 30/300 [ 10%] ███                            ETA: 402s | Loss: 11723.820 33/300 [ 11%] ███                            ETA: 362s | Loss: 11737.203 36/300 [ 12%] ███                            ETA: 329s | Loss: 11698.663 39/300 [ 13%] ███                            ETA: 301s | Loss: 11629.734 42/300 [ 14%] ████                           ETA: 276s | Loss: 11619.580 45/300 [ 15%] ████                           ETA: 255s | Loss: 11572.105 48/300 [ 16%] ████                           ETA: 237s | Loss: 11543.291 51/300 [ 17%] █████                          ETA: 221s | Loss: 11535.654 54/300 [ 18%] █████                          ETA: 206s | Loss: 11530.013 57/300 [ 19%] █████                          ETA: 194s | Loss: 11500.330 60/300 [ 20%] ██████                         ETA: 182s | Loss: 11498.371 63/300 [ 21%] ██████                         ETA: 171s | Loss: 11483.246 66/300 [ 22%] ██████                         ETA: 162s | Loss: 11479.828 69/300 [ 23%] ██████                         ETA: 153s | Loss: 11506.748 72/300 [ 24%] ███████                        ETA: 145s | Loss: 11505.274 75/300 [ 25%] ███████                        ETA: 138s | Loss: 11485.742 78/300 [ 26%] ███████                        ETA: 131s | Loss: 11488.589 81/300 [ 27%] ████████                       ETA: 124s | Loss: 11465.057 84/300 [ 28%] ████████                       ETA: 118s | Loss: 11465.158 87/300 [ 28%] ████████                       ETA: 113s | Loss: 11457.019 90/300 [ 30%] █████████                      ETA: 108s | Loss: 11459.644 93/300 [ 31%] █████████                      ETA: 103s | Loss: 11454.445 96/300 [ 32%] █████████                      ETA: 99s | Loss: 11458.214  99/300 [ 33%] █████████                      ETA: 94s | Loss: 11451.191102/300 [ 34%] ██████████                     ETA: 90s | Loss: 11449.823105/300 [ 35%] ██████████                     ETA: 87s | Loss: 11448.768108/300 [ 36%] ██████████                     ETA: 83s | Loss: 11448.914111/300 [ 37%] ███████████                    ETA: 80s | Loss: 11448.316114/300 [ 38%] ███████████                    ETA: 76s | Loss: 11446.934117/300 [ 39%] ███████████                    ETA: 73s | Loss: 11446.014120/300 [ 40%] ████████████                   ETA: 70s | Loss: 11446.522123/300 [ 41%] ████████████                   ETA: 68s | Loss: 11445.196126/300 [ 42%] ████████████                   ETA: 65s | Loss: 11445.866129/300 [ 43%] ████████████                   ETA: 62s | Loss: 11445.466132/300 [ 44%] █████████████                  ETA: 60s | Loss: 11445.118135/300 [ 45%] █████████████                  ETA: 58s | Loss: 11446.426138/300 [ 46%] █████████████                  ETA: 56s | Loss: 11450.441141/300 [ 47%] ██████████████                 ETA: 53s | Loss: 11443.836144/300 [ 48%] ██████████████                 ETA: 51s | Loss: 11444.899147/300 [ 49%] ██████████████                 ETA: 49s | Loss: 11445.049150/300 [ 50%] ███████████████                ETA: 48s | Loss: 11444.233153/300 [ 51%] ███████████████                ETA: 46s | Loss: 11443.352156/300 [ 52%] ███████████████                ETA: 44s | Loss: 11443.094159/300 [ 53%] ███████████████                ETA: 42s | Loss: 11443.342162/300 [ 54%] ████████████████               ETA: 41s | Loss: 11442.792165/300 [ 55%] ████████████████               ETA: 39s | Loss: 11443.197168/300 [ 56%] ████████████████               ETA: 38s | Loss: 11444.250171/300 [ 56%] █████████████████              ETA: 36s | Loss: 11447.697174/300 [ 57%] █████████████████              ETA: 35s | Loss: 11443.460177/300 [ 59%] █████████████████              ETA: 33s | Loss: 11444.436180/300 [ 60%] ██████████████████             ETA: 32s | Loss: 11442.434183/300 [ 61%] ██████████████████             ETA: 31s | Loss: 11443.434186/300 [ 62%] ██████████████████             ETA: 30s | Loss: 11442.438189/300 [ 63%] ██████████████████             ETA: 28s | Loss: 11442.881192/300 [ 64%] ███████████████████            ETA: 27s | Loss: 11441.939195/300 [ 65%] ███████████████████            ETA: 26s | Loss: 11442.322198/300 [ 66%] ███████████████████            ETA: 25s | Loss: 11442.490201/300 [ 67%] ████████████████████           ETA: 24s | Loss: 11442.126204/300 [ 68%] ████████████████████           ETA: 23s | Loss: 11441.697207/300 [ 69%] ████████████████████           ETA: 22s | Loss: 11441.828210/300 [ 70%] █████████████████████          ETA: 21s | Loss: 11441.546213/300 [ 71%] █████████████████████          ETA: 20s | Loss: 11441.736216/300 [ 72%] █████████████████████          ETA: 19s | Loss: 11441.633219/300 [ 73%] █████████████████████          ETA: 18s | Loss: 11441.443222/300 [ 74%] ██████████████████████         ETA: 17s | Loss: 11441.354225/300 [ 75%] ██████████████████████         ETA: 16s | Loss: 11441.340228/300 [ 76%] ██████████████████████         ETA: 15s | Loss: 11441.424231/300 [ 77%] ███████████████████████        ETA: 15s | Loss: 11442.392234/300 [ 78%] ███████████████████████        ETA: 14s | Loss: 11449.707237/300 [ 79%] ███████████████████████        ETA: 13s | Loss: 11446.104240/300 [ 80%] ████████████████████████       ETA: 12s | Loss: 11446.041243/300 [ 81%] ████████████████████████       ETA: 11s | Loss: 11442.585246/300 [ 82%] ████████████████████████       ETA: 11s | Loss: 11445.059249/300 [ 83%] ████████████████████████       ETA: 10s | Loss: 11443.908252/300 [ 84%] █████████████████████████      ETA: 9s | Loss: 11442.050 255/300 [ 85%] █████████████████████████      ETA: 9s | Loss: 11441.988258/300 [ 86%] █████████████████████████      ETA: 8s | Loss: 11441.869261/300 [ 87%] ██████████████████████████     ETA: 7s | Loss: 11441.981264/300 [ 88%] ██████████████████████████     ETA: 6s | Loss: 11441.427267/300 [ 89%] ██████████████████████████     ETA: 6s | Loss: 11441.166270/300 [ 90%] ███████████████████████████    ETA: 5s | Loss: 11441.396273/300 [ 91%] ███████████████████████████    ETA: 5s | Loss: 11441.531276/300 [ 92%] ███████████████████████████    ETA: 4s | Loss: 11441.728279/300 [ 93%] ███████████████████████████    ETA: 3s | Loss: 11443.060282/300 [ 94%] ████████████████████████████   ETA: 3s | Loss: 11445.846285/300 [ 95%] ████████████████████████████   ETA: 2s | Loss: 11446.153288/300 [ 96%] ████████████████████████████   ETA: 2s | Loss: 11441.582291/300 [ 97%] █████████████████████████████  ETA: 1s | Loss: 11441.822294/300 [ 98%] █████████████████████████████  ETA: 1s | Loss: 11443.326297/300 [ 99%] █████████████████████████████  ETA: 0s | Loss: 11441.871300/300 [100%] ██████████████████████████████ Elapsed: 52s | Loss: 11440.828
+mean log-loss train: 1.430
+optimal scales: [ 0.93282598]
+cdf-based KS test (t, p):  0.0168965012411 0.0441783713597 alpha:  0.05
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 60
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 300
+
+
+Probabilistic model type: EconDensity
+ std: 1
+ n_dim_x: 1
+ n_dim_y: 1
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_lscde_econ_kl</td>
+          <td class="col-duration">14.39</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_lscde_econ_kl&gt;<br/><br/>    def test_lscde_econ_kl(self):<br/>      est = LSConditionalDensityEstimation(n_centers=50, bandwidth=0.15, keep_edges=True)<br/>      prob_model = EconDensity()<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/>      kl = gof.kl_divergence()<br/>      print(&quot;KL-divergence: &quot;, kl)<br/>      print(gof)<br/>&gt;     self.assertLess(kl, 1)<br/><span class="error">E     AssertionError: 1.3788233129843508 not less than 1</span><br/><br/>evaluation_tests.py:144: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>KL-divergence:  1.37882331298
+
+Estimator type: LSConditionalDensityEstimation
+  center sampling method: k_means
+ n_centers: 50
+ keep_edges: True
+ bandwidth: 0.15
+ regularization: 0.1
+
+
+Probabilistic model type: EconDensity
+ std: 1
+ n_dim_x: 1
+ n_dim_y: 1
+
+Goodness of fit:
+ n_observations: 1000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_lscde_econ_kolmogorov_2sample</td>
+          <td class="col-duration">216.12</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_lscde_econ_kolmogorov_2sample&gt;<br/><br/>    def test_lscde_econ_kolmogorov_2sample(self):<br/>      est = LSConditionalDensityEstimation(n_centers=50)<br/>      prob_model = EconDensity()<br/>      gof = GoodnessOfFit(est, prob_model, n_observations=4000)<br/>      ks_2samp, p_2samp = gof.kolmogorov_smirnov_2sample()<br/>      print(&quot;2-sample-based KS test (t, p): &quot;, ks_2samp, p_2samp, &quot;alpha: &quot;, alpha)<br/>      print(gof)<br/>&gt;     self.assertGreater(p_2samp, alpha)<br/><span class="error">E     AssertionError: 5.7914529504256169e-114 not greater than 0.05</span><br/><br/>evaluation_tests.py:99: AssertionError<br/>----------------------------- Captured stdout call -----------------------------<br/>2-sample-based KS test (t, p):  0.175 5.79145295043e-114 alpha:  0.05
+
+Estimator type: LSConditionalDensityEstimation
+  center sampling method: k_means
+ n_centers: 50
+ keep_edges: False
+ bandwidth: 1.0
+ regularization: 0.1
+
+
+Probabilistic model type: EconDensity
+ std: 1
+ n_dim_x: 1
+ n_dim_y: 1
+
+Goodness of fit:
+ n_observations: 4000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_dummy_kl</td>
+          <td class="col-duration">0.20</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_dummy_kl&gt;<br/><br/>    def test_nkde_dummy_kl(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = SimulationDummy(mean=1)<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:176: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x205559828&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_dummy_kolmogorov_2sample</td>
+          <td class="col-duration">0.20</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_dummy_kolmogorov_2sample&gt;<br/><br/>    def test_nkde_dummy_kolmogorov_2sample(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = SimulationDummy(mean=1)<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:167: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x205652c18&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_dummy_kolmogorov_cdf</td>
+          <td class="col-duration">0.20</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_dummy_kolmogorov_cdf&gt;<br/><br/>    def test_nkde_dummy_kolmogorov_cdf(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = SimulationDummy(mean=1)<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:158: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x2052af438&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_econ_kl</td>
+          <td class="col-duration">0.19</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_econ_kl&gt;<br/><br/>    def test_nkde_econ_kl(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = EconDensity()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:203: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x2053e1358&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_econ_kolmogorov_2sample</td>
+          <td class="col-duration">0.20</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_econ_kolmogorov_2sample&gt;<br/><br/>    def test_nkde_econ_kolmogorov_2sample(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = EconDensity()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:194: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x20985e9e8&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_econ_kolmogorov_cdf</td>
+          <td class="col-duration">0.20</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_econ_kolmogorov_cdf&gt;<br/><br/>    def test_nkde_econ_kolmogorov_cdf(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = EconDensity()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:185: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x2096b6588&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_gmm_cdf</td>
+          <td class="col-duration">0.36</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_gmm_cdf&gt;<br/><br/>    def test_nkde_gmm_cdf(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = GaussianMixture()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:212: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x20fcca7b8&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_gmm_kl</td>
+          <td class="col-duration">0.37</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_gmm_kl&gt;<br/><br/>    def test_nkde_gmm_kl(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = GaussianMixture()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:230: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x20fefc1d0&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="failed results-table-row">
+        <tr>
+          <td class="col-result">Failed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_nkde_gmm_kolmogorov_2sample</td>
+          <td class="col-duration">0.36</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">self = &lt;tests.evaluation_tests.TestGoodnessOfFitTests testMethod=test_nkde_gmm_kolmogorov_2sample&gt;<br/><br/>    def test_nkde_gmm_kolmogorov_2sample(self):<br/>      est = NeighborKernelDensityEstimation()<br/>      prob_model = GaussianMixture()<br/>&gt;     gof = GoodnessOfFit(est, prob_model, n_observations=1000)<br/><br/>evaluation_tests.py:221: <br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/>../evaluation/GoodnessOfFit.py:53: in __init__<br/>    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()<br/>_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ <br/><br/>self = &lt;evaluation.GoodnessOfFit.GoodnessOfFit object at 0x21216b3c8&gt;<br/><br/>    def sample_conditional_values(self):<br/>&gt;     _, estimator_conditional_samples = self.estimator.sample(self.X_cond)<br/><span class="error">E     AttributeError: &#x27;NeighborKernelDensityEstimation&#x27; object has no attribute &#x27;sample&#x27;</span><br/><br/>../evaluation/GoodnessOfFit.py:57: AttributeError<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_gaussian_dummy_kl</td>
+          <td class="col-duration">0.01</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>KL-divergence (pass if &lt; 1) 4.51384229181
+
+Estimator type: GaussianDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [7]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_gaussian_dummy_kolmogorov_2sample_1</td>
+          <td class="col-duration">0.24</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>2-sample-based KS test (t, p):  0.013495 0.402903695044 alpha:  0.05
+
+Estimator type: GaussianDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 10000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_gaussian_dummy_kolmogorov_2sample_2</td>
+          <td class="col-duration">0.26</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>2-sample-based KS test (t, p):  0.384385 0.0 alpha:  0.05
+
+Estimator type: GaussianDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [3]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 10000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_gaussian_dummy_kolmogorov_cdf_1</td>
+          <td class="col-duration">0.58</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>cdf-based KS test (t, p):  0.00817318592959 0.562365889911 alpha:  0.05
+
+Estimator type: GaussianDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 10000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_gaussian_dummy_kolmogorov_cdf_2</td>
+          <td class="col-duration">0.58</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>cdf-based KS test (t, p):  0.383569873031 0.0 alpha:  0.05
+
+Estimator type: GaussianDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [2]
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [3]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 10000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_dummy_kolmogorov_2sample</td>
+          <td class="col-duration">137.19</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/300 [  0%]                                ETA: 10755s | Loss: 13612.338  3/300 [  1%]                                ETA: 3566s | Loss: 11730.008   6/300 [  2%]                                ETA: 1769s | Loss: 11930.513  9/300 [  3%]                                ETA: 1170s | Loss: 11610.187 12/300 [  4%] █                              ETA: 870s | Loss: 11450.382  15/300 [  5%] █                              ETA: 690s | Loss: 11511.889 18/300 [  6%] █                              ETA: 570s | Loss: 11537.461 21/300 [  7%] ██                             ETA: 484s | Loss: 11501.865 24/300 [  8%] ██                             ETA: 420s | Loss: 11440.330 27/300 [  9%] ██                             ETA: 370s | Loss: 11420.762 30/300 [ 10%] ███                            ETA: 330s | Loss: 11442.461 33/300 [ 11%] ███                            ETA: 297s | Loss: 11447.438 36/300 [ 12%] ███                            ETA: 270s | Loss: 11428.182 39/300 [ 13%] ███                            ETA: 247s | Loss: 11420.068 42/300 [ 14%] ████                           ETA: 227s | Loss: 11426.203 45/300 [ 15%] ████                           ETA: 210s | Loss: 11428.311 48/300 [ 16%] ████                           ETA: 194s | Loss: 11422.992 51/300 [ 17%] █████                          ETA: 181s | Loss: 11419.964 54/300 [ 18%] █████                          ETA: 169s | Loss: 11421.879 57/300 [ 19%] █████                          ETA: 159s | Loss: 11422.417 60/300 [ 20%] ██████                         ETA: 149s | Loss: 11420.527 63/300 [ 21%] ██████                         ETA: 141s | Loss: 11420.055 66/300 [ 22%] ██████                         ETA: 133s | Loss: 11420.773 69/300 [ 23%] ██████                         ETA: 125s | Loss: 11420.583 72/300 [ 24%] ███████                        ETA: 119s | Loss: 11420.004 75/300 [ 25%] ███████                        ETA: 113s | Loss: 11420.095 78/300 [ 26%] ███████                        ETA: 107s | Loss: 11420.268 81/300 [ 27%] ████████                       ETA: 102s | Loss: 11420.059 84/300 [ 28%] ████████                       ETA: 97s | Loss: 11419.968  87/300 [ 28%] ████████                       ETA: 93s | Loss: 11420.065 90/300 [ 30%] █████████                      ETA: 89s | Loss: 11420.033 93/300 [ 31%] █████████                      ETA: 85s | Loss: 11419.964 96/300 [ 32%] █████████                      ETA: 81s | Loss: 11419.992 99/300 [ 33%] █████████                      ETA: 77s | Loss: 11419.998102/300 [ 34%] ██████████                     ETA: 74s | Loss: 11419.967105/300 [ 35%] ██████████                     ETA: 71s | Loss: 11419.973108/300 [ 36%] ██████████                     ETA: 68s | Loss: 11419.970111/300 [ 37%] ███████████                    ETA: 65s | Loss: 11419.972114/300 [ 38%] ███████████                    ETA: 63s | Loss: 11419.963117/300 [ 39%] ███████████                    ETA: 60s | Loss: 11419.967120/300 [ 40%] ████████████                   ETA: 58s | Loss: 11419.968123/300 [ 41%] ████████████                   ETA: 56s | Loss: 11419.967126/300 [ 42%] ████████████                   ETA: 53s | Loss: 11419.975129/300 [ 43%] ████████████                   ETA: 51s | Loss: 11419.973132/300 [ 44%] █████████████                  ETA: 49s | Loss: 11419.967135/300 [ 45%] █████████████                  ETA: 48s | Loss: 11419.962138/300 [ 46%] █████████████                  ETA: 46s | Loss: 11419.970141/300 [ 47%] ██████████████                 ETA: 44s | Loss: 11419.967144/300 [ 48%] ██████████████                 ETA: 42s | Loss: 11419.968147/300 [ 49%] ██████████████                 ETA: 41s | Loss: 11419.963150/300 [ 50%] ███████████████                ETA: 39s | Loss: 11419.965153/300 [ 51%] ███████████████                ETA: 38s | Loss: 11419.960156/300 [ 52%] ███████████████                ETA: 36s | Loss: 11419.964159/300 [ 53%] ███████████████                ETA: 35s | Loss: 11419.967162/300 [ 54%] ████████████████               ETA: 34s | Loss: 11419.961165/300 [ 55%] ████████████████               ETA: 32s | Loss: 11419.966168/300 [ 56%] ████████████████               ETA: 31s | Loss: 11419.961171/300 [ 56%] █████████████████              ETA: 30s | Loss: 11419.963174/300 [ 57%] █████████████████              ETA: 29s | Loss: 11419.965177/300 [ 59%] █████████████████              ETA: 28s | Loss: 11419.961180/300 [ 60%] ██████████████████             ETA: 26s | Loss: 11419.963183/300 [ 61%] ██████████████████             ETA: 25s | Loss: 11419.961186/300 [ 62%] ██████████████████             ETA: 24s | Loss: 11419.962189/300 [ 63%] ██████████████████             ETA: 23s | Loss: 11419.963192/300 [ 64%] ███████████████████            ETA: 22s | Loss: 11419.962195/300 [ 65%] ███████████████████            ETA: 21s | Loss: 11419.959198/300 [ 66%] ███████████████████            ETA: 21s | Loss: 11419.961201/300 [ 67%] ████████████████████           ETA: 20s | Loss: 11419.960204/300 [ 68%] ████████████████████           ETA: 19s | Loss: 11419.957207/300 [ 69%] ████████████████████           ETA: 18s | Loss: 11419.965210/300 [ 70%] █████████████████████          ETA: 17s | Loss: 11419.963213/300 [ 71%] █████████████████████          ETA: 16s | Loss: 11419.957216/300 [ 72%] █████████████████████          ETA: 16s | Loss: 11419.961219/300 [ 73%] █████████████████████          ETA: 15s | Loss: 11419.959222/300 [ 74%] ██████████████████████         ETA: 14s | Loss: 11419.957225/300 [ 75%] ██████████████████████         ETA: 13s | Loss: 11419.960228/300 [ 76%] ██████████████████████         ETA: 13s | Loss: 11419.959231/300 [ 77%] ███████████████████████        ETA: 12s | Loss: 11419.957234/300 [ 78%] ███████████████████████        ETA: 11s | Loss: 11419.957237/300 [ 79%] ███████████████████████        ETA: 11s | Loss: 11419.957240/300 [ 80%] ████████████████████████       ETA: 10s | Loss: 11419.957243/300 [ 81%] ████████████████████████       ETA: 9s | Loss: 11419.957 246/300 [ 82%] ████████████████████████       ETA: 9s | Loss: 11419.957249/300 [ 83%] ████████████████████████       ETA: 8s | Loss: 11419.957252/300 [ 84%] █████████████████████████      ETA: 8s | Loss: 11419.957255/300 [ 85%] █████████████████████████      ETA: 7s | Loss: 11419.957258/300 [ 86%] █████████████████████████      ETA: 6s | Loss: 11419.957261/300 [ 87%] ██████████████████████████     ETA: 6s | Loss: 11419.957264/300 [ 88%] ██████████████████████████     ETA: 5s | Loss: 11419.957267/300 [ 89%] ██████████████████████████     ETA: 5s | Loss: 11419.957270/300 [ 90%] ███████████████████████████    ETA: 4s | Loss: 11419.957273/300 [ 91%] ███████████████████████████    ETA: 4s | Loss: 11419.957276/300 [ 92%] ███████████████████████████    ETA: 3s | Loss: 11419.957279/300 [ 93%] ███████████████████████████    ETA: 3s | Loss: 11419.957282/300 [ 94%] ████████████████████████████   ETA: 2s | Loss: 11419.957285/300 [ 95%] ████████████████████████████   ETA: 2s | Loss: 11419.957288/300 [ 96%] ████████████████████████████   ETA: 1s | Loss: 11419.957291/300 [ 97%] █████████████████████████████  ETA: 1s | Loss: 11419.957294/300 [ 98%] █████████████████████████████  ETA: 0s | Loss: 11419.957297/300 [ 99%] █████████████████████████████  ETA: 0s | Loss: 11419.957300/300 [100%] ██████████████████████████████ Elapsed: 43s | Loss: 11419.957
+mean log-loss train: 1.427
+optimal scales: [ 1.00859368]
+2-sample-based KS test (t, p):  0.011335 0.559822276681 alpha:  0.05
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 50
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 300
+
+
+Probabilistic model type: SimulationDummy
+ n_dim_x: 1
+ n_dim_y: 1
+ mean: [1]
+ cov: [[ 1.]]
+
+Goodness of fit:
+ n_observations: 8000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+----------------------------- Captured stderr call -----------------------------<br/>2018-01-18 16:41:46.439269: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_gmm_kl_1</td>
+          <td class="col-duration">53.46</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/300 [  0%]                                ETA: 5725s | Loss: 1786.733  3/300 [  1%]                                ETA: 1896s | Loss: 1668.125  6/300 [  2%]                                ETA: 939s | Loss: 1595.921   9/300 [  3%]                                ETA: 620s | Loss: 1532.314 12/300 [  4%] █                              ETA: 460s | Loss: 1468.125 15/300 [  5%] █                              ETA: 365s | Loss: 1490.291 18/300 [  6%] █                              ETA: 301s | Loss: 1491.135 21/300 [  7%] ██                             ETA: 255s | Loss: 1460.767 24/300 [  8%] ██                             ETA: 221s | Loss: 1453.464 27/300 [  9%] ██                             ETA: 194s | Loss: 1458.238 30/300 [ 10%] ███                            ETA: 173s | Loss: 1443.234 33/300 [ 11%] ███                            ETA: 156s | Loss: 1441.657 36/300 [ 12%] ███                            ETA: 141s | Loss: 1442.898 39/300 [ 13%] ███                            ETA: 129s | Loss: 1437.429 42/300 [ 14%] ████                           ETA: 118s | Loss: 1433.735 45/300 [ 15%] ████                           ETA: 109s | Loss: 1432.101 48/300 [ 16%] ████                           ETA: 101s | Loss: 1429.225 51/300 [ 17%] █████                          ETA: 94s | Loss: 1427.033  54/300 [ 18%] █████                          ETA: 88s | Loss: 1425.120 57/300 [ 19%] █████                          ETA: 82s | Loss: 1423.154 60/300 [ 20%] ██████                         ETA: 77s | Loss: 1421.844 63/300 [ 21%] ██████                         ETA: 73s | Loss: 1420.641 66/300 [ 22%] ██████                         ETA: 69s | Loss: 1419.323 69/300 [ 23%] ██████                         ETA: 65s | Loss: 1418.053 72/300 [ 24%] ███████                        ETA: 61s | Loss: 1416.409 75/300 [ 25%] ███████                        ETA: 58s | Loss: 1414.581 78/300 [ 26%] ███████                        ETA: 55s | Loss: 1413.365 81/300 [ 27%] ████████                       ETA: 52s | Loss: 1412.077 84/300 [ 28%] ████████                       ETA: 50s | Loss: 1410.563 87/300 [ 28%] ████████                       ETA: 47s | Loss: 1408.994 90/300 [ 30%] █████████                      ETA: 45s | Loss: 1407.856 93/300 [ 31%] █████████                      ETA: 43s | Loss: 1405.951 96/300 [ 32%] █████████                      ETA: 41s | Loss: 1404.464 99/300 [ 33%] █████████                      ETA: 39s | Loss: 1403.808102/300 [ 34%] ██████████                     ETA: 38s | Loss: 1402.908105/300 [ 35%] ██████████                     ETA: 36s | Loss: 1402.076108/300 [ 36%] ██████████                     ETA: 35s | Loss: 1401.071111/300 [ 37%] ███████████                    ETA: 33s | Loss: 1400.274114/300 [ 38%] ███████████                    ETA: 32s | Loss: 1399.748117/300 [ 39%] ███████████                    ETA: 30s | Loss: 1398.905120/300 [ 40%] ████████████                   ETA: 29s | Loss: 1398.568123/300 [ 41%] ████████████                   ETA: 28s | Loss: 1398.177126/300 [ 42%] ████████████                   ETA: 27s | Loss: 1397.695129/300 [ 43%] ████████████                   ETA: 26s | Loss: 1397.121132/300 [ 44%] █████████████                  ETA: 25s | Loss: 1396.713135/300 [ 45%] █████████████                  ETA: 24s | Loss: 1396.128138/300 [ 46%] █████████████                  ETA: 23s | Loss: 1395.612141/300 [ 47%] ██████████████                 ETA: 22s | Loss: 1395.026144/300 [ 48%] ██████████████                 ETA: 21s | Loss: 1394.446147/300 [ 49%] ██████████████                 ETA: 20s | Loss: 1393.769150/300 [ 50%] ███████████████                ETA: 19s | Loss: 1392.920153/300 [ 51%] ███████████████                ETA: 19s | Loss: 1391.282156/300 [ 52%] ███████████████                ETA: 18s | Loss: 1392.119159/300 [ 53%] ███████████████                ETA: 17s | Loss: 1389.884162/300 [ 54%] ████████████████               ETA: 17s | Loss: 1390.259165/300 [ 55%] ████████████████               ETA: 16s | Loss: 1390.405168/300 [ 56%] ████████████████               ETA: 15s | Loss: 1389.766171/300 [ 56%] █████████████████              ETA: 15s | Loss: 1388.328174/300 [ 57%] █████████████████              ETA: 14s | Loss: 1387.879177/300 [ 59%] █████████████████              ETA: 13s | Loss: 1387.282180/300 [ 60%] ██████████████████             ETA: 13s | Loss: 1386.998183/300 [ 61%] ██████████████████             ETA: 12s | Loss: 1386.590186/300 [ 62%] ██████████████████             ETA: 12s | Loss: 1385.979189/300 [ 63%] ██████████████████             ETA: 11s | Loss: 1385.797192/300 [ 64%] ███████████████████            ETA: 11s | Loss: 1385.442195/300 [ 65%] ███████████████████            ETA: 10s | Loss: 1385.070198/300 [ 66%] ███████████████████            ETA: 10s | Loss: 1384.826201/300 [ 67%] ████████████████████           ETA: 9s | Loss: 1384.859 204/300 [ 68%] ████████████████████           ETA: 9s | Loss: 1384.359207/300 [ 69%] ████████████████████           ETA: 9s | Loss: 1383.878210/300 [ 70%] █████████████████████          ETA: 8s | Loss: 1383.680213/300 [ 71%] █████████████████████          ETA: 8s | Loss: 1383.454216/300 [ 72%] █████████████████████          ETA: 7s | Loss: 1383.285219/300 [ 73%] █████████████████████          ETA: 7s | Loss: 1383.059222/300 [ 74%] ██████████████████████         ETA: 7s | Loss: 1383.405225/300 [ 75%] ██████████████████████         ETA: 6s | Loss: 1382.965228/300 [ 76%] ██████████████████████         ETA: 6s | Loss: 1382.151231/300 [ 77%] ███████████████████████        ETA: 6s | Loss: 1381.894234/300 [ 78%] ███████████████████████        ETA: 5s | Loss: 1381.713237/300 [ 79%] ███████████████████████        ETA: 5s | Loss: 1381.475240/300 [ 80%] ████████████████████████       ETA: 5s | Loss: 1381.564243/300 [ 81%] ████████████████████████       ETA: 4s | Loss: 1383.416246/300 [ 82%] ████████████████████████       ETA: 4s | Loss: 1381.076249/300 [ 83%] ████████████████████████       ETA: 4s | Loss: 1381.931252/300 [ 84%] █████████████████████████      ETA: 3s | Loss: 1380.975255/300 [ 85%] █████████████████████████      ETA: 3s | Loss: 1381.199258/300 [ 86%] █████████████████████████      ETA: 3s | Loss: 1383.135261/300 [ 87%] ██████████████████████████     ETA: 3s | Loss: 1384.771264/300 [ 88%] ██████████████████████████     ETA: 2s | Loss: 1378.663267/300 [ 89%] ██████████████████████████     ETA: 2s | Loss: 1379.475270/300 [ 90%] ███████████████████████████    ETA: 2s | Loss: 1378.310273/300 [ 91%] ███████████████████████████    ETA: 2s | Loss: 1374.938276/300 [ 92%] ███████████████████████████    ETA: 1s | Loss: 1375.283279/300 [ 93%] ███████████████████████████    ETA: 1s | Loss: 1374.122282/300 [ 94%] ████████████████████████████   ETA: 1s | Loss: 1373.554285/300 [ 95%] ████████████████████████████   ETA: 1s | Loss: 1372.421288/300 [ 96%] ████████████████████████████   ETA: 0s | Loss: 1372.046291/300 [ 97%] █████████████████████████████  ETA: 0s | Loss: 1371.234294/300 [ 98%] █████████████████████████████  ETA: 0s | Loss: 1371.327297/300 [ 99%] █████████████████████████████  ETA: 0s | Loss: 1371.109300/300 [100%] ██████████████████████████████ Elapsed: 20s | Loss: 1371.013
+mean log-loss train: 1.371
+optimal scales: [ 0.3216947]
+KL-divergence (pass if &lt; 1) 0.240379032823
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 20
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 300
+
+
+Probabilistic model type: GaussianMixture
+n_kernels: 5
+n_dim_x: 1
+n_dim_y: 1
+means_std: [[  7.44057110e-04  -1.21526047e+00]
+ [  1.02184059e+00  -6.01041286e-01]
+ [ -1.63099239e+00   1.55611448e+00]
+ [ -3.25192522e+00   4.56972076e-02]
+ [ -9.82025217e-01  -6.55900026e-01]]
+
+Goodness of fit:
+ n_observations: 1000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_kmn_gmm_kl_2</td>
+          <td class="col-duration">55.42</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>fitting model
+  1/300 [  0%]                                ETA: 6225s | Loss: 2744.975  3/300 [  1%]                                ETA: 2062s | Loss: 2640.315  6/300 [  2%]                                ETA: 1021s | Loss: 2456.413  9/300 [  3%]                                ETA: 674s | Loss: 2404.027  12/300 [  4%] █                              ETA: 501s | Loss: 2348.874 15/300 [  5%] █                              ETA: 396s | Loss: 2320.605 18/300 [  6%] █                              ETA: 327s | Loss: 2306.685 21/300 [  7%] ██                             ETA: 277s | Loss: 2299.245 24/300 [  8%] ██                             ETA: 240s | Loss: 2311.287 27/300 [  9%] ██                             ETA: 211s | Loss: 2294.716 30/300 [ 10%] ███                            ETA: 188s | Loss: 2297.969 33/300 [ 11%] ███                            ETA: 169s | Loss: 2290.081 36/300 [ 12%] ███                            ETA: 153s | Loss: 2283.146 39/300 [ 13%] ███                            ETA: 140s | Loss: 2275.465 42/300 [ 14%] ████                           ETA: 129s | Loss: 2269.627 45/300 [ 15%] ████                           ETA: 119s | Loss: 2260.359 48/300 [ 16%] ████                           ETA: 110s | Loss: 2254.040 51/300 [ 17%] █████                          ETA: 102s | Loss: 2252.543 54/300 [ 18%] █████                          ETA: 96s | Loss: 2250.534  57/300 [ 19%] █████                          ETA: 89s | Loss: 2248.392 60/300 [ 20%] ██████                         ETA: 84s | Loss: 2246.400 63/300 [ 21%] ██████                         ETA: 79s | Loss: 2244.832 66/300 [ 22%] ██████                         ETA: 74s | Loss: 2243.776 69/300 [ 23%] ██████                         ETA: 70s | Loss: 2242.564 72/300 [ 24%] ███████                        ETA: 67s | Loss: 2241.215 75/300 [ 25%] ███████                        ETA: 63s | Loss: 2240.558 78/300 [ 26%] ███████                        ETA: 60s | Loss: 2239.993 81/300 [ 27%] ████████                       ETA: 57s | Loss: 2239.257 84/300 [ 28%] ████████                       ETA: 54s | Loss: 2239.233 87/300 [ 28%] ████████                       ETA: 52s | Loss: 2238.715 90/300 [ 30%] █████████                      ETA: 49s | Loss: 2237.338 93/300 [ 31%] █████████                      ETA: 47s | Loss: 2237.126 96/300 [ 32%] █████████                      ETA: 45s | Loss: 2239.062 99/300 [ 33%] █████████                      ETA: 43s | Loss: 2235.831102/300 [ 34%] ██████████                     ETA: 41s | Loss: 2236.381105/300 [ 35%] ██████████                     ETA: 39s | Loss: 2236.242108/300 [ 36%] ██████████                     ETA: 37s | Loss: 2235.344111/300 [ 37%] ███████████                    ETA: 36s | Loss: 2234.754114/300 [ 38%] ███████████                    ETA: 34s | Loss: 2235.353117/300 [ 39%] ███████████                    ETA: 33s | Loss: 2234.623120/300 [ 40%] ████████████                   ETA: 32s | Loss: 2233.796123/300 [ 41%] ████████████                   ETA: 30s | Loss: 2233.425126/300 [ 42%] ████████████                   ETA: 29s | Loss: 2233.226129/300 [ 43%] ████████████                   ETA: 28s | Loss: 2233.044132/300 [ 44%] █████████████                  ETA: 27s | Loss: 2232.674135/300 [ 45%] █████████████                  ETA: 26s | Loss: 2232.023138/300 [ 46%] █████████████                  ETA: 25s | Loss: 2231.259141/300 [ 47%] ██████████████                 ETA: 24s | Loss: 2231.580144/300 [ 48%] ██████████████                 ETA: 23s | Loss: 2230.909147/300 [ 49%] ██████████████                 ETA: 22s | Loss: 2231.465150/300 [ 50%] ███████████████                ETA: 21s | Loss: 2231.001153/300 [ 51%] ███████████████                ETA: 20s | Loss: 2231.163156/300 [ 52%] ███████████████                ETA: 19s | Loss: 2232.868159/300 [ 53%] ███████████████                ETA: 19s | Loss: 2233.814162/300 [ 54%] ████████████████               ETA: 18s | Loss: 2231.689165/300 [ 55%] ████████████████               ETA: 17s | Loss: 2230.624168/300 [ 56%] ████████████████               ETA: 17s | Loss: 2230.087171/300 [ 56%] █████████████████              ETA: 16s | Loss: 2231.052174/300 [ 57%] █████████████████              ETA: 15s | Loss: 2229.374177/300 [ 59%] █████████████████              ETA: 15s | Loss: 2231.979180/300 [ 60%] ██████████████████             ETA: 14s | Loss: 2230.780183/300 [ 61%] ██████████████████             ETA: 13s | Loss: 2227.862186/300 [ 62%] ██████████████████             ETA: 13s | Loss: 2229.932189/300 [ 63%] ██████████████████             ETA: 12s | Loss: 2228.002192/300 [ 64%] ███████████████████            ETA: 12s | Loss: 2232.853195/300 [ 65%] ███████████████████            ETA: 11s | Loss: 2227.217198/300 [ 66%] ███████████████████            ETA: 11s | Loss: 2232.990201/300 [ 67%] ████████████████████           ETA: 10s | Loss: 2228.758204/300 [ 68%] ████████████████████           ETA: 10s | Loss: 2225.933207/300 [ 69%] ████████████████████           ETA: 9s | Loss: 2229.049 210/300 [ 70%] █████████████████████          ETA: 9s | Loss: 2225.102213/300 [ 71%] █████████████████████          ETA: 8s | Loss: 2225.933216/300 [ 72%] █████████████████████          ETA: 8s | Loss: 2224.632219/300 [ 73%] █████████████████████          ETA: 8s | Loss: 2224.464222/300 [ 74%] ██████████████████████         ETA: 7s | Loss: 2225.092225/300 [ 75%] ██████████████████████         ETA: 7s | Loss: 2227.228228/300 [ 76%] ██████████████████████         ETA: 6s | Loss: 2226.491231/300 [ 77%] ███████████████████████        ETA: 6s | Loss: 2225.687234/300 [ 78%] ███████████████████████        ETA: 6s | Loss: 2225.629237/300 [ 79%] ███████████████████████        ETA: 5s | Loss: 2224.146240/300 [ 80%] ████████████████████████       ETA: 5s | Loss: 2224.944243/300 [ 81%] ████████████████████████       ETA: 5s | Loss: 2223.997246/300 [ 82%] ████████████████████████       ETA: 4s | Loss: 2224.412249/300 [ 83%] ████████████████████████       ETA: 4s | Loss: 2226.591252/300 [ 84%] █████████████████████████      ETA: 4s | Loss: 2224.160255/300 [ 85%] █████████████████████████      ETA: 3s | Loss: 2224.971258/300 [ 86%] █████████████████████████      ETA: 3s | Loss: 2224.292261/300 [ 87%] ██████████████████████████     ETA: 3s | Loss: 2224.394264/300 [ 88%] ██████████████████████████     ETA: 3s | Loss: 2223.903267/300 [ 89%] ██████████████████████████     ETA: 2s | Loss: 2223.263270/300 [ 90%] ███████████████████████████    ETA: 2s | Loss: 2224.469273/300 [ 91%] ███████████████████████████    ETA: 2s | Loss: 2223.535276/300 [ 92%] ███████████████████████████    ETA: 1s | Loss: 2224.273279/300 [ 93%] ███████████████████████████    ETA: 1s | Loss: 2222.402282/300 [ 94%] ████████████████████████████   ETA: 1s | Loss: 2225.425285/300 [ 95%] ████████████████████████████   ETA: 1s | Loss: 2225.003288/300 [ 96%] ████████████████████████████   ETA: 0s | Loss: 2226.283291/300 [ 97%] █████████████████████████████  ETA: 0s | Loss: 2222.683294/300 [ 98%] █████████████████████████████  ETA: 0s | Loss: 2222.971297/300 [ 99%] █████████████████████████████  ETA: 0s | Loss: 2220.932300/300 [100%] ██████████████████████████████ Elapsed: 22s | Loss: 2221.293
+mean log-loss train: 2.221
+optimal scales: [ 0.94982368]
+KL-divergence (pass if &lt; 1) 0.0622953453242
+
+Estimator type: KernelMixtureNetwork
+ center sampling method: k_means
+ n_centers: 20
+ keep_edges: False
+ init_scales: [0.541324854612918]
+ train_scales: True n_training_epochs: 300
+
+
+Probabilistic model type: GaussianMixture
+n_kernels: 20
+n_dim_x: 1
+n_dim_y: 1
+means_std: [[ 2.8890084  -5.27674981]
+ [ 3.20037419  2.26445395]
+ [ 0.09496726 -0.52389112]
+ [ 0.20330038 -0.86514249]
+ [-1.37187617 -3.72178725]
+ [ 4.04468134  2.6147786 ]
+ [ 3.57776472 -3.29733859]
+ [ 1.10918523  1.17218507]
+ [-1.0260426  -2.20417801]
+ [-3.75260868 -7.80968075]
+ [-0.26593967 -5.32041837]
+ [-0.17699428  1.49301393]
+ [ 0.75959096  0.06396381]
+ [ 1.26059471  0.9764774 ]
+ [ 3.77934558  0.45022836]
+ [-2.79075429  3.26664764]
+ [ 7.16088016 -6.65420884]
+ [ 1.63950529 -2.11692663]
+ [-0.27507788  2.48276632]
+ [ 3.36557291  2.73850346]]
+
+Goodness of fit:
+ n_observations: 1000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">evaluation_tests.py::TestGoodnessOfFitTests::test_lscde_gmm_kl</td>
+          <td class="col-duration">24.29</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log">----------------------------- Captured stdout call -----------------------------<br/>KL-divergence (pass if &lt; 1) 0.287742127848
+
+Estimator type: LSConditionalDensityEstimation
+  center sampling method: k_means
+ n_centers: 50
+ keep_edges: False
+ bandwidth: 1.0
+ regularization: 0.1
+
+
+Probabilistic model type: GaussianMixture
+n_kernels: 20
+n_dim_x: 1
+n_dim_y: 1
+means_std: [[ 0.32975699  0.3928243 ]
+ [ 1.05948005  3.06086283]
+ [-1.22860334  1.72579161]
+ [ 1.28528443  1.77127298]
+ [-1.43158949 -4.60152781]
+ [ 0.25520449 -0.14468917]
+ [-2.38687356 -0.77757524]
+ [-1.37141193 -0.97443264]
+ [ 2.25554408 -0.60466299]
+ [ 0.51555734  0.15848727]
+ [ 0.9315304   0.3609691 ]
+ [-2.63592037 -0.60659761]
+ [ 0.76345271 -1.00625034]
+ [-1.57246946  0.70353453]
+ [-2.82943918  0.24787922]
+ [-0.6288117   0.59342961]
+ [ 2.84905704  1.03540084]
+ [ 1.11437486  2.1484068 ]
+ [ 2.4956632   1.80195153]
+ [-0.58100598 -0.07365142]]
+
+Goodness of fit:
+ n_observations: 1000
+ n_x_cond: 10000
+ repeat_kolmogorov: 20
+
+</div></td></tr></tbody></table></body></html>
