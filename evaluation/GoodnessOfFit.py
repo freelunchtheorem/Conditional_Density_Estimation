@@ -1,8 +1,7 @@
 from scipy.stats import shapiro, kstest, jarque_bera, ks_2samp
 from density_estimator.base import BaseDensityEstimator
-from sklearn.model_selection import train_test_split
-from density_simulation import get_probabilistic_models_list
 from density_simulation import ConditionalDensity
+from joblib import Parallel, delayed
 import numpy as np
 import scipy
 
@@ -45,53 +44,53 @@ class GoodnessOfFit:
     if X_cond is None:
       """ generate X_cond data with shape (n_x_cond, estimator.ndim_x) """
       X_cond = np.stack([np.asarray([0 for _ in range(self.n_x_cond)]) for i in range(self.estimator.ndim_x)], axis=1)
-      # in the case X_Cond is (n_x_cond, 1) convert to (n_x_cond, )
+      """ in the case X_Cond is (n_x_cond, 1) convert to (n_x_cond, ) """
       X_cond = np.squeeze(X_cond)
 
+
     self.X_cond = X_cond
+    # set initial values
+    self.estimator_conditional_samples, self.proba_model_conditional_samples = self.sample_conditional_values()
 
-    self.resample_new_conditional_samples()
 
-    self.seed = np.random.seed(98765431)
-
-  def resample_new_conditional_samples(self):
-    _, self.estimator_conditional_samples = self.estimator.sample(self.X_cond)
-    _, self.proba_model_conditional_samples = self.probabilistic_model.simulate_conditional(self.X_cond)
+  def sample_conditional_values(self):
+    _, estimator_conditional_samples = self.estimator.sample(self.X_cond)
+    _, proba_model_conditional_samples = self.probabilistic_model.simulate_conditional(self.X_cond)
 
     """ kstest can't handle single-dimensional entries, therefore remove it"""
-    if self.estimator_conditional_samples.ndim == 2:
-      if self.estimator_conditional_samples.shape[1] == 1:
-        self.estimator_conditional_samples = np.squeeze(self.estimator_conditional_samples, axis = 1)
-    if self.proba_model_conditional_samples.ndim == 2:
-      if self.proba_model_conditional_samples.shape[1] == 1:
-        self.proba_model_conditional_samples = np.squeeze(self.proba_model_conditional_samples, axis=1)
+    if estimator_conditional_samples.ndim == 2:
+      if estimator_conditional_samples.shape[1] == 1:
+        estimator_conditional_samples = np.squeeze(estimator_conditional_samples, axis = 1)
+    if proba_model_conditional_samples.ndim == 2:
+      if proba_model_conditional_samples.shape[1] == 1:
+        proba_model_conditional_samples = np.squeeze(proba_model_conditional_samples, axis=1)
 
+    return estimator_conditional_samples, proba_model_conditional_samples
 
   def shapiro_wilk_test(self):
     sw, p = shapiro(self.estimator_conditional_samples)
     return sw, p
 
-  def   kolmogorov_smirnov_cdf(self):
-    ks = []
-    p = []
-    for _ in range(self.repeat_kolmogorov):
-      self.resample_new_conditional_samples()
-      ks_new, p_new = kstest(self.estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
-      ks.append(ks_new), p.append(p_new)
-    return np.mean(ks), np.mean(p)
-
-  def kolmogorov_smirnov_2sample(self):
-    ks = []
-    p = []
-    for _ in range(self.repeat_kolmogorov):
-      self.resample_new_conditional_samples()
-      ks_new, p_new = ks_2samp(self.estimator_conditional_samples, self.proba_model_conditional_samples)
-      ks.append(ks_new), p.append(p_new)
-    return np.mean(ks), np.mean(p)
-
   def jarque_bera_test(self):
     jb, p = jarque_bera(self.estimator_conditional_samples)
     return jb, p
+
+  def kolmogorov_smirnov_cdf(self):
+    samples = [self.sample_conditional_values() for _ in range(self.repeat_kolmogorov)]
+    estimator_cond_samples = np.asarray(samples)[:, 0]
+
+    statistics = np.asarray(Parallel(n_jobs=-1)(delayed(ktest_cdf)(self, estimator_cond_samples[i]) for i in range(
+      self.repeat_kolmogorov)))
+    return np.mean(statistics[:,0]), np.mean(statistics[:,1])
+
+  def kolmogorov_smirnov_2sample(self):
+    samples = np.asarray([self.sample_conditional_values() for _ in range(self.repeat_kolmogorov)])
+    estimator_cond_samples = samples[:, 0]
+    probabilistic_cond_samples = samples[:, 1]
+
+    statistics = np.asarray(Parallel(n_jobs=-1)(delayed(ktest_2sample)(estimator_cond_samples[i], probabilistic_cond_samples[i]) for i in range(
+      self.repeat_kolmogorov)))
+    return np.mean(statistics[:,0]), np.mean(statistics[:,1])
 
   def kl_divergence(self):
     P = self.probabilistic_model.pdf
@@ -107,19 +106,19 @@ class GoodnessOfFit:
     Z_P = P(X,Y)
     Z_Q = Q(X,Y)
 
-    # KL can't handle zero values -> replace with small values if zero values existent
-    # Z_Q[Z_Q == 0] = np.finfo(np.double).tiny
-    # Z_P[Z_P == 0] = np.finfo(np.double).tiny
-
     return scipy.stats.entropy(pk=Z_P, qk=Z_Q)
 
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}\n repeat_kolmogorov: {}\n".format(self.estimator,
                                                                                                                  self.probabilistic_model,
                                                                                                                  self.n_observations,
+
                                                                                                                  self.n_x_cond, self.repeat_kolmogorov))
 
+""" closured functions cannot be pickled -> required to be outside for parallel computing """
+def ktest_cdf(self, est_cond_samples):
+  return kstest(est_cond_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
 
 
-
-
+def ktest_2sample(estimator_cond_samples, probabilistic_cond_samples):
+  return scipy.stats.ks_2samp(estimator_cond_samples, probabilistic_cond_samples)

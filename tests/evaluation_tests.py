@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
+from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, NeighborKernelDensityEstimation
 from density_simulation import EconDensity, GaussianMixture
 from evaluation.GoodnessOfFit import GoodnessOfFit
 from tests.Dummies import GaussianDummy, SimulationDummy
@@ -71,8 +71,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     print(gof)
     self.assertGreater(p, alpha)
 
-  def test_kmn_econ_kolmogorov_cdf(self, alpha=0.05):
-    est = KernelMixtureNetwork(train_scales=True, n_centers=50)
+  def test_kmn_econ_kolmogorov_cdf(self):
+    est = KernelMixtureNetwork(train_scales=True, n_centers=60)
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks_cdf, p_cdf = gof.kolmogorov_smirnov_cdf()
@@ -80,8 +80,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     print(gof)
     self.assertGreater(p_cdf, alpha)
 
-  def test_kmn_econ_kolmogorov_2sample(self, alpha=0.05):
-    est = KernelMixtureNetwork(train_scales=True, n_centers=50)
+  def test_kmn_econ_kolmogorov_2sample(self):
+    est = KernelMixtureNetwork(train_scales=True, n_centers=60, n_training_epochs=600)
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     ks_2samp, p_2samp = gof.kolmogorov_smirnov_2sample()
@@ -89,7 +89,7 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     print(gof)
     self.assertGreater(p_2samp, alpha)
 
-  def test_lscde_econ_kolmogorov_2sample(self, alpha=0.05):
+  def test_lscde_econ_kolmogorov_2sample(self):
     est = LSConditionalDensityEstimation(n_centers=50)
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=4000)
@@ -108,7 +108,7 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertGreater(kl, 1)
 
   def test_kmn_econ_kl(self):
-    est = KernelMixtureNetwork(train_scales=True, n_centers=100)
+    est = KernelMixtureNetwork(train_scales=True, n_centers=60, n_training_epochs=600)
     prob_model = EconDensity()
     gof = GoodnessOfFit(est, prob_model, n_observations=8000)
     kl = gof.kl_divergence()
@@ -135,9 +135,9 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertLess(kl, 1)
 
   def test_lscde_econ_kl(self):
-    est = LSConditionalDensityEstimation(n_centers=100, bandwidth=0.15, keep_edges=True)
+    est = LSConditionalDensityEstimation(n_centers=50, bandwidth=0.15, keep_edges=True)
     prob_model = EconDensity()
-    gof = GoodnessOfFit(est, prob_model, n_observations=8000)
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
     kl = gof.kl_divergence()
     print("KL-divergence: ", kl)
     print(gof)
@@ -151,6 +151,89 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     print("KL-divergence (pass if < 1)", kl)
     print(gof)
     self.assertLess(kl, 1)
+
+  def test_nkde_dummy_kolmogorov_cdf(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = SimulationDummy(mean=1)
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_cdf()
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_dummy_kolmogorov_2sample(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = SimulationDummy(mean=1)
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_2sample()
+    print("2-sample-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_dummy_kl(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = SimulationDummy(mean=1)
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    kl = gof.kl_divergence()
+    print("KL-divergence: ", kl)
+    print(gof)
+    self.assertLess(kl, 1)
+
+  def test_nkde_econ_kolmogorov_cdf(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = EconDensity()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_cdf()
+    print("2-sample-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_econ_kolmogorov_2sample(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = EconDensity()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_2sample()
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_econ_kl(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = EconDensity()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    kl = gof.kl_divergence()
+    print("KL-divergence: ", kl)
+    print(gof)
+    self.assertLess(kl, 1)
+
+  def test_nkde_gmm_cdf(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = GaussianMixture()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_cdf()
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_gmm_kolmogorov_2sample(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = GaussianMixture()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    ks, p = gof.kolmogorov_smirnov_2sample()
+    print("cdf-based KS test (t, p): ", ks, p, "alpha: ", alpha)
+    print(gof)
+    self.assertGreater(p, alpha)
+
+  def test_nkde_gmm_kl(self):
+    est = NeighborKernelDensityEstimation()
+    prob_model = GaussianMixture()
+    gof = GoodnessOfFit(est, prob_model, n_observations=1000)
+    kl = gof.kl_divergence()
+    print("KL-divergence: ", kl)
+    print(gof)
+    self.assertLess(kl, 1)
+
+
 
 
 if __name__ == '__main__':
