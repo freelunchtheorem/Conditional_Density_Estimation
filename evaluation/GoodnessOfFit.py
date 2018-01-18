@@ -79,7 +79,10 @@ class GoodnessOfFit:
     samples = [self.sample_conditional_values() for _ in range(self.repeat_kolmogorov)]
     estimator_cond_samples = np.asarray(samples)[:, 0]
 
-    statistics = np.asarray(Parallel(n_jobs=-1)(delayed(ktest_cdf)(self, estimator_cond_samples[i]) for i in range(
+    cdf = self.probabilistic_model.cdf
+    X_cond = self.X_cond
+
+    statistics = np.asarray(Parallel(n_jobs=-1)(delayed(ktest_cdf)(cdf, X_cond, estimator_cond_samples[i]) for i in range(
       self.repeat_kolmogorov)))
     return np.mean(statistics[:,0]), np.mean(statistics[:,1])
 
@@ -116,8 +119,8 @@ class GoodnessOfFit:
                                                                                                                  self.n_x_cond, self.repeat_kolmogorov))
 
 """ closured functions cannot be pickled -> required to be outside for parallel computing """
-def ktest_cdf(self, est_cond_samples):
-  return kstest(est_cond_samples, lambda y: self.probabilistic_model.cdf(self.X_cond, y))
+def ktest_cdf(cdf, X_cond, est_cond_samples):
+  return kstest(est_cond_samples, lambda y: cdf(X_cond, y))
 
 
 def ktest_2sample(estimator_cond_samples, probabilistic_cond_samples):
