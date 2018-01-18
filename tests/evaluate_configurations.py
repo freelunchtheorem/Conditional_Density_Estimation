@@ -58,7 +58,7 @@ def run_configurations(configured_estimators, configured_simulators):
 
 def run_single_configuration(estimator, simulator, n_observations):
     gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations)
-    ks, p = gof.kolmogorov_smirnov_2sample()
+    ks, p = gof.kolmogorov_smirnov_2sample(parallelized=False) # prevent nested parallel for-loops
     kl = gof.kl_divergence()
     return ks, p, kl
 
