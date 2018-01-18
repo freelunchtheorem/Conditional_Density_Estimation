@@ -49,6 +49,22 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertLess(p, alpha)
 
 
+  def test_gaussian_dummy_kl_divergence1(self):
+    est = GaussianDummy(mean=2)
+    prob_model = SimulationDummy(mean=2)
+    gof = GoodnessOfFit(est, prob_model, n_observations=10000)
+    kl = gof.kl_divergence()
+    print("KL-Divergence:", kl)
+    self.assertLess(kl, 0.2)
+
+  def test_gaussian_dummy_kl_divergence(self):
+    est = GaussianDummy(mean=2)
+    prob_model = SimulationDummy(mean=4)
+    gof = GoodnessOfFit(est, prob_model, n_observations=10000)
+    kl = gof.kl_divergence()
+    print("KL-Divergence:", kl)
+    self.assertGreater(kl, 1)
+
 
 
   """ --- estimator checks with density estimators and simulators --- """
