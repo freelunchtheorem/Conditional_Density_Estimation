@@ -34,6 +34,7 @@ class GoodnessOfFit:
 
     np.random.seed(seed)
     self.X, self.Y = probabilistic_model.simulate(self.n_observations)
+    self.X, self.Y = probabilistic_model._handle_input_dimensionality(self.X, self.Y)
 
     if not estimator.fitted: #fit estimator if necessary
       estimator.fit(self.X, self.Y)
@@ -65,16 +66,6 @@ class GoodnessOfFit:
     assert estimator_conditional_samples.ndim == 1 or estimator_conditional_samples.shape[1] == 1 , "Can only compute Kosmogorov Smirnov Statistic of ndim_y = 1"
     estimator_conditional_samples = estimator_conditional_samples.flatten()
     return kstest(estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(X_cond, y))
-
-
-  def kolmogorov_smirnov_2sample(self):
-    samples = np.asarray([self.sample_conditional_values() for _ in range(self.repeat_kolmogorov)])
-    estimator_cond_samples = samples[:, 0]
-    probabilistic_cond_samples = samples[:, 1]
-
-    statistics = np.asarray(Parallel(n_jobs=-1)(delayed(ktest_2sample)(estimator_cond_samples[i], probabilistic_cond_samples[i]) for i in range(
-      self.repeat_kolmogorov)))
-    return np.mean(statistics[:,0]), np.mean(statistics[:,1])
 
   def kl_divergence(self, y_res=100):
     """
@@ -115,12 +106,8 @@ class GoodnessOfFit:
 
 
   def __str__(self):
-    return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}\n repeat_kolmogorov: {}\n".format(self.estimator,
-                                                                                                                 self.probabilistic_model,
-                                                                                                                 self.n_observations,
-
-                                                                                                                 self.n_x_cond, self.repeat_kolmogorov))
-
+    return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
+      self.estimator, self.probabilistic_model, self.n_observations, self.n_x_cond))
 
 class GoodnessOfFitResults:
 
@@ -137,8 +124,6 @@ class GoodnessOfFitResults:
       self.ks_stat = np.zeros(x_cond.shape[0])
       self.ks_pval = np.zeros(x_cond.shape[0])
 
-    self.kl = np.zeros(x_cond.shape[0])
-
 
     self.mean_kl = None
     self.mean_ks_stat = None
@@ -153,16 +138,6 @@ class GoodnessOfFitResults:
   def __str__(self):
     return "KL-Divergence: %.4f , KS Stat: %.4f, KS pval: %.4f"%(self.mean_kl, self.mean_ks_stat, self.mean_ks_pval)
 
-
-
-
-""" closured functions cannot be pickled -> required to be outside for parallel computing """
-def ktest_cdf(cdf, X_cond, est_cond_samples):
-  return kstest(est_cond_samples, lambda y: cdf(X_cond, y))
-
-
-def ktest_2sample(estimator_cond_samples, probabilistic_cond_samples):
-  return scipy.stats.ks_2samp(estimator_cond_samples, probabilistic_cond_samples)
 
 def get_variable_grid(X, resolution=20, low_percentile = 10, high_percentile=90):
   """
