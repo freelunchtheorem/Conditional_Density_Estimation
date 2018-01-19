@@ -23,6 +23,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.bandwidth = bandwidth
 
     self.fitted = False
+    self.can_sample = False
 
   def fit(self, X, Y):
     """

@@ -59,6 +59,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         self.train_scales = train_scales
 
         self.fitted = False
+        self.can_sample = True
 
     def fit(self, X, Y, **kwargs):
         """

@@ -20,6 +20,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.regularization = regularization
 
     self.fitted = False
+    self.can_sample = True
 
   def _build_model(self, X, Y):
     # save variance of data
