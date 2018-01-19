@@ -66,7 +66,6 @@ class GaussianMixture(ConditionalDensity):
     P_y = np.stack([self.gaussians_y[i].cdf(Y) for i in range(self.n_kernels)],
                    axis=1)  # shape(X.shape[0], n_kernels)
     W_x = self._W_x(X)
-    print(W_x.sum(axis=1))
 
     cond_prob = np.sum(np.multiply(W_x, P_y), axis=1)
     assert cond_prob.shape[0] == X.shape[0]
