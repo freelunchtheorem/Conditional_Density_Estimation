@@ -126,7 +126,6 @@ class GoodnessOfFit:
       self.estimator, self.probabilistic_model, self.n_observations, self.n_x_cond))
 
 class GoodnessOfFitResults:
-
   def __init__(self, x_cond, estimator, probabilistic_model):
     self.cond_values = x_cond
 
@@ -163,10 +162,11 @@ class GoodnessOfFitResults:
 
     get_from_dict = lambda key: self.estimator_params[key] if key in self.estimator_params else None
 
-    for key in ["model", "n_centers", "center_sampling_method"]:
+    for key in ["estimator", "n_centers", "center_sampling_method"]:
       report_dict[key] = get_from_dict(key)
 
-    report_dict["simulator"] = self.probabilistic_model_params["model"]
+
+    report_dict["simulator"] = self.probabilistic_model_params["simulator"]
 
     return report_dict
 

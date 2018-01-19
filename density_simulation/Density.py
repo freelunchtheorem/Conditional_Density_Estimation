@@ -111,5 +111,5 @@ class ConditionalDensity(BaseEstimator):
 
   def get_params(self, deep=True):
     param_dict = super(ConditionalDensity, self).get_params(deep=deep)
-    param_dict['model'] = self.__class__.__name__
+    param_dict['simulator'] = self.__class__.__name__
     return param_dict

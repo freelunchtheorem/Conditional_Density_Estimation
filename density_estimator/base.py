@@ -115,5 +115,5 @@ class BaseDensityEstimator(BaseEstimator):
 
   def get_params(self, deep=True):
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
-    param_dict['model'] = self.__class__.__name__
+    param_dict['estimator'] = self.__class__.__name__
     return param_dict

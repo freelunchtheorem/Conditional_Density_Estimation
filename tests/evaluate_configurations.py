@@ -1,11 +1,12 @@
-from joblib import Parallel, delayed
-import numpy as np
+from contextlib import contextmanager
 import itertools
 from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
 from density_simulation import EconDensity, GaussianMixture
-from evaluation.GoodnessOfFit import GoodnessOfFit, GoodnessOfFitResults
-
-
+from evaluation.GoodnessOfFit import GoodnessOfFit
+from multiprocessing import Pool, freeze_support
+import multiprocessing
+import pandas as pd
+from utils import io
 
 
 def prepare_configurations():
@@ -47,26 +48,89 @@ def prepare_configurations():
 
 
 
-def run_configurations(configured_estimators, configured_simulators):
+def create_configurations(configured_estimators, configured_simulators):
+  """
+  creates all possible combinations from the (configured) estimators and simulators.
+  :param configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators
+  :param configured_simulators: a list instantiated simulator objects with length n while m being the number of configured simulators
+  :return: a list containing n*m=k tuples while k being the number of the cartesian product of estimators and simulators,
+  shape of tuples: (estimator object, simulator object)
+  """
+  return [(estimator, simulator, 10) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
 
-  results = Parallel(n_jobs=-1)(delayed(run_single_configuration)(estimator, simulator, n_observations=200) for estimator, simulator in
-                           itertools.product(configured_estimators, configured_simulators))
 
-  # todo: check __reduce__ function in KMN.py
-  # todo: work with GoodnessOfFitResults
+def run_configurations(tasks, estimator_filter=None, parallelized=False):
+  """
+  Runs the given configurations, i.e.
+  1) fits the estimator to the simulation and
+  2) executes goodness-of-fit (currently: kolmogorov-smirnof (cdf-based), kl divergence) tests
+  Every successful run yields a result object of type GoodnessOfFitResult which contains the following members: cond_values, time_to_fit,
+  time_to_predict ndim_x, ndim_y, estimator_params, probabilistic_model_params, mean_kl, mean_ks_stat, mean_ks_pval
+  :param tasks: a list containing k tuples, each tuple has the shape (estimator object, simulator object)
+  :param estimator_filter: a parameter to decide whether to execute just a specific type of estimator, e.g. "KernelMixtureNetwork",
+  must be one of the density estimator class types
+  :param parallelized: if True, the configurations are run in parallel mode on all available cpu's
+  :return: a list of GoodnessOfFitResults objects (one per configuration run)
+  """
+  assert len(tasks) > 0
+  if estimator_filter is not None:
+    tasks = [tupl for tupl in tasks if estimator_filter in tasks[0][0].__class__.__name__]
+
+  print("Running configurations. Number of total tasks: ", len(tasks))
+
+  results = []
+
+  if parallelized:
+    with poolcontext(processes=None) as pool:
+      results = pool.starmap(run_single_configuration, tasks)
+
+  else:
+    for task in tasks:
+      try:
+        results.append(run_single_configuration(*task))
+      except Exception as e:
+        print("error for configuration: ", task)
+        print(str(e))
+
+  return results
 
 
 def run_single_configuration(estimator, simulator, n_observations):
+    print(estimator, simulator)
     gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations)
-    ks, p = gof.kolmogorov_smirnov_2sample(parallelized=False) # prevent nested parallel for-loops
-    kl = gof.kl_divergence()
-    return ks, p, kl
+    return gof.compute_results()
 
+
+def output_results(results, dump_dir=None, export_pickle=False, export_csv=False):
+  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
+             'time_to_predict']
+
+  result_dicts = [result.report_dict() for result in results]
+  df = pd.DataFrame(result_dicts).reindex(columns, axis=1)
+
+  if export_pickle:
+    io.store_dataframe(df, dump_dir)
+  if export_csv:
+    io.store_csv(df, dump_dir)
+
+
+def merge_names(a, b):
+    return '{} & {}'.format(a, b)
+
+def merge_names_unpack(args):
+    return merge_names(*args)
+
+@contextmanager
+def poolcontext(*args, **kwargs):
+    pool = multiprocessing.Pool(*args, **kwargs)
+    yield pool
+    pool.terminate()
 
 
 def main():
   conf_est, conf_sim = prepare_configurations()
-  run_configurations(conf_est, conf_sim)
-
+  tasks = create_configurations(conf_est, conf_sim)
+  results = run_configurations(tasks, estimator_filter="KernelMixtureNetwork")
+  df = output_results(results, "./", export_pickle=True, export_csv=True)
 
 if __name__ == "__main__": main()
