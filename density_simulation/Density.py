@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from sklearn.base import BaseEstimator
 
-class ConditionalDensity:
+class ConditionalDensity(BaseEstimator):
 
   def pdf(self, X, Y):
     """
@@ -108,3 +109,7 @@ class ConditionalDensity:
     else:
       return X, Y
 
+  def get_params(self, deep=True):
+    param_dict = super(ConditionalDensity, self).get_params(deep=deep)
+    param_dict['model'] = self.__class__.__name__
+    return param_dict
