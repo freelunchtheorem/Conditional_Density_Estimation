@@ -118,7 +118,7 @@ def export_results(results, output_dir=None, file_name=None, export_pickle=False
   columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
              'time_to_predict']
 
-  result_dicts = [result.report_dict() for result in results]
+  result_dicts = [result  .report_dict() for result in results]
   df = pd.DataFrame(result_dicts).reindex(columns, axis=1)
 
   if export_pickle:
