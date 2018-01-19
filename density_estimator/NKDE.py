@@ -98,6 +98,9 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     return conditional_densities
 
+  def sample(self, X):
+    raise NotImplementedError("Neighbor Kernel Density Estimation is a lazy learner and does not support sampling")
+
   def _density(self, neighbor_weights, y):
     assert neighbor_weights.shape[0] == self.n_train_points
     assert y.shape[0] == self.ndim_y
