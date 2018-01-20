@@ -2,6 +2,9 @@ from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, GridSearchCV
 import numpy as np
 import warnings
+import os
+import matplotlib
+matplotlib.use("Pdf") #handles X11 server detection (required to run on console)
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm

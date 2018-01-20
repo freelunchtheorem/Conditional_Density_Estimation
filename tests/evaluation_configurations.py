@@ -19,7 +19,7 @@ def prepare_configurations():
     [None], # estimator
     [None], #X_ph
     [True, False],  # train_scales
-    [5])), # n training epochs
+    [500])), # n training epochs
     'LSCDE': tuple(itertools.product(['k_means'],  # center_sampling_method
       [0.1, 0.2, 1, 2, 5],  # bandwidth
       [10, 20, 50],  # n_centers
@@ -56,7 +56,7 @@ def create_configurations(configured_estimators, configured_simulators):
   :return: a list containing n*m=k tuples while k being the number of the cartesian product of estimators and simulators,
   shape of tuples: (estimator object, simulator object)
   """
-  return [(estimator, simulator, 10) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
+  return [(estimator, simulator, 2000) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
 
 
 def run_configurations(tasks, estimator_filter=None, parallelized=False, limit=None):
@@ -143,7 +143,7 @@ def poolcontext(*args, **kwargs):
 def main():
   conf_est, conf_sim = prepare_configurations()
   tasks = create_configurations(conf_est, conf_sim)
-  gofs, gof_results = run_configurations(tasks, estimator_filter="KernelMixtureNetwork", limit=2)
+  gofs, gof_results = run_configurations(tasks, parallelized=False)
   export_results(gof_results, output_dir="./", file_name="evaluated_configs_df_", export_pickle=True, export_csv=True)
   io.store_objects(gofs, output_dir="./", file_name="goodness_of_fit_config_objects_")
 
