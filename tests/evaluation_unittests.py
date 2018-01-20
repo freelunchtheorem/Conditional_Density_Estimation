@@ -248,5 +248,5 @@ class TestGoodnessOfFitTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  pytest.main('--html=report.html --self-contained-html')
+  pytest.main('--html=unittest_report.html --self-contained-html')
 
