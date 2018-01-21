@@ -110,7 +110,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
           if i % 50 == 0:
             """ write to file batch-wise to prevent memory overflow """
             file_handle_results.close()
-            file_handle_results = open(file_results, "a+b")
+            file_handle_results = open(file_results, "a")
             file_handle_configs.close()
             file_handle_configs = open(file_configurations, "a+b")
 
