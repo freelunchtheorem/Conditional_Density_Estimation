@@ -7,6 +7,7 @@ from multiprocessing import Pool
 import multiprocessing
 import pandas as pd
 from utils import io
+import gc
 
 
 def prepare_configurations():
@@ -95,7 +96,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
     with open(file_configurations, "a+b") as file_handle_configs, open(file_results, "a") as file_handle_results:
       for i, task in enumerate(tasks[:limit]):
         try:
-          print("running task: ", i+1)
+          print("running task:", i+1, "Estimator:", task[0].__class__.__name__, " Simulator: ", task[1].__class__.__name__)
           gof_object, gof_result = run_single_configuration(*task)
 
           """ write config to file"""
@@ -113,6 +114,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
             file_handle_results = open(file_results, "a")
             file_handle_configs.close()
             file_handle_configs = open(file_configurations, "a+b")
+            gc.collect()
 
         except Exception as e:
           print("error in task: ", i+1, " configuration: ", task)
@@ -122,7 +124,6 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
 
 
 def run_single_configuration(estimator, simulator, n_observations):
-  print(estimator, simulator)
   gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations)
   return gof, gof.compute_results()
 
@@ -176,7 +177,7 @@ def poolcontext(*args, **kwargs):
 def main():
   conf_est, conf_sim = prepare_configurations()
   tasks = create_configurations(conf_est, conf_sim)
-  run_configurations(tasks, output_dir="./", parallelized=False, estimator_filter="KernelMixtureNetwork")
+  run_configurations(tasks, output_dir="./", parallelized=False)
 
 
 

@@ -41,7 +41,7 @@ def append_result_to_csv(file_handle, result, index):
   if index == 0:
     result.to_csv(file_handle, sep=';', header=True)
   else:
-    result.to_csv(file_handle, sep=';', header=False, mode='a')
+    result.to_csv(file_handle, sep=';', header=False, mode="a")
   return True
 
 

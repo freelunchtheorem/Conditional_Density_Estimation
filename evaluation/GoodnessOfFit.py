@@ -110,7 +110,6 @@ class GoodnessOfFit:
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
-      print(x_cond.shape[0])
       for i in range(x_cond.shape[0]):
         gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :])
 
