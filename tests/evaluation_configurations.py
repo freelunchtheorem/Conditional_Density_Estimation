@@ -19,7 +19,7 @@ def prepare_configurations():
     [None], # estimator
     [None], #X_ph
     [True, False],  # train_scales
-    [500])), # n training epochs
+    [20])), # n training epochs
     'LSCDE': tuple(itertools.product(['k_means'],  # center_sampling_method
       [0.1, 0.2, 1, 2, 5],  # bandwidth
       [10, 20, 50],  # n_centers
@@ -41,14 +41,12 @@ def prepare_configurations():
 
   """ simulators """
   configured_simulators = [simulator_references[simulator](*sim_params) for simulator, sim_params in simulators_params.items()]
-  del estimator_references
-  del simulator_references
 
   return configured_estimators, configured_simulators
 
 
 
-def create_configurations(configured_estimators, configured_simulators):
+def create_configurations(configured_estimators, configured_simulators, n_observations=1000):
   """
   creates all possible combinations from the (configured) estimators and simulators.
   :param configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators
@@ -56,10 +54,10 @@ def create_configurations(configured_estimators, configured_simulators):
   :return: a list containing n*m=k tuples while k being the number of the cartesian product of estimators and simulators,
   shape of tuples: (estimator object, simulator object)
   """
-  return [(estimator, simulator, 2000) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
+  return [(estimator, simulator, n_observations) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
 
 
-def run_configurations(tasks, estimator_filter=None, parallelized=False, limit=None):
+def run_configurations(tasks, output_dir="./", estimator_filter=None, parallelized=False, limit=None):
   """
   Runs the given configurations, i.e.
   1) fits the estimator to the simulation and
@@ -85,25 +83,34 @@ def run_configurations(tasks, estimator_filter=None, parallelized=False, limit=N
   else:
     limit = len(tasks)
 
-
-  gof_results = []
-  gof_objects = []
-
   if parallelized:
+    # todo: come up with a work-around for nested parallelized loops and tensorflow non-pickable objects
     with poolcontext(processes=None) as pool:
-      gof_objects, gof_result = pool.starmap(run_single_configuration, tasks[:limit])
+      gof_objects, gof_results = pool.starmap(run_single_configuration, tasks[:limit])
+      return gof_objects, gof_results
 
   else:
-    for task in tasks[:limit]:
-      try:
-        gof_object, gof_result = run_single_configuration(*task)
-        gof_results.append(gof_result)
-        gof_objects.append(gof_object)
-      except Exception as e:
-        print("error for configuration: ", task)
-        print(str(e))
+    file_configurations = io.get_full_path(output_dir=output_dir, suffix=".pickle", file_name="configurations_")
+    file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name="results_")
+    with open(file_configurations, "a+b") as file_handle_configs, open(file_results, "a") as file_handle_results:
+      for i, task in enumerate(tasks[:limit]):
+        try:
+          print("running task: ", i+1)
+          gof_object, gof_result = run_single_configuration(*task)
 
-  return gof_objects, gof_results
+          """ write config to file"""
+          success_config = io.append_obj_to_pickle(obj=gof_object, file_handle=file_handle_configs)
+          print("appending to file was not successful for task: ", task) if not success_config else None
+
+          """ write result to file"""
+          gof_result_df = get_results_dataframe(results=gof_result, index=i)
+          success_result = io.append_result_to_csv(file_handle_results, gof_result_df, index=i)
+          print("appending to file was not successful for task: ", task) if not success_result else None
+
+        except Exception as e:
+          print("error in task: ", i, " configuration: ", task)
+          print(str(e))
+
 
 
 def run_single_configuration(estimator, simulator, n_observations):
@@ -112,14 +119,30 @@ def run_single_configuration(estimator, simulator, n_observations):
   return gof, gof.compute_results()
 
 
+def get_results_dataframe(results, index):
+  """
+  retrieves the dataframe for one or more GoodnessOfFitResults result objects.
+  :param results: a list or single object of type GoodnessOfFitResults
+  :return: a pandas dataframe
+  """
+  n_results = len(results)
+  assert n_results > 0, "no results given"
+  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
+             'time_to_predict']
+
+  result_dicts = results.report_dict()
+
+  return pd.DataFrame(result_dicts, columns=columns, index=[index])
+
 def export_results(results, output_dir=None, file_name=None, export_pickle=False, export_csv=False):
   assert len(results) > 0, "no results given"
 
   columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
              'time_to_predict']
 
-  result_dicts = [result  .report_dict() for result in results]
+  result_dicts = [result.report_dict() for result in results]
   df = pd.DataFrame(result_dicts).reindex(columns, axis=1)
+
 
   if export_pickle:
     io.store_dataframe(df, output_dir, file_name)
@@ -130,8 +153,10 @@ def export_results(results, output_dir=None, file_name=None, export_pickle=False
 def merge_names(a, b):
     return '{} & {}'.format(a, b)
 
+
 def merge_names_unpack(args):
     return merge_names(*args)
+
 
 @contextmanager
 def poolcontext(*args, **kwargs):
@@ -143,9 +168,8 @@ def poolcontext(*args, **kwargs):
 def main():
   conf_est, conf_sim = prepare_configurations()
   tasks = create_configurations(conf_est, conf_sim)
-  gofs, gof_results = run_configurations(tasks, parallelized=False)
-  export_results(gof_results, output_dir="./", file_name="evaluated_configs_df_", export_pickle=True, export_csv=True)
-  io.store_objects(gofs, output_dir="./", file_name="goodness_of_fit_config_objects_")
+  run_configurations(tasks, output_dir="./", parallelized=False)
+
 
 
 if __name__ == "__main__": main()

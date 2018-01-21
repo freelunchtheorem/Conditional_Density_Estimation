@@ -46,6 +46,9 @@ class GoodnessOfFitResults:
 
     return report_dict
 
+  def __len__(self):
+    return 1
+
 
   def __str__(self):
     return "KL-Divergence: %.4f , KS Stat: %.4f, KS pval: %.4f"%(self.mean_kl, self.mean_ks_stat, self.mean_ks_pval)
