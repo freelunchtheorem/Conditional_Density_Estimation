@@ -45,5 +45,8 @@ class EconDensity(ConditionalDensity):
 
 
   def __str__(self):
-    return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
-                                                                                                 self.ndim_y)
+    return str("\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
+                                                                                                 self.ndim_y))
+
+  def __unicode__(self):
+    return self.__str__().encode("utf-8")

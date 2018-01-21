@@ -3,7 +3,7 @@ import itertools
 from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
 from density_simulation import EconDensity, GaussianMixture
 from evaluation.GoodnessOfFit import GoodnessOfFit
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Pool
 import multiprocessing
 import pandas as pd
 from utils import io
@@ -108,7 +108,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
           print("appending to file was not successful for task: ", task) if not success_result else None
 
         except Exception as e:
-          print("error in task: ", i, " configuration: ", task)
+          print("error in task: ", i+1, " configuration: ", task)
           print(str(e))
 
 

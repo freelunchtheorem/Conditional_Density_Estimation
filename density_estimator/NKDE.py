@@ -6,6 +6,8 @@ from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
 
+
+
 class NeighborKernelDensityEstimation(BaseDensityEstimator):
   """
   Epsilon-Neighbor Kernel Density Estimation (lazy learner)
@@ -137,5 +139,8 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
 
   def __str__(self):
-    return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
-                                                                                             self.bandwidth)
+    return str("\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
+                                                                                             self.bandwidth))
+
+  def __unicode__(self):
+    return self.__str__().encode("utf-8")
