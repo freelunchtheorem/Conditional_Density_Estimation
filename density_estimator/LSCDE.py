@@ -168,8 +168,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return param_grid
 
   def __str__(self):
-    return str("\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n".format(
-      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bandwidth, self.regularization))
+    return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n".format(
+      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bandwidth, self.regularization)
 
   def __unicode__(self):
-    return self.__str__().encode("utf-8")
+    return self.__str__()

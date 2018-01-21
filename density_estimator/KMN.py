@@ -236,12 +236,12 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         raise NotImplementedError
 
     def __str__(self):
-        return str("\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n\
-                   n_training_epochs: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges,
-                                                    self.init_scales, self.train_scales, self.n_training_epochs))
+        return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \
+               "n_training_epochs: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges,
+                                                    self.init_scales, self.train_scales, self.n_training_epochs)
 
     def __unicode__(self):
-        return self.__str__().encode("utf-8")
+        return self.__str__()
 
     def __reduce__(self):
        return (self.__class__, (self.center_sampling_method, self.n_centers, self.keep_edges,

@@ -74,7 +74,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
   """
   assert len(tasks) > 0
   if estimator_filter is not None:
-    tasks = [tupl for tupl in tasks if estimator_filter in tasks[0][0].__class__.__name__]
+    tasks = [tupl for tupl in tasks if estimator_filter in tupl[0].__class__.__name__]
   assert len(tasks), "no tasks to execute after filtering for the estimator"
   print("Running configurations. Number of total tasks: ", len(tasks))
 
@@ -107,9 +107,17 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
           success_result = io.append_result_to_csv(file_handle_results, gof_result_df, index=i)
           print("appending to file was not successful for task: ", task) if not success_result else None
 
+          if i % 50 == 0:
+            """ write to file batch-wise to prevent memory overflow """
+            file_handle_results.close()
+            file_handle_results = open(file_results, "a+b")
+            file_handle_configs.close()
+            file_handle_configs = open(file_configurations, "a+b")
+
         except Exception as e:
           print("error in task: ", i+1, " configuration: ", task)
           print(str(e))
+
 
 
 
@@ -168,7 +176,7 @@ def poolcontext(*args, **kwargs):
 def main():
   conf_est, conf_sim = prepare_configurations()
   tasks = create_configurations(conf_est, conf_sim)
-  run_configurations(tasks, output_dir="./", parallelized=False)
+  run_configurations(tasks, output_dir="./", parallelized=False, estimator_filter="KernelMixtureNetwork")
 
 
 

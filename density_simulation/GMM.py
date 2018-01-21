@@ -158,11 +158,11 @@ class GaussianMixture(ConditionalDensity):
     return result
 
   def __str__(self):
-    return str("\nProbabilistic model type: {}\nn_kernels: {}\nn_dim_x: {}\nn_dim_y: {}\nmeans_std: {}\n".format(self.__class__.__name__,
-                                                                    self.n_kernels, self.ndim_x, self.ndim_y, self.means))
+    return "\nProbabilistic model type: {}\nn_kernels: {}\nn_dim_x: {}\nn_dim_y: {}\nmeans_std: {}\n".format(self.__class__.__name__,
+                                                                    self.n_kernels, self.ndim_x, self.ndim_y, self.means)
 
   def __unicode__(self):
-    return self.__str__().encode("utf-8")
+    return self.__str__()
 
 if __name__=="__main__":
   model = GaussianMixture()

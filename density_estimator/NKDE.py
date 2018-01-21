@@ -139,8 +139,8 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
 
   def __str__(self):
-    return str("\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
-                                                                                             self.bandwidth))
+    return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
+                                                                                             self.bandwidth)
 
   def __unicode__(self):
-    return self.__str__().encode("utf-8")
+    return self.__str__()
