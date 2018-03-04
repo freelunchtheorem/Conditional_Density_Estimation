@@ -1,9 +1,10 @@
 import numpy as np
-from cde.density_estimator.helpers import norm_along_axis_1
-from cde.density_estimator.base import BaseDensityEstimator
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
+
+from .helpers import norm_along_axis_1
+from .base import BaseDensityEstimator
 
 
 

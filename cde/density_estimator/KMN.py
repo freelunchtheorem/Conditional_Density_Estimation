@@ -3,17 +3,21 @@
 # this version additionally supports fit_by_crossval and multidimentional Y
 #
 
+import math
 import numpy as np
+import tensorflow as tf
+import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
 from keras.layers import Dense, Dropout
-from cde.density_estimator.helpers import sample_center_points
-from cde.density_estimator.base import BaseDensityEstimator
-import math
-import edward as ed
-import logging
-logging.getLogger("tensorflow").setLevel(logging.WARNING)
-import tensorflow as tf
 import matplotlib.pyplot as plt
+
+from .helpers import sample_center_points
+from .base import BaseDensityEstimator
+
+import logging
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
+
+
 
 
 
@@ -232,7 +236,6 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         return param_grid
 
     def fit_by_cv(self, X, Y, n_folds=5):
-        X, Y
         raise NotImplementedError
 
     def __str__(self):

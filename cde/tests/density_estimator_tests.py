@@ -10,8 +10,8 @@ class TestHelpers(unittest.TestCase):
     for m in methods:
       Y = np.random.uniform(size=(120,2))
       centers = sample_center_points(Y, method=m, k=50)
-      self.assertEquals(centers.ndim, Y.ndim)
-      self.assertEquals(centers.shape[1], Y.shape[1])
+      self.assertEqual(centers.ndim, Y.ndim)
+      self.assertEqual(centers.shape[1], Y.shape[1])
 
   def test_shape_center_point_k_means(self):
     Y = np.asarray([1.0, 2.0])
@@ -28,8 +28,8 @@ class TestHelpers(unittest.TestCase):
     for m in methods:
       Y = np.random.uniform(size=(100,2))
       centers = sample_center_points(Y, method=m, k=5, keep_edges=True)
-      self.assertEquals(centers.ndim, Y.ndim)
-      self.assertEquals(centers.shape[1], Y.shape[1])
+      self.assertEqual(centers.ndim, Y.ndim)
+      self.assertEqual(centers.shape[1], Y.shape[1])
 
   """ norm along axis """
 
@@ -38,22 +38,22 @@ class TestHelpers(unittest.TestCase):
     B = np.asarray([[0.0,0.0], [0.0,0.0]])
     dist1 = norm_along_axis_1(A, B, squared=True)
     dist2 = norm_along_axis_1(A, B, squared=False)
-    self.assertEquals(np.mean(dist1), 1.0)
-    self.assertEquals(np.mean(dist2), 1.0)
+    self.assertEqual(np.mean(dist1), 1.0)
+    self.assertEqual(np.mean(dist2), 1.0)
 
   def test_1_norm_along_axis_2(self):
     A = np.asarray([[1.0, 0.0]])
     B = np.asarray([[0.0,0.0]])
     dist1 = norm_along_axis_1(A, B, squared=True)
     dist2 = norm_along_axis_1(A, B, squared=False)
-    self.assertEquals(np.mean(dist1), 1.0)
-    self.assertEquals(np.mean(dist2), 1.0)
+    self.assertEqual(np.mean(dist1), 1.0)
+    self.assertEqual(np.mean(dist2), 1.0)
 
   def test_1_norm_along_axis_3(self):
     A = np.random.uniform(size=[20, 3])
     B = np.random.uniform(size=[10, 3])
     dist = norm_along_axis_1(A, B, squared=True)
-    self.assertEquals(dist.shape, (20,10))
+    self.assertEqual(dist.shape, (20,10))
 
 
 

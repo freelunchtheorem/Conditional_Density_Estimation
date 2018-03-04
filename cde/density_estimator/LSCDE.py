@@ -1,8 +1,9 @@
-import numpy as np
-from cde.density_estimator.helpers import sample_center_points, norm_along_axis_1
-from cde.density_estimator.base import BaseDensityEstimator
 import itertools
+import numpy as np
 import scipy.stats as stats
+
+from .helpers import sample_center_points, norm_along_axis_1
+from .base import BaseDensityEstimator
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 
