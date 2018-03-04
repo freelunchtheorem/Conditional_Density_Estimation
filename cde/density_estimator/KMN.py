@@ -6,8 +6,8 @@
 import numpy as np
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
 from keras.layers import Dense, Dropout
-from density_estimator.helpers import sample_center_points
-from density_estimator.base import BaseDensityEstimator
+from cde.density_estimator.helpers import sample_center_points
+from cde.density_estimator.base import BaseDensityEstimator
 import math
 import edward as ed
 import logging
@@ -232,7 +232,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         return param_grid
 
     def fit_by_cv(self, X, Y, n_folds=5):
-        # TODO: do cross validation in a loop since tensorflow locks cannot be pickled
+        X, Y
         raise NotImplementedError
 
     def __str__(self):

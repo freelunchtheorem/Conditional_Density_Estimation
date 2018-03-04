@@ -1,9 +1,8 @@
 import unittest
 import pytest
-from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, NeighborKernelDensityEstimation
-from density_simulation import EconDensity, GaussianMixture
-from evaluation.GoodnessOfFit import GoodnessOfFit
-from tests.Dummies import GaussianDummy, SimulationDummy
+from cde.density_simulation import EconDensity, GaussianMixture
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.tests.Dummies import GaussianDummy, SimulationDummy
 
 alpha = 0.05
 

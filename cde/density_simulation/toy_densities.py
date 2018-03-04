@@ -2,7 +2,7 @@ import numpy as np
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from density_estimator.KMN import KernelMixtureNetwork
+from cde.density_estimator.KMN import KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
 

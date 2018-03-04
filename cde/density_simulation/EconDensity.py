@@ -2,7 +2,7 @@ import scipy.stats as stats
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from density_simulation import ConditionalDensity
+from cde.density_simulation import ConditionalDensity
 
 class EconDensity(ConditionalDensity):
   """

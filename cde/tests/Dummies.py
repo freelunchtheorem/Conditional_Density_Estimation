@@ -1,5 +1,5 @@
-from density_simulation import ConditionalDensity
-from density_estimator import BaseDensityEstimator
+from cde.density_simulation import ConditionalDensity
+from cde.density_estimator import BaseDensityEstimator
 import scipy.stats as stats
 import numpy as np
 

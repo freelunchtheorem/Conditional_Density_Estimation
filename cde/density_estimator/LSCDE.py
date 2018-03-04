@@ -1,6 +1,6 @@
 import numpy as np
-from density_estimator.helpers import sample_center_points, norm_along_axis_1
-from density_estimator.base import BaseDensityEstimator
+from cde.density_estimator.helpers import sample_center_points, norm_along_axis_1
+from cde.density_estimator.base import BaseDensityEstimator
 import itertools
 import scipy.stats as stats
 

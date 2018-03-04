@@ -2,9 +2,9 @@ import time
 import numpy as np
 import scipy
 from scipy.stats import shapiro, kstest
-from density_estimator.base import BaseDensityEstimator
-from density_simulation import ConditionalDensity
-from evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.density_estimator.base import BaseDensityEstimator
+from cde.density_simulation import ConditionalDensity
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 
 
 class GoodnessOfFit:

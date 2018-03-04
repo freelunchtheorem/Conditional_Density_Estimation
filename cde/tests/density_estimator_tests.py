@@ -1,4 +1,4 @@
-from density_estimator.helpers import *
+from cde.density_estimator.helpers import *
 import unittest
 
 class TestHelpers(unittest.TestCase):

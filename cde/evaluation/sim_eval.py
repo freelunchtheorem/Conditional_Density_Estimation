@@ -1,12 +1,12 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from density_estimator import LSConditionalDensityEstimation, NeighborKernelDensityEstimation, KernelMixtureNetwork
+from cde.density_estimator import LSConditionalDensityEstimation, NeighborKernelDensityEstimation, KernelMixtureNetwork
 from matplotlib.lines import Line2D
 import pandas as pd
-from density_simulation import GaussianMixture, EconDensity
-from evaluation.GoodnessOfFit import GoodnessOfFit
-from density_simulation.toy_densities import build_toy_dataset, build_toy_dataset2
+from cde.density_simulation import GaussianMixture, EconDensity
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.density_simulation.toy_densities import build_toy_dataset, build_toy_dataset2
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
@@ -26,11 +26,34 @@ def generate_report():
 
 
 def eval_econ_data():
-  econ_density = GaussianMixture(ndim_x=1, ndim_y=1)
-  kmn = KernelMixtureNetwork(n_centers=100)
-  gof = GoodnessOfFit(kmn, econ_density, n_observations=2000, print_fit_result=False, repeat_kolmogorov=1)
-  print("A")
-  print(gof.compute_results())
+  gmm = GaussianMixture(ndim_x=1, ndim_y=1)
+  econ_density = EconDensity()
+
+  # print("ECON DATA --------------")
+  # print("KMN")
+  # for n_centers in [50, 100, 200]:
+  #   kmn = KernelMixtureNetwork(n_centers=n_centers)
+  #   gof = GoodnessOfFit(kmn, econ_density, n_observations=2000, print_fit_result=False, repeat_kolmogorov=1)
+  #   gof_results = gof.compute_results()
+  #   print("N_Centers:", n_centers)
+  #   print(gof_results)
+
+  print("LAZY-Learner:")
+  nkde = KernelMixtureNetwork(n_training_epochs=10)
+  gof = GoodnessOfFit(nkde, gmm, n_observations=100, print_fit_result=False)
+  gof_results = gof.compute_results()
+  print(gof_results)
+  print(gof_results.report_dict())
+
+  #
+  # print("LSCDE")
+  # lscde = LSConditionalDensityEstimation()
+  # X, Y = econ_density.simulate(2000)
+  # nkde.fit_by_cv(X,Y)
+  # gof = GoodnessOfFit(lscde, econ_density, n_observations=2000, print_fit_result=False)
+  # gof_results = gof.compute_results()
+  # print(gof_results)
+
 
 
 
@@ -137,8 +160,6 @@ def eval1():
   df.index = np.linspace(kmn.y_min, kmn.y_max, num=1000)
   df.plot(legend=False, linewidth=3, figsize=(12.2, 8))
   plt.savefig('conditional_density.png')
-
-
 
 
 

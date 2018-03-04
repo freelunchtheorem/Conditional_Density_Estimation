@@ -1,9 +1,9 @@
-from density_simulation import ConditionalDensity
+from cde.density_simulation import ConditionalDensity
 import numpy as np
-import density_estimator.helpers as helpers
+import cde.density_estimator.helpers as helpers
 import scipy.stats as stats
-from density_simulation import ConditionalDensity
-from density_estimator import helpers
+from cde.density_simulation import ConditionalDensity
+from cde.density_estimator import helpers
 
 class GaussianMixture(ConditionalDensity):
   """

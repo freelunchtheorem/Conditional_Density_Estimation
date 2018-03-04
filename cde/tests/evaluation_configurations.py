@@ -1,12 +1,12 @@
 from contextlib import contextmanager
 import itertools
-from density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
-from density_simulation import EconDensity, GaussianMixture
-from evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
+from cde.density_simulation import EconDensity, GaussianMixture
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit
 from multiprocessing import Pool
 import multiprocessing
 import pandas as pd
-from utils import io
+from cde.utils import io
 import gc
 
 

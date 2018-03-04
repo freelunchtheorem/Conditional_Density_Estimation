@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.base import BaseEstimator
-from density_estimator.helpers import norm_along_axis_1
-from density_estimator.base import BaseDensityEstimator
+from cde.density_estimator.helpers import norm_along_axis_1
+from cde.density_estimator.base import BaseDensityEstimator
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
