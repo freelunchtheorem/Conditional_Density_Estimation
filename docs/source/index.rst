@@ -1,0 +1,26 @@
+.. Conditional Density Estimation documentation master file, created by
+   sphinx-quickstart on Sun Mar  4 16:33:46 2018.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to Conditional Density Estimation's documentation!
+==========================================================
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+.. automodule:: density_estimator
+
+.. autoclass:: BaseDensityEstimator
+    :members:
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
