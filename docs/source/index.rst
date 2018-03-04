@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Conditional Density Estimation's documentation!
+Conditional Density Estimation Documentation
 ==========================================================
 
 Contents:
@@ -11,10 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: density_estimator
-
-.. autoclass:: BaseDensityEstimator
-    :members:
+   density_estimator/base_density_estimator
 
 
 

@@ -10,25 +10,63 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 class BaseDensityEstimator(BaseEstimator):
+  """ Interface for conditional density estimation models """
 
   def fit(self, X, Y):
+    """ Fits the conditional density model with provided data
+
+      Args:
+        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+        n_folds: number of cross-validation folds (positive integer)
+
+    """
     raise NotImplementedError
+
 
   def predict(self, X, Y):
+    """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+          conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+
+     """
     raise NotImplementedError
 
+
   def predict_density(self, X, Y=None, resolution=50):
+    """ Computes conditional density p(y|x) over a predefined grid of y target values
+
+      Args:
+        X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+        Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
+        resulution: integer specifying the resolution of evaluation grid
+
+      Returns:
+         - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
+         - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
+           in case it was provided as argument
+    """
     raise NotImplementedError
+
 
   def _param_grid(self):
     raise NotImplementedError
 
+
   def score(self, X, Y):
-    """
-    computes the mean conditional log-likelihood of the provided data (X, Y)
-    :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
-    :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
-    :return: negative log likelihood of data
+    """Computes the mean conditional log-likelihood of the provided data (X, Y)
+
+    Args:
+      X: numpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
+      Y: numpy array of y targets - shape: (n_query_samples, n_dim_y)
+
+    Returns:
+      negative log likelihood of data
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
@@ -38,7 +76,31 @@ class BaseDensityEstimator(BaseEstimator):
       conditional_log_likelihoods = np.log(self.predict(X, Y))
     return np.mean(conditional_log_likelihoods)
 
-  def fit_by_cv(self, X, Y, n_folds=5):
+
+  def fit_by_cv(self, X, Y, n_folds=5, param_grid=None):
+    """ Fits the conditional density model with hyperparameter search and cross-validation.
+
+    - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+      the conditional log-likelihood is used for evaluation.
+    - Fits the model with the previously selected hyperparameter configuration
+
+    Args:
+      X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+      Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+      n_folds: number of cross-validation folds (positive integer)
+      param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
+                  parametrizations as value. The hyperparameter search is performed over the cartesian product of \
+                  the provided lists.
+
+                  Example:
+                  {"n_centers": [20, 50, 100, 200],
+                   "center_sampling_method": ["agglomerative", "k_means", "random"],
+                   "keep_edges": [True, False]
+                  }
+
+    """
+
+
     # save properties of data
     self.n_samples = X.shape[0]
     self.x_std = np.std(X, axis=0)
@@ -57,12 +119,14 @@ class BaseDensityEstimator(BaseEstimator):
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
 
+
   def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
-    """
-    Plots the fitted conditional distribution in mode if x and y are 1-dimensional each
-    :param xlim: 2-tuple specifying the x axis limits
-    :param ylim: 2-tuple specifying the y axis limits
-    :param resolution: integer specifying the resolution of plot
+    """ Plots the fitted conditional distribution if x and y are 1-dimensional each
+
+    Args:
+      xlim: 2-tuple specifying the x axis limits
+      ylim: 2-tuple specifying the y axis limits
+      resolution: integer specifying the resolution of plot
     """
     assert self.fitted, "model must be fitted to plot"
     assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
@@ -85,6 +149,7 @@ class BaseDensityEstimator(BaseEstimator):
     plt.xlabel("x")
     plt.ylabel("y")
     plt.show()
+
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
@@ -113,10 +178,22 @@ class BaseDensityEstimator(BaseEstimator):
     else:
       return X, Y
 
+
   def __str__(self):
     raise NotImplementedError
 
+
   def get_params(self, deep=True):
+    """ Get parameters for this estimator.
+
+    Args:
+      deep: boolean, optional If True, will return the parameters for this estimator and \
+             contained subobjects that are estimators.
+
+    Returns:
+      params - mapping of string to any Parameter names mapped to their values.
+
+    """
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
     param_dict['estimator'] = self.__class__.__name__
     return param_dict
