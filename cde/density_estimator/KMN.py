@@ -9,35 +9,39 @@ import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
 from keras.layers import Dense, Dropout
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from .helpers import sample_center_points
 from .base import BaseDensityEstimator
 
 import logging
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 
 
 
 class KernelMixtureNetwork(BaseDensityEstimator):
+    """ Kernel Mixture Network Estimator
 
-    def __init__(self, center_sampling_method='k_means', n_centers=20, keep_edges=False,
-                 init_scales='default', estimator=None, X_ph=None, train_scales=False, n_training_epochs=300):
-        """
-        Main class for Kernel Mixture Network
-        Args:
-            center_sampling_method: String that describes the method to use for finding kernel centers
-            n_centers: Number of kernels to use in the output
-            keep_edges: Keep the extreme y values as center to keep expressiveness
-            init_scales: List or scalar that describes (initial) values of bandwidth parameter
-            estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
-                       if None use a standard 15 -> 15 Dense network
-            X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
-                  but should be easy to extend to a list of placeholders
-            train_scales: Boolean that describes whether or not to make the scales trainable
-        """
+      Bla bla bla
+
+      Args:
+          center_sampling_method: String that describes the method to use for finding kernel centers
+          n_centers: Number of kernels to use in the output
+          keep_edges: Keep the extreme y values as center to keep expressiveness
+          init_scales: List or scalar that describes (initial) values of bandwidth parameter
+          estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
+                     if None use a standard 15 -> 15 Dense network
+          X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
+                but should be easy to extend to a list of placeholders
+          train_scales: Boolean that describes whether or not to make the scales trainable
+      """
+
+    def __init__(self, center_sampling_method='k_means', n_centers=200, keep_edges=False,
+                 init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300):
+
 
         self.sess = ed.get_session()
         self.inference = None
@@ -173,6 +177,9 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         self.batch_size = tf.shape(self.X_ph)[0]
 
         # locations of the gaussian kernel centers
+        if self.center_sampling_method == 'all':
+            self.n_centers = X.shape[0]
+
         n_locs = self.n_centers
         self.locs = locs = sample_center_points(Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
         self.locs_array = locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, n_locs, self.ndim_y)), locs), perm=[1,0,2]))
@@ -203,27 +210,27 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         # tensor to compute likelihoods
         self.likelihoods = mixtures.prob(y_ph)
 
-    def plot_loss(self):
-        """
-        plot train loss and optionally test loss over epochs
-        source: http://edwardlib.org/tutorials/mixture-density-network
-        """
-        # new figure
-        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(12, 3))
-
-        # plot train loss
-        plt.plot(np.arange(len(self.train_loss)), self.train_loss, label='Train')
-
-        if len(self.test_loss) > 0:
-            # plot test loss
-            plt.plot(np.arange(len(self.test_loss)), self.test_loss, label='Test')
-
-        plt.legend(fontsize=20)
-        plt.xlabel('epoch', fontsize=15)
-        plt.ylabel('mean negative log-likelihood', fontsize=15)
-        plt.show()
-
-        return fig, axes
+    # def plot_loss(self):
+    #     """
+    #     plot train loss and optionally test loss over epochs
+    #     source: http://edwardlib.org/tutorials/mixture-density-network
+    #     """
+    #     # new figure
+    #     fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(12, 3))
+    #
+    #     # plot train loss
+    #     plt.plot(np.arange(len(self.train_loss)), self.train_loss, label='Train')
+    #
+    #     if len(self.test_loss) > 0:
+    #         # plot test loss
+    #         plt.plot(np.arange(len(self.test_loss)), self.test_loss, label='Test')
+    #
+    #     plt.legend(fontsize=20)
+    #     plt.xlabel('epoch', fontsize=15)
+    #     plt.ylabel('mean negative log-likelihood', fontsize=15)
+    #     plt.show()
+    #
+    #     return fig, axes
 
     def _param_grid(self):
         n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]

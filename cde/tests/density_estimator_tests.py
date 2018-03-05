@@ -1,5 +1,10 @@
-from cde.density_estimator.helpers import *
 import unittest
+import numpy as np
+from scipy.stats import norm
+import warnings
+
+from cde.density_estimator.helpers import *
+from cde.density_estimator import KernelMixtureNetwork, NeighborKernelDensityEstimation, LSConditionalDensityEstimation
 
 class TestHelpers(unittest.TestCase):
 
@@ -56,6 +61,62 @@ class TestHelpers(unittest.TestCase):
     self.assertEqual(dist.shape, (20,10))
 
 
+  """ Conditional Density Estimators """
+
+  def test_NKDE_with_2d_gaussian(self):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], 1, size=(2000, 2))
+    X = data[:, 1]
+    Y = data[:, 1]
+
+    model = NeighborKernelDensityEstimation(epsilon=0.1)
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.predict(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.01)
+
+
+  def test_LSCD_with_2d_gaussian(self):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], 1, size=(2000, 2))
+    X = data[:, 1]
+    Y = data[:, 1]
+
+    for method in ["all", "k_means"]:
+      model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.predict(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+
+  def test_KMN_with_2d_gaussian(self):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], 1, size=(2000, 2))
+    X = data[:, 1]
+    Y = data[:, 1]
+
+    for method in ["agglomerative"]:
+      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=100)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.predict(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+
+
+
+
 
 if __name__ == '__main__':
+  warnings.filterwarnings("ignore")
   unittest.main()

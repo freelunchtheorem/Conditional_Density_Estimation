@@ -29,6 +29,9 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.y_std = np.std(Y, axis=0)
 
     # get locations of the gaussian kernel centers
+    if self.center_sampling_method == 'all':
+      self.n_centers = X.shape[0]
+
     n_locs = self.n_centers
     X_Y = np.concatenate([X,Y], axis=1)
     centroids = sample_center_points(X_Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
