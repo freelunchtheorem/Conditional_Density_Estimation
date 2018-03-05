@@ -4,10 +4,10 @@ import numpy as np
 import warnings
 import os
 import matplotlib
-matplotlib.use("Pdf") #handles X11 server detection (required to run on console)
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+#matplotlib.use("PS") #handles X11 server detection (required to run on console)
+#import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
+#from matplotlib import cm
 
 class BaseDensityEstimator(BaseEstimator):
   """ Interface for conditional density estimation models """
@@ -46,7 +46,7 @@ class BaseDensityEstimator(BaseEstimator):
         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
         resulution: integer specifying the resolution of evaluation grid
 
-      Returns:
+      Returns: tuple (P, Y)
          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
          - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
            in case it was provided as argument
@@ -120,39 +120,50 @@ class BaseDensityEstimator(BaseEstimator):
     self.fit(X,Y)
 
 
-  def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
-    """ Plots the fitted conditional distribution if x and y are 1-dimensional each
-
-    Args:
-      xlim: 2-tuple specifying the x axis limits
-      ylim: 2-tuple specifying the y axis limits
-      resolution: integer specifying the resolution of plot
-    """
-    assert self.fitted, "model must be fitted to plot"
-    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
-
-    # prepare mesh
-    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
-    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
-    X, Y = np.meshgrid(linspace_x, linspace_y)
-    X, Y = X.flatten(), Y.flatten()
-
-    # calculate values of distribution
-    Z = self.predict(X, Y)
-
-    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
-      [resolution, resolution])
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
-                           linewidth=100, antialiased=True)
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.show()
-
+  # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
+  #   """ Plots the fitted conditional distribution if x and y are 1-dimensional each
+  #
+  #   Args:
+  #     xlim: 2-tuple specifying the x axis limits
+  #     ylim: 2-tuple specifying the y axis limits
+  #     resolution: integer specifying the resolution of plot
+  #   """
+  #   assert self.fitted, "model must be fitted to plot"
+  #   assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+  #
+  #   # prepare mesh
+  #   linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+  #   linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+  #   X, Y = np.meshgrid(linspace_x, linspace_y)
+  #   X, Y = X.flatten(), Y.flatten()
+  #
+  #   # calculate values of distribution
+  #   Z = self.predict(X, Y)
+  #
+  #   X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+  #     [resolution, resolution])
+  #   fig = plt.figure()
+  #   ax = fig.gca(projection='3d')
+  #   surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+  #                          linewidth=100, antialiased=True)
+  #   plt.xlabel("x")
+  #   plt.ylabel("y")
+  #   plt.show()
+  #
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
-    # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
+    """ Converts data arrays into 2d numpy arrays
+
+    Args:
+      X: numpy array of shape (n_samples,) or (n_samples, ndim_x)
+      Y: (optional) numpy array of shape (n_samples,) or (n_samples, ndim_y)
+      fitting: boolean that indicates whether the method is called within the model fitting process. /
+                      if true, the shapes of the inputs X and Y are stored in the model instance
+
+    Returns:
+      If Y was provided - returns (X, Y) where both X and Y are 2d numpy arrays, else only returns X as 2d numpy array
+    """
+
     if np.size(X) == 1 and Y is None:
       return X
 
@@ -195,5 +206,5 @@ class BaseDensityEstimator(BaseEstimator):
 
     """
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
-    param_dict['estimator'] = self.__class__.__name__
+    #param_dict['estimator'] = self.__class__.__name__
     return param_dict

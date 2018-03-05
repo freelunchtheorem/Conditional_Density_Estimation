@@ -5,12 +5,16 @@ import numpy as np
 
 
 def norm_along_axis_1(A, B, squared=False):
-  """
-  calculates the (squared) euclidean distance along the axis 1 of both 2d arrays
-  :param A: numpy array of shape (n, k)
-  :param B: numpy array of shape (m, k)
-  :param squared: boolean that indicates whether the squared euclidean distance shall be returned
-  :return: numpy array of shape (n.m)
+  """ calculates the (squared) euclidean distance along the axis 1 of both 2d arrays
+
+  Args:
+    A: numpy array of shape (n, k)
+    B: numpy array of shape (m, k)
+    squared: boolean that indicates whether the squared euclidean distance shall be returned, \
+             otherwise the euclidean distance is returned
+
+    Returns:
+       euclidean distance along the axis 1 of both 2d arrays - numpy array of shape (n, m)
   """
   assert A.shape[1] == B.shape[1]
   result = np.zeros(shape=(A.shape[0], B.shape[0]))
@@ -24,11 +28,14 @@ def norm_along_axis_1(A, B, squared=False):
   return result
 
 def sample_center_points(Y, method='all', k=100, keep_edges=False):
-  """
-  function to define kernel centers with various downsampling alternatives
-  :param Y: numpy array from which kernel centers shall be selected - shape (n_samples,) or (n_samples, n_dim)
-  :param method: kernel center selection method - choices: [all, random, distance, k_means, agglomerative]
-  :param k: number of centers to be returned (not relevant for 'all' method)
+  """ function to define kernel centers with various downsampling alternatives
+
+  Args:
+    Y: numpy array from which kernel centers shall be selected - shape (n_samples,) or (n_samples, n_dim)
+    method: kernel center selection method - choices: [all, random, distance, k_means, agglomerative]
+    k: number of centers to be returned (not relevant for 'all' method)
+
+  Returns: selected center points - numpy array of shape (k, n_dim). In case method is 'all' k is equal to n_samples
   """
   assert k <= Y.shape[0], "k must not exceed the number of samples in Y"
 
@@ -118,27 +125,3 @@ def project_to_pos_semi_def(M):
     M = _project_to_pos_semi_def(M)
 
   return M
-
-def handle_input_dimensionality(self, X, Y=None, fitting=False):
-  # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-  if X.ndim == 1:
-    X = np.expand_dims(X, axis=1)
-
-  if Y is not None:
-    if Y.ndim == 1:
-      Y = np.expand_dims(Y, axis=1)
-
-    assert X.shape[0] == Y.shape[0], "X and Y must have the same length along axis 0"
-    assert X.ndim == Y.ndim == 2, "X and Y must be matrices"
-
-  if fitting: # store n_dim of training data
-    self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
-  else:
-    assert X.shape[1] == self.ndim_x, "X must have shape (?, %i) but provided X has shape %s" % (self.ndim_x, X.shape)
-    if Y is not None:
-      assert Y.shape[1] == self.ndim_y, "Y must have shape (?, %i) but provided Y has shape %s" % (self.ndim_y, Y.shape)
-
-  if Y is None:
-    return X
-  else:
-    return X, Y
