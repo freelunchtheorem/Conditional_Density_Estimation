@@ -1,7 +1,7 @@
 Kernel Mixture Network
 ==========================================================
 
-Implementation of Kernel Mixture Network as introduced in [AMB2017]_ with some extra features.
+Implementation of Kernel Mixture Network introduced in [AMB2017]_ with some extra features.
 
 The approach combines unconditional kernel density estimation with a (softmax) neural network,
 obtaining a conditional kernel density estimator.
