@@ -25,10 +25,11 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 class KernelMixtureNetwork(BaseDensityEstimator):
     """ Kernel Mixture Network Estimator
 
-      Bla bla bla
+      https://arxiv.org/abs/1705.07111
 
       Args:
-          center_sampling_method: String that describes the method to use for finding kernel centers
+          center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
+                                  [all, random, distance, k_means, agglomerative]
           n_centers: Number of kernels to use in the output
           keep_edges: Keep the extreme y values as center to keep expressiveness
           init_scales: List or scalar that describes (initial) values of bandwidth parameter
@@ -43,115 +44,130 @@ class KernelMixtureNetwork(BaseDensityEstimator):
                  init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300):
 
 
-        self.sess = ed.get_session()
-        self.inference = None
+      self.sess = ed.get_session()
+      self.inference = None
 
-        self.estimator = estimator
-        self.X_ph = X_ph
+      self.estimator = estimator
+      self.X_ph = X_ph
 
-        self.n_training_epochs = n_training_epochs
+      self.n_training_epochs = n_training_epochs
 
-        self.center_sampling_method = center_sampling_method
-        self.n_centers = n_centers
-        self.keep_edges = keep_edges
+      self.center_sampling_method = center_sampling_method
+      self.n_centers = n_centers
+      self.keep_edges = keep_edges
 
-        self.train_loss = np.empty(0)
-        self.test_loss = np.empty(0)
+      self.train_loss = np.empty(0)
+      self.test_loss = np.empty(0)
 
-        if init_scales == 'default':
-            init_scales = np.array([1])
+      if init_scales == 'default':
+          init_scales = np.array([1])
 
-        self.n_scales = len(init_scales)
-        # Transform scales so that the softplus will result in passed init_scales
-        self.init_scales = [math.log(math.exp(s) - 1) for s in init_scales]
-        self.train_scales = train_scales
+      self.n_scales = len(init_scales)
+      # Transform scales so that the softplus will result in passed init_scales
+      self.init_scales = [math.log(math.exp(s) - 1) for s in init_scales]
+      self.train_scales = train_scales
 
-        self.fitted = False
-        self.can_sample = True
+      self.fitted = False
+      self.can_sample = True
 
     def fit(self, X, Y, **kwargs):
-        """
-        builds the Kernel Density Network model and fits the parameters by minimizing the negative
-        log-likelihood of the provided data
-        :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
-        :param n_epoch: positive integer denoting the number of training epochs that shall be performed for fitting the model
-        """
+      """ Fits the conditional density model with provided data
 
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        Args:
+          X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+          n_folds: number of cross-validation folds (positive integer)
 
-        # define the full model
-        self._build_model(X, Y)
+      """
 
-        # setup inference procedure
-        self.inference = ed.MAP(data={self.mixtures: self.y_ph})
-        self.inference.initialize(var_list=tf.trainable_variables(), n_iter=self.n_training_epochs)
-        tf.global_variables_initializer().run()
+      X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-        # train the model
-        self._partial_fit(X, Y, n_epoch=self.n_training_epochs, **kwargs)
-        self.fitted = True
+      # define the full model
+      self._build_model(X, Y)
+
+      # setup inference procedure
+      self.inference = ed.MAP(data={self.mixtures: self.y_ph})
+      self.inference.initialize(var_list=tf.trainable_variables(), n_iter=self.n_training_epochs)
+      tf.global_variables_initializer().run()
+
+      # train the model
+      self._partial_fit(X, Y, n_epoch=self.n_training_epochs, **kwargs)
+      self.fitted = True
 
     def _partial_fit(self, X, Y, n_epoch=1, eval_set=None):
-        """
-        update model
-        """
-        print("fitting model")
+      """
+      update model
+      """
+      print("fitting model")
 
-        # loop over epochs
-        for i in range(n_epoch):
+      # loop over epochs
+      for i in range(n_epoch):
 
-            # run inference, update trainable variables of the model
-            info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
+          # run inference, update trainable variables of the model
+          info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
 
-            train_loss = info_dict['loss'] / len(Y)
-            self.train_loss = np.append(self.train_loss, -train_loss)
+          train_loss = info_dict['loss'] / len(Y)
+          self.train_loss = np.append(self.train_loss, -train_loss)
 
-            if eval_set is not None:
-                X_test, y_test = eval_set
-                test_loss = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(y_test)
-                self.test_loss = np.append(self.test_loss, -test_loss)
+          if eval_set is not None:
+              X_test, y_test = eval_set
+              test_loss = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(y_test)
+              self.test_loss = np.append(self.test_loss, -test_loss)
 
-            # only print progress for the initial fit, not for additional updates
-            if not self.fitted:
-                self.inference.print_progress(info_dict)
+          # only print progress for the initial fit, not for additional updates
+          if not self.fitted:
+              self.inference.print_progress(info_dict)
 
-        print("mean log-loss train: {:.3f}".format(train_loss))
-        if eval_set is not None:
-            print("man log-loss test: {:.3f}".format(test_loss))
+      print("mean log-loss train: {:.3f}".format(train_loss))
+      if eval_set is not None:
+          print("man log-loss test: {:.3f}".format(test_loss))
 
-        print("optimal scales: {}".format(self.sess.run(self.scales)))
+      print("optimal scales: {}".format(self.sess.run(self.scales)))
 
     def predict(self, X, Y):
-        """
-        computes the conditional likelihood p(y|x) given the fitted model
-        :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
-        :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
-        :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
-        """
-        assert self.fitted, "model must be fitted to compute likelihood score"
+      """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
+         Args:
+           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+         Returns:
+            conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+
+       """
+      assert self.fitted, "model must be fitted to compute likelihood score"
+
+      X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+      return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
 
     def predict_density(self, X, Y=None, resolution=100):
-        """
-        conditional density p(y|x) over a predefined grid of target values
-        :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-        :param (optional) Y - y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-        :param resulution of evaluation grid
-        :return density p(y|x) shape: (n_instances, resolution**n_dim_y), Y - grid with with specified resolution - shape: (resolution**n_dim_y, n_dim_y)
-        """
-        if Y is None:
-            max_scale = np.max(self.sess.run(self.scales))
-            Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
-        X = self._handle_input_dimensionality(X)
-        return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
+      """ Computes conditional density p(y|x) over a predefined grid of y target values
+
+        Args:
+           X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+           Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
+           resulution: integer specifying the resolution of evaluation grid
+
+         Returns: tuple (P, Y)
+            - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
+            - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
+              in case it was provided as argument
+      """
+      if Y is None:
+          max_scale = np.max(self.sess.run(self.scales))
+          Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
+      X = self._handle_input_dimensionality(X)
+      return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
 
     def sample(self, X):
-        """
-        sample from the conditional mixture distributions
-         :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+        """ sample from the conditional mixture distributions - requires the model to be fitted
+
+        Args:
+          X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
+
+        Returns: tuple (X, Y)
+          - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
+          - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
         """
         assert self.fitted, "model must be fitted to compute likelihood score"
         X = self._handle_input_dimensionality(X)
@@ -243,7 +259,28 @@ class KernelMixtureNetwork(BaseDensityEstimator):
         return param_grid
 
     def fit_by_cv(self, X, Y, n_folds=5):
-        raise NotImplementedError
+      """ Fits the conditional density model with hyperparameter search and cross-validation.
+
+      - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+        the conditional log-likelihood is used for evaluation.
+      - Fits the model with the previously selected hyperparameter configuration
+
+      Args:
+        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+        n_folds: number of cross-validation folds (positive integer)
+        param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
+                    parametrizations as value. The hyperparameter search is performed over the cartesian product of \
+                    the provided lists.
+
+                    Example:
+                    {"n_centers": [20, 50, 100, 200],
+                     "center_sampling_method": ["agglomerative", "k_means", "random"],
+                     "keep_edges": [True, False]
+                    }
+
+      """
+      raise NotImplementedError
 
     def __str__(self):
         return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \

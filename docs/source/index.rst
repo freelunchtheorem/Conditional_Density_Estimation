@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    density_estimator/base_density_estimator
+   density_estimator/kernel_mixture_network
 
 
 
