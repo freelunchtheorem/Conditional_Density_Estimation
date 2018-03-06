@@ -5,3 +5,4 @@ Neighborhood Kernel Density Estimation
 
 .. autoclass:: NeighborKernelDensityEstimation
     :members:
+    :inherited-members:

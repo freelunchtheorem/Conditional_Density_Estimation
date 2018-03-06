@@ -8,12 +8,18 @@ from .base import BaseDensityEstimator
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 
   def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1, keep_edges=False):
-    """
-    Main class for the Least Squares Conditional Density Estimation
-    :param center_sampling_method:
-    :param n_centers:
-    :param keep_edges: Keep the extreme y values as center to keep expressiveness
-    """
+    """ Least-Squares Density Ratio Estimator
+
+      http://proceedings.mlr.press/v9/sugiyama10a.html
+
+      Args:
+          center_sampling_method:
+          bandwidth:
+          n_centers:
+          keep_edges: if set to True, the extreme y values as centers are
+          kept (for expressiveness)
+
+      """
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
     self.keep_edges = keep_edges
@@ -44,10 +50,13 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     assert self.centr_x.shape == (n_locs, self.ndim_x) and self.centr_y.shape == (n_locs, self.ndim_y)
 
   def fit(self, X, Y, **kwargs):
-    """
-    fits the model by determining the weight vector alpha
-    :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
-    :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
+    """ Fits the conditional density model with provided data
+
+      Args:
+        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+        n_folds: number of cross-validation folds (positive integer)
+
     """
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
@@ -74,12 +83,16 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return 0.5 * alpha.T.dot(self.H).dot(alpha) - self.h.T.dot(alpha) + self.regularization * alpha.T.dot(alpha)
 
   def predict(self, X, Y):
-    """
-    copmutes the conditional likelihood p(y|x) given the fitted model
-    :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
-    :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
-    :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
-    """
+    """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+          conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+
+     """
     assert self.fitted, "model must be fitted for predictions"
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
@@ -90,12 +103,17 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return p / p_normalization
 
   def predict_density(self, X, Y=None, resolution=50):
-    """
-    conditional density p(y|x) over a predefined grid of target values
-    :param X values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-    :param (optional) Y - y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-    :param resulution of evaluation grid
-    :return density p(y|x) shape: (n_instances, resolution**n_dim_y), Y - grid with with specified resolution - shape: (resolution**n_dim_y, n_dim_y)
+    """ Computes conditional density p(y|x) over a predefined grid of y target values
+
+      Args:
+         X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
+         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
+         resulution: integer specifying the resolution of evaluation grid
+
+       Returns: tuple (P, Y)
+          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
+          - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
+            in case it was provided as argument
     """
     assert X.ndim == 1 or X.shape[1] == self.ndim_x
     X = self._handle_input_dimensionality(X)
@@ -117,6 +135,15 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return density, Y
 
   def sample(self, X):
+    """ sample from the conditional mixture distributions - requires the model to be fitted
+
+    Args:
+      X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
+
+    Returns: tuple (X, Y)
+      - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
+      - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
+    """
     assert self.fitted
     X = self._handle_input_dimensionality(X)
 

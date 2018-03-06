@@ -33,6 +33,7 @@ In addition approach described in the paper, the implementation has the followin
 
 .. autoclass:: KernelMixtureNetwork
     :members:
+    :inherited-members:
 
 The core of the Kernel Mixture Network implementation is originally written by [VEG2017]_.
 In addition to the original implementation of Jan van der Vegt and Alexander Backus we added support for
