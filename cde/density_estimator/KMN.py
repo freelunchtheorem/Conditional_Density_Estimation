@@ -5,6 +5,7 @@
 
 import math
 import numpy as np
+import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
@@ -70,7 +71,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
       self.fitted = False
       self.can_sample = True
 
-    def fit(self, X, Y, **kwargs):
+    def fit(self, X, Y, random_seed=None, **kwargs):
       """ Fits the conditional density model with provided data
 
         Args:
@@ -253,12 +254,12 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         param_grid = {
             "n_centers": n_centers,
-            "center_sampling_method": ["agglomerative", "k_means", "random"],
+            "center_sampling_method": ["k_means", "random"],
             "keep_edges": [True, False]
         }
         return param_grid
 
-    def fit_by_cv(self, X, Y, n_folds=5):
+    def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
@@ -278,9 +279,47 @@ class KernelMixtureNetwork(BaseDensityEstimator):
                      "center_sampling_method": ["agglomerative", "k_means", "random"],
                      "keep_edges": [True, False]
                     }
+        random_state: (int) seed used by the random number generator for shuffeling the data
 
       """
-      raise NotImplementedError
+      original_params = self.get_params()
+
+      if param_grid is None:
+        param_grid = self._param_grid()
+
+      param_iterator = sklearn.model_selection.GridSearchCV(self, param_grid, fit_params=None, cv=n_folds)._get_param_iterator()
+      cv_scores = []
+
+      for p in param_iterator:
+        cv = sklearn.model_selection.KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+
+        scores = []
+        for train_idx, test_idx in cv.split(X, Y):
+          X_train, Y_train = X[train_idx], Y[train_idx]
+          X_test, Y_test = X[test_idx], Y[test_idx]
+
+          kmn_model = KernelMixtureNetwork()
+          kmn_model.set_params(**original_params).set_params(**p)
+
+          kmn_model.fit(X_train, Y_train)
+          scores.append(kmn_model.score(X_test, Y_test))
+
+        cv_score = np.mean(scores)
+        cv_scores.append(cv_score)
+
+        print("Completed cross-validation of model with params: {}".format(p))
+        print("Avg. conditional log likelihood: {}".format(cv_score))
+
+      # Determine parameter set with best conditional likelihood
+      best_idx = np.argmax(cv_scores)
+      selected_params = param_iterator[best_idx]
+
+      print("Completed grid search - Selected params: {}".format(selected_params))
+      print("Refitting model with selected params")
+
+      # Refit with best parameter set
+      self.set_params(**selected_params)
+      self.fit(X,Y)
 
     def __str__(self):
         return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \

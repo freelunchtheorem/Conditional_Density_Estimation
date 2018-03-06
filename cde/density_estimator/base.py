@@ -106,7 +106,9 @@ class BaseDensityEstimator(BaseEstimator):
     self.x_std = np.std(X, axis=0)
     self.y_std = np.std(Y, axis=0)
 
-    param_grid = self._param_grid()
+    if param_grid is None:
+      param_grid = self._param_grid()
+
     cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=-1, refit=True, cv=n_folds,
                  verbose=1)
     with warnings.catch_warnings():
