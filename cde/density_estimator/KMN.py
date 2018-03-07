@@ -71,13 +71,14 @@ class KernelMixtureNetwork(BaseDensityEstimator):
       self.fitted = False
       self.can_sample = True
 
-    def fit(self, X, Y, random_seed=None, **kwargs):
+    def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
       """ Fits the conditional density model with provided data
 
         Args:
           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
           n_folds: number of cross-validation folds (positive integer)
+          verboseÖ
 
       """
 
@@ -92,14 +93,13 @@ class KernelMixtureNetwork(BaseDensityEstimator):
       tf.global_variables_initializer().run()
 
       # train the model
-      self._partial_fit(X, Y, n_epoch=self.n_training_epochs, **kwargs)
+      self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
       self.fitted = True
 
-    def _partial_fit(self, X, Y, n_epoch=1, eval_set=None):
+    def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
       """
       update model
       """
-      print("fitting model")
 
       # loop over epochs
       for i in range(n_epoch):
@@ -116,14 +116,15 @@ class KernelMixtureNetwork(BaseDensityEstimator):
               self.test_loss = np.append(self.test_loss, -test_loss)
 
           # only print progress for the initial fit, not for additional updates
-          if not self.fitted:
+          if not self.fitted and verbose:
               self.inference.print_progress(info_dict)
 
-      print("mean log-loss train: {:.3f}".format(train_loss))
-      if eval_set is not None:
-          print("man log-loss test: {:.3f}".format(test_loss))
+      if verbose:
+        print("mean log-loss train: {:.3f}".format(train_loss))
+        if eval_set is not None:
+            print("mean log-loss test: {:.3f}".format(test_loss))
 
-      print("optimal scales: {}".format(self.sess.run(self.scales)))
+        print("optimal scales: {}".format(self.sess.run(self.scales)))
 
     def predict(self, X, Y):
       """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -301,7 +302,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
           kmn_model = KernelMixtureNetwork()
           kmn_model.set_params(**original_params).set_params(**p)
 
-          kmn_model.fit(X_train, Y_train)
+          kmn_model.fit(X_train, Y_train, verbose=False)
           scores.append(kmn_model.score(X_test, Y_test))
 
         cv_score = np.mean(scores)
@@ -319,7 +320,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
       # Refit with best parameter set
       self.set_params(**selected_params)
-      self.fit(X,Y)
+      self.fit(X,Y, verbose=False)
 
     def __str__(self):
         return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \
