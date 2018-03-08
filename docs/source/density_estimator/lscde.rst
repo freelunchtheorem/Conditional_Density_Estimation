@@ -1,8 +1,7 @@
 Least-Squares Density Ratio Estimation
 ==================================================
 Implementation of Least-Squares Density Ratio Estimation
-(LS-CDE) method introduced in [SUG2010]_ with some minor extra features.
-
+(LS-CDE) method introduced in [SUG2010]_ with some extra features.
 
 
 This approach estimates the conditional density of multi-dimensional
@@ -11,38 +10,44 @@ unconditional densities r(x,y):
 
 .. math:: p(y|x) = \frac{p(x,y)}{p(x)} = r(x,y)
 
-Instead of going through density estimation, this
-work proposes to compute the density ratio function r(x,y) directly from
-samples (x/y pairs of input/output). The density ratio function is modelled by
-the following linear model:
+Instead of estimating both unconditional densities separately, the density ratio function r(x,y) is directly estimated from
+samples. The density ratio function is modelled by the following linear model:
 
 .. math:: \widehat{r_{\alpha}}(x,y) := \alpha^T \phi(x,y)
 
-while :math:`\alpha=(\alpha_1, \alpha_2,...,\alpha_b)^T`
-being the parameters learned from samples and :math:`\phi(x,y) = (\phi_{1}(x,
-y),\phi_{2}(x,y),...,\phi_{b}(x,y))^T` being basis functions such that
-:math:`\phi(x,y) \geq 0_{b}` for all :math:`(x,y)\in D_{X} \times D_{Y}`.
-:math:`0_{b}` denotes the b-dimensional vector with all zeros and
-:math:`D_{X}`, :math:`D_{Y}` the input and output domains.
+where :math:`\alpha=(\alpha_1, \alpha_2,...,\alpha_b)^T`
+are the parameters learned from samples and :math:`\phi(x,y) = (\phi_{1}(x,
+y),\phi_{2}(x,y),...,\phi_{b}(x,y))^T` are kernel functions such that
+:math:`\phi_{l}(x,y) \geq 0` for all :math:`(x,y)\in D_{X} \times D_{Y}` and :math:`l = 1, ..., b`.
 
 
-More precisely, the parameters :math:`\alpha` can be computed analytically by
-minimizing a squared error :math:`\int\int\widehat{r_{\alpha}}(x,y) - r(x,y))
-^2 p(x)dxdy`. However, to minimize this error, expectations over unknown
-densities have to be computed which are approximated by the provided sample
-averages. After having obtained the density-ratio function, the solution for
-test time is denoted as:
+The parameters :math:`\alpha` are learned by minimizing the
+a integrated squared error.
+
+.. math:: J(\alpha) = \int\int ( \widehat{r_{\alpha}}(x,y) - r(x,y))^2 p(x)dxdy.
+
+After having obtained :math:`\widehat{\alpha} = argmin_{\alpha} ~ J(\alpha)` through training, the conditional density can be computed as follows:
 
 .. math:: \widehat{p}(y|x=\tilde{x}) = \frac{\widehat{\alpha}^T\phi(\tilde{x},y)}{\int\widehat{\alpha}^T\phi(\tilde{x},y)dy}
+   :label: quotient
 
-while :math:`\tilde{x}` being the test input point. For the basis functions,
-this work proposes to use a Gaussian kernel with width :math:`\sigma`
-(bandwidth parameter) for both x and y. It further suggests to randomly
-choose (x,y) center points, though in our implementation we offer various kernel
-selection methods (all, random, distance, k_means, agglomerative). The work
-also introduces a regularization parameter :math:`\lambda>0` for
-stabilization purposes in the optimization. The model structure allows for
-model selection by cross-validation.
+[SUG2010]_ propose to use a Gaussian kernel with width :math:`\sigma`
+(bandwidth parameter), which is also the choice for this implementation:
+
+.. math:: \phi_{l}(x,y) = exp \left( \frac{||x-u_{l}||^2}{2 \sigma^2} \right)  exp \left( \frac{||y-v_{l}||^2}{2 \sigma^2} \right)
+
+where :math:`\{(u_{l},v_{l})\}_{l=1}^b` are center points that are chosen from the training data set.
+By using Gaussian kernels the optimization problem :math:`argmin_{\alpha} ~ J(\alpha)` can be solved analytically.
+Also, the denominator in :eq:`quotient` is traceable and can be computed analytically.
+The fact that training does not require numerical optimization and the solution can be computed fully analytically is the key advantage of LS-CDE.
+
+
+While [SUG2010]_ propose to select center points for the kernel functions randomly from the training set, our implementation offers further center sampling methods:
+
+- **all:** use all data points in the train set as kernel centers
+- **random:** randomly selects k points as kernel centers
+- **k_means:** uses k-means clustering to determine k kernel centers
+- **agglomorative:** uses agglomorative clustering to determine k kernel centers
 
 
 
@@ -52,5 +57,4 @@ model selection by cross-validation.
     :members:
     :inherited-members:
 
-
-.. [SUG2010] http://proceedings.mlr.press/v9/sugiyama10a.html
+.. [SUG2010] Sugiyama et al. (2010). Conditional Density Estimation via Least-Squares Density Ratio Estimation, in PMLR 9:781-788 (http://proceedings.mlr.press/v9/sugiyama10a.html)

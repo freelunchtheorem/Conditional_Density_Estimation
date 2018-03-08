@@ -17,7 +17,7 @@ This implementation uses Gaussian Kernels:
 .. math::
     \mathcal{K}(y,y';\sigma)=\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{\left\Vert y-y'\right\Vert^2}{2\sigma^2}}
 
-In addition approach described in the paper, the implementation has the following extensions:
+In addition to the approach described in the paper, the implementation has the following extensions:
 
 - **Trainable scales/bandwiths:** The scales of the Gaussian kernels can be either be fixed or jointly trained with
   the neural network weights. This property is controlled by the boolean train_scales in the constructor.
@@ -39,5 +39,6 @@ The core of the Kernel Mixture Network implementation is originally written by [
 In addition to the original implementation of Jan van der Vegt and Alexander Backus we added support for
 mulivariate distributions p(y|x) as well as automated hyperparameter search via cross-validation.
 
-.. [AMB2017] https://arxiv.org/abs/1705.07111
+.. [AMB2017] Luca Ambrogioni, Umut Güçlü, Marcel A. J. van Gerven, Eric Maris (2017). The Kernel Mixture Network: A Nonparametric Method for
+                Conditional Density Estimation of Continuous Random Variables (https://arxiv.org/abs/1705.07111)
 .. [VEG2017] https://github.com/janvdvegt/KernelMixtureNetwork
