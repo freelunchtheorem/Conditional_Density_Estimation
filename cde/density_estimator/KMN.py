@@ -78,7 +78,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
           n_folds: number of cross-validation folds (positive integer)
-          verboseÖ
+          verbose: (boolean) controls the verbosity (console output)
 
       """
 

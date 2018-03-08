@@ -10,16 +10,19 @@ from .base import BaseDensityEstimator
 
 class NeighborKernelDensityEstimation(BaseDensityEstimator):
   """
-  Epsilon-Neighbor Kernel Density Estimation (lazy learner)
+  Epsilon-Neighbor Kernel Density Estimation (lazy learner) with Gaussian Kernels
+
+  Args:
+    epsilon: size of the neighborhood region
+    bandwidth: scale of the Gaussians
+    weighted: if true - the neighborhood Gaussians are weighted according to their distance to the query point,
+              if false - all neighborhood Gaussians are weighted equally
+
+
   """
 
   def __init__(self, epsilon=5.0, bandwidth=1.0, weighted=True):
-    """
-    Constructor for Epsilon-Neighbor Kernel Density Estimation
-    :param epsilon: size of the neighborhood region
-    :param bandwidth: variance of the Gaussians
-    :param weighted: true - the neighborhood Gaussians are weighted according to their distance to the query point, false - all neighborhood Gaussians are weighted equally
-    """
+
     self.epsilon = epsilon
     self.weighted = weighted
     self.bandwidth = bandwidth
@@ -28,10 +31,12 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.can_sample = False
 
   def fit(self, X, Y):
-    """
-    lazy learner - stores the learning data X and Y
-    :param X: nummpy array to be conditioned on - shape: (n_samples, n_dim_x)
-    :param Y: nummpy array of y targets - shape: (n_samples, n_dim_y)
+    """ Since NKDE is a lazy learner, fit just stores the provided training data (X,Y)
+
+      Args:
+        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
@@ -58,12 +63,16 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
 
   def predict(self, X, Y):
-    """
-    copmutes the contitional likelihood p(y|x) given the fitted model
-    :param X: nummpy array to be conditioned on - shape: (n_query_samples, n_dim_x)
-    :param Y: nummpy array of y targets - shape: (n_query_samples, n_dim_y)
-    :return: numpy array of shape (n_query_samples, ) holding the conditional likelihood p(y|x)
-    """
+    """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+          conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+
+     """
 
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
