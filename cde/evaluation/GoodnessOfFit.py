@@ -130,6 +130,32 @@ class GoodnessOfFit:
     else:
       return euclidean(np.sqrt(P(X, Y)), np.sqrt(Q(X, Y))) / np.sqrt(2)
 
+  def hellinger_distance_monte_carlo(self, y=None, n_samples=100000, upper_bound=None, lower_bound=None):
+    """
+    Args:
+     y: y values to condition on - numpy array of shape (n_values, ndim_y)
+     n_samples: number of samples
+     upper_bound: b of x~U(a,b)
+     lower_bound: a of x~U(a,b)
+
+    Returns:
+
+    """
+
+    if y is None:
+      y = np.random.random(size=(n_samples, self.estimator.ndim_y))
+    assert y.ndim == 2 and y.shape[1] == self.estimator.ndim_y
+
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.predict
+
+    weight = upper_bound - lower_bound
+    samples = np.random.uniform(low=lower_bound, high=upper_bound, size=(n_samples, self.estimator.ndim_x))
+    approx_P = weight * np.mean(P(samples, y))
+    approx_Q = weight * np.mean(Q(samples, y))
+
+
+    return euclidean(np.sqrt(approx_P), np.sqrt(approx_Q)) / np.sqrt(2)
 
 
 
@@ -146,7 +172,7 @@ class GoodnessOfFit:
     gof_result.kl_divergence, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance()
+    gof_result.hellinger_distance = self.hellinger_distance_monte_carlo()
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
@@ -210,3 +236,6 @@ def cartesian_along_axis_0(X, Y):
       X_res[k, :] = X[i, :]
       Y_res[k, :] = Y[j, :]
   return X_res, Y_res
+
+
+

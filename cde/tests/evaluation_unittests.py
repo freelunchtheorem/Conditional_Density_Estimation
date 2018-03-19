@@ -62,22 +62,24 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertLess(gof_results2.kl_divergence, gof_results1.kl_divergence)
 
   def test_gaussian_dummy_hellinger_distance(self):
-    mu1 = np.array([1, 2])
-    mu2 = np.array([1, 3])
-    dev1 = np.identity(n=2)*4
-    dev2 = np.identity(n=2)*3
+    mu1 = np.array([0, 0])
+    mu2 = np.array([0, 0])
+    sigma1 = np.identity(n=2)*4
+    sigma2 = np.identity(n=2)*3
 
-    numerator = np.linalg.det(dev1)**(1/4) * np.linalg.det(dev2)**(1/4)
-    denominator = np.linalg.det((dev1+dev2)/2)**(1/2)
-    exponent = (-1/8 * (mu1-mu2).T * np.linalg.inv((dev1+dev2)/2) * (mu1-mu2))
+    numerator = np.linalg.det(sigma1)**(1/4) * np.linalg.det(sigma2)**(1/4)
+    denominator = np.linalg.det((sigma1+sigma2)/2)**(1/2)
+    exponent = -1/8 * np.dot(np.dot((mu1-mu2).T, np.linalg.inv((sigma1+sigma2)/2)), (mu1-mu2))
 
-    hd_squared_analytic_result = 1 - (numerator/denominator) * np.exp(exponent)
+    hd_squared_analytic_result = np.sqrt(1 - (numerator/denominator) * np.exp(exponent))
 
-    est = GaussianDummy(mean=mu1, cov=dev1, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=dev2, ndim_y=2)
+    y = np.asarray([[0, 0]])
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
     gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-    self.assertEqual(gof1.hellinger_distance(), np.sqrt(hd_squared_analytic_result))
+    self.assertEqual(gof1.hellinger_distance_monte_carlo(y=y), hd_squared_analytic_result)
 
 
 
