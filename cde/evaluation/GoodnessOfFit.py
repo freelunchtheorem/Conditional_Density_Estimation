@@ -8,20 +8,20 @@ from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 
 
 class GoodnessOfFit:
-  """
-  Class that takes an estimator a probabilistic simulation model. The estimator is fitted on n_obervation samples.
+  """ Class that takes an estimator a probabilistic simulation model. The estimator is fitted on n_obervation samples.
   Then the goodness of fit w.r.t to the true probability distribution is evaluated
+
+  Args:
+    estimator: Estimator instance that implements the functionality from BaseDensityEstimator (can be either fitted or not fitted)
+    probabilistic_model: ConditionalDensity instance which implements the methods simulate, pdf, cdf
+    n_observations: number of observations which are drawn from the probabilistic_model to fit the estimator.
+                    If the estimator is already fitted, this parameter is ignored
+    n_x_cond: number of different x to condition on - e.g. if n_x_cond=20, p(y|x) is evaluated for 20 different x
+    print_fit_result: boolean that specifies whether the fitted distribution shall be plotted (only works if ndim_x and ndim_y = 1)
+    seed: random seed to draw samples from the probabilistic model
+
   """
   def __init__(self, estimator, probabilistic_model, n_observations=100, n_x_cond=10, print_fit_result=False, seed=23):
-    """
-    :param estimator: Estimator instance that implements the functionality from BaseDensityEstimator (can be either fitted or not fitted)
-    :param probabilistic_model: ConditionalDensity instance which implements the methods simulate, pdf, cdf
-    :param n_observations: number of observations which are drawn from the probabilistic_model to fit the estimator.
-    If the estimator is already fitted, this parameter is ignored
-    :param n_x_cond: number of different x to condition on - e.g. if n_x_cond=20, p(y|x) is evaluated for 20 different x
-    :param print_fit_result: boolean that specifies whether the fitted distribution shall be plotted (only works if ndim_x and ndim_y = 1)
-    :param random seed to draw samples from the probabilistic model
-    """
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
@@ -52,11 +52,14 @@ class GoodnessOfFit:
 
 
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=1000):
-    """
-    Calculates Kolmogorov-Smirnov Statistics
-    :param x_cond: x value to condition on
-    :param n_samples: number of samples y drawn from p(y|x_cond)
-    :return: (ks_stat, ks_pval) Kolmogorov-Smirnov statistic and p-pvalue
+    """ Calculates Kolmogorov-Smirnov Statistics
+
+    Args:
+      x_cond: x value to condition on
+      n_samples: number of samples y drawn from p(y|x_cond)
+
+    Returns:
+      (ks_stat, ks_pval) Kolmogorov-Smirnov statistic and corresponding p-pvalue
     """
     X_cond = np.vstack([x_cond for _ in range(n_samples)])
     np.random.seed(self.seed**2)
@@ -65,12 +68,16 @@ class GoodnessOfFit:
     estimator_conditional_samples = estimator_conditional_samples.flatten()
     return kstest(estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(X_cond, y))
 
+
   def kl_divergence(self, y_res=100, measure_time = False):
-    """
-    Calculates the discrete approximiation of KL_divergence of the fitted ditribution w.r.t. the true distribution
-    :param y_res: sampling rate for y
-    :param measure_time: boolean that indicates whether the time_to_predict 1000 density function values shall be returned as second element
-    :return: Kl-divergence (float), time_to_predict (float) if measure_time is true
+    """ Calculates a discrete approximiation of KL_divergence of the fitted ditribution w.r.t. the true distribution
+
+    Args:
+      y_res: sampling rate for y
+      measure_time: boolean that indicates whether the time_to_predict 1000 density function values shall be returned as second element
+
+    Returns:
+      Kl-divergence (float), time_to_predict (float) if measure_time is true
     """
     P = self.probabilistic_model.pdf
     Q = self.estimator.predict

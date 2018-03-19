@@ -6,21 +6,21 @@
 Conditional Density Estimation Documentation
 ==========================================================
 
-Contents:
+Table of contents
+###########################################################
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   density_estimator/base_density_estimator
-   density_estimator/kmn
-   density_estimator/lscde
-   density_estimator/nkde
+   density_estimator/density_estimator
+   density_simulation/density_simulation
 
 
 
 
 Indices and tables
-==================
+#############################################################
 
 * :ref:`genindex`
 * :ref:`modindex`

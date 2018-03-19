@@ -6,50 +6,64 @@ from sklearn.base import BaseEstimator
 class ConditionalDensity(BaseEstimator):
 
   def pdf(self, X, Y):
-    """
-    p(y|x)
-    :param X: x to be conditioned on
-    :param Y: y
-    :return: conditional density
+    """ Conditional probability density function p(y|x) of the underlying probability model
+
+    Args:
+      X: x to be conditioned on - numpy array of shape (n_points, ndim_x)
+      Y: y target values for witch the pdf shall be evaluated - numpy array of shape (n_points, ndim_y)
+
+    Returns:
+      p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )
     """
 
     raise NotImplementedError
 
   def cdf(self, X, Y):
+    """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
+
+    Args:
+      X: x to be conditioned on - numpy array of shape (n_points, ndim_x)
+      Y: y target values for witch the cdf shall be evaluated - numpy array of shape (n_points, ndim_y)
+
+    Returns:
+     P(Y < y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )
     """
-    P(Y < y | x)
-    :param X: x to be conditioned on
-    :param Y: y
-    :return: cumulated conditional density
-    """
+
     raise NotImplementedError
 
 
   def simulate_conditional(self, X):
-    """
-    Draws random samples from the conditional distribution
-    :param X: X to be conditioned on
-    :return: random samples
+    """ Draws random samples from the conditional distribution
+
+    Args:
+      X: x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)
+
+    Returns:
+      Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_x)
     """
     raise NotImplementedError
 
 
   def simulate(self, n_samples):
-    """
-    Draws random samples from the unconditional distribution
-    :param n_samples: number of samples to be drawn from the conditional distribution
-    :return: random samples
+    """ Draws random samples from the unconditional distribution p(x,y)
+
+    Args:
+      n_samples: (int) number of samples to be drawn from the conditional distribution
+
+    Returns:
+      (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
     raise NotImplementedError
 
   def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100, mode="pdf"):
-    """
-    Plots the distribution specified in mode if x and y are 1-dimensional each
-    :param xlim: 2-tuple specifying the x axis limits
-    :param ylim: 2-tuple specifying the y axis limits
-    :param resolution: integer specifying the resolution of plot
-    :param mode: spefify which dist to plot ["pdf", "cdf", "joint_pdf"]
-    :return:
+    """ Plots the distribution specified in mode if x and y are 1-dimensional each
+
+    Args:
+      xlim: 2-tuple specifying the x axis limits
+      ylim: 2-tuple specifying the y axis limits
+      resolution: integer specifying the resolution of plot
+      mode: spefify which dist to plot ["pdf", "cdf", "joint_pdf"]
+
     """
     modes = ["pdf", "cdf", "joint_pdf"]
     assert mode in modes, "mode must be on of the following: " + modes

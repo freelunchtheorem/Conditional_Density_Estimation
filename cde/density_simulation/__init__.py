@@ -1,6 +1,6 @@
-from cde.density_simulation.Density import ConditionalDensity
-from cde.density_simulation.GMM import GaussianMixture
-from cde.density_simulation.EconDensity import EconDensity
+from .Density import ConditionalDensity
+from .GMM import GaussianMixture
+from .EconDensity import EconDensity
 import inspect, sys
 import numpy as np
 

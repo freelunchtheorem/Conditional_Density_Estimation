@@ -1,9 +1,7 @@
-from cde.density_simulation import ConditionalDensity
 import numpy as np
-import cde.density_estimator.helpers as helpers
 import scipy.stats as stats
-from cde.density_simulation import ConditionalDensity
-from cde.density_estimator import helpers
+from .Density import ConditionalDensity
+from .helpers import project_to_pos_semi_def
 
 class GaussianMixture(ConditionalDensity):
   """
@@ -30,8 +28,8 @@ class GaussianMixture(ConditionalDensity):
 
 
     """ Sample cov matrixes and assure that cov matrix is pos definite"""
-    self.covariances_x = helpers.project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_x, self.ndim_x)))) #shape(n_kernels, ndim_x, ndim_y)
-    self.covariances_y = helpers.project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_y, self.ndim_y))))  # shape(n_kernels, ndim_x, ndim_y)
+    self.covariances_x = project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_x, self.ndim_x)))) #shape(n_kernels, ndim_x, ndim_y)
+    self.covariances_y = project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_y, self.ndim_y))))  # shape(n_kernels, ndim_x, ndim_y)
 
     """ some eigenvalues of the sampled covariance matrices can be exactly zero -> map to positive
     semi-definite subspace  """
