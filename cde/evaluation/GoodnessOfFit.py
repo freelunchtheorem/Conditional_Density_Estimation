@@ -5,6 +5,7 @@ from scipy.stats import shapiro, kstest
 from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from scipy.spatial.distance import euclidean
 
 
 class GoodnessOfFit:
@@ -103,6 +104,35 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
+
+  def hellinger_distance(self, y_res=100, measure_time=False):
+    """
+    todo
+    Args:
+
+    Returns:
+
+    """
+
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.predict
+
+    grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
+    grid_y = get_variable_grid(self.Y, resolution=int(y_res ** (1/self.Y.shape[1])), low_percentile=0, high_percentile=100)
+
+    X, Y = cartesian_along_axis_0(grid_x, grid_y)
+
+    t_start = time.time()
+    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to predict per 1000
+
+    if measure_time:
+      return euclidean(np.sqrt(P(X,Y)), np.sqrt(Q(X,Y))) / np.sqrt(2), time_to_predict
+    else:
+      return euclidean(np.sqrt(P(X, Y)), np.sqrt(Q(X, Y))) / np.sqrt(2)
+
+
+
+
   def compute_results(self):
     """
     Computes the statistics and returns a GoodnessOfFitResults object
@@ -113,7 +143,10 @@ class GoodnessOfFit:
     gof_result = GoodnessOfFitResults(x_cond, self.estimator, self.probabilistic_model)
 
     # KL - Divergence
-    gof_result.mean_kl, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
+    gof_result.kl_divergence, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
+
+    # Hellinger distance
+    gof_result.hellinger_distance = self.hellinger_distance()
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
@@ -162,7 +195,7 @@ def get_variable_grid(X, resolution=20, low_percentile = 10, high_percentile=90)
 
 def cartesian_along_axis_0(X, Y):
   """
-  calculates the cartesian product of two matrixes along the axis 0
+  calculates the cartesian product of two matrices along the axis 0
   :param X: ndarray of shape (x_shape_0, ndim_x)
   :param Y: ndarray of shape (y_shape_0, ndim_y)
   :return: (X_res, Y_res) of shape (x_shape_0 * y_shape_0, ndim_x) resp. (x_shape_0 * y_shape_0, ndim_y)

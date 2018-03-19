@@ -6,13 +6,16 @@ import numpy as np
 
 class GaussianDummy(BaseDensityEstimator):
 
-  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
     self.mean = np.array(self.ndim_y*[mean])
-    self.cov = np.identity(self.ndim_y)
+
+    if cov is None:
+      self.cov = np.identity(self.ndim_y)
+
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
 
@@ -42,13 +45,14 @@ class GaussianDummy(BaseDensityEstimator):
 
 
 class SimulationDummy(ConditionalDensity):
-  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
     self.mean = np.array(self.ndim_y*[mean])
-    self.cov = np.identity(self.ndim_y)
+    if cov is None:
+      self.cov = np.identity(self.ndim_y)
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
 
