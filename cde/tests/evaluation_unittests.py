@@ -64,8 +64,8 @@ class TestGoodnessOfFitTests(unittest.TestCase):
   def test_gaussian_dummy_hellinger_distance(self):
     mu1 = np.array([0, 0])
     mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2)*4
-    sigma2 = np.identity(n=2)*3
+    sigma1 = np.identity(n=2)*2
+    sigma2 = np.identity(n=2)*1
 
     numerator = np.linalg.det(sigma1)**(1/4) * np.linalg.det(sigma2)**(1/4)
     denominator = np.linalg.det((sigma1+sigma2)/2)**(1/2)

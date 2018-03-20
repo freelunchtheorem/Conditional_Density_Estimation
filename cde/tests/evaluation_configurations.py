@@ -64,7 +64,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
   1) fits the estimator to the simulation and
   2) executes goodness-of-fit (currently: kolmogorov-smirnof (cdf-based), kl divergence) tests
   Every successful run yields a result object of type GoodnessOfFitResult which contains the following members: cond_values, time_to_fit,
-  time_to_predict ndim_x, ndim_y, estimator_params, probabilistic_model_params, mean_kl, mean_ks_stat, mean_ks_pval
+  time_to_predict ndim_x, ndim_y, estimator_params, probabilistic_model_params, kl divergence, mean_ks_stat, mean_ks_pval
   :param tasks: a list containing k tuples, each tuple has the shape (estimator object, simulator object)
   :param estimator_filter: a parameter to decide whether to execute just a specific type of estimator, e.g. "KernelMixtureNetwork",
   must be one of the density estimator class types
@@ -136,7 +136,7 @@ def get_results_dataframe(results, index):
   """
   n_results = len(results)
   assert n_results > 0, "no results given"
-  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
+  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'kl_divergence', 'time_to_fit',
              'time_to_predict']
 
   result_dicts = results.report_dict()
@@ -146,7 +146,7 @@ def get_results_dataframe(results, index):
 def export_results(results, output_dir=None, file_name=None, export_pickle=False, export_csv=False):
   assert len(results) > 0, "no results given"
 
-  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'mean_kl', 'time_to_fit',
+  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'mean_ks_stat', 'mean_ks_pval', 'kl_divergence', 'time_to_fit',
              'time_to_predict']
 
   result_dicts = [result.report_dict() for result in results]

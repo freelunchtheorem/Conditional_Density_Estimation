@@ -6,6 +6,7 @@ from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from scipy.spatial.distance import euclidean
+from scipy import stats
 
 
 class GoodnessOfFit:
@@ -130,7 +131,7 @@ class GoodnessOfFit:
     else:
       return euclidean(np.sqrt(P(X, Y)), np.sqrt(Q(X, Y))) / np.sqrt(2)
 
-  def hellinger_distance_monte_carlo(self, y=None, n_samples=100000, upper_bound=None, lower_bound=None):
+  def hellinger_distance_monte_carlo(self, y=None, n_samples=1000000):
     """
     Args:
      y: y values to condition on - numpy array of shape (n_values, ndim_y)
@@ -149,13 +150,16 @@ class GoodnessOfFit:
     P = self.probabilistic_model.pdf
     Q = self.estimator.predict
 
-    weight = upper_bound - lower_bound
-    samples = np.random.uniform(low=lower_bound, high=upper_bound, size=(n_samples, self.estimator.ndim_x))
-    approx_P = weight * np.mean(P(samples, y))
-    approx_Q = weight * np.mean(Q(samples, y))
+    samples = stats.cauchy.rvs(loc=0, scale=2, size=(n_samples, self.estimator.ndim_x))
+    f = stats.cauchy.pdf(samples, loc=0, scale=2)
+
+    p = np.sqrt(P(samples, y))
+    q = np.sqrt(Q(samples, y))
+
+    r = (p - q)**2
 
 
-    return euclidean(np.sqrt(approx_P), np.sqrt(approx_Q)) / np.sqrt(2)
+    return np.mean(r/f)/2
 
 
 
