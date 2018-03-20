@@ -105,62 +105,70 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
+  def kl_divergence_monte_carlo(self, x, n_samples=10000000):
+    """ Computes the KL divergence via monte carlo integration using importance sampling with a cauchy distribution
 
-  def hellinger_distance(self, y_res=100, measure_time=False):
-    """
-    todo
     Args:
+     x: x values to condition on - numpy array of shape (n_values, ndim_x)
+     n_samples: number of samples for monte carlo integration over the y space
 
     Returns:
-
+      squared hellinger distance of each x value to condition on - numpy array of shape (n_values,)
     """
+    assert x.ndim == 2 and x.shape[1] == self.estimator.ndim_x
 
-    P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    distances = np.zeros(x.shape[0])
 
-    grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
-    grid_y = get_variable_grid(self.Y, resolution=int(y_res ** (1/self.Y.shape[1])), low_percentile=0, high_percentile=100)
+    for i in range(x.shape[0]):  # iterate over x values to condition on
+      P = self.probabilistic_model.pdf
+      Q = self.estimator.predict
 
-    X, Y = cartesian_along_axis_0(grid_x, grid_y)
+      samples = stats.cauchy.rvs(loc=0, scale=1, size=(n_samples, self.estimator.ndim_x))
+      f = _multidim_cauchy_pdf(samples, loc=0, scale=1)
 
-    t_start = time.time()
-    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to predict per 1000
+      p = P(x[i, :], samples)
+      q = Q(x[i, :], samples)
+      q = np.ma.masked_where(q < 10**-64, q)
+      p = np.ma.masked_hwere(p < 10**-64, p)
 
-    if measure_time:
-      return euclidean(np.sqrt(P(X,Y)), np.sqrt(Q(X,Y))) / np.sqrt(2), time_to_predict
-    else:
-      return euclidean(np.sqrt(P(X, Y)), np.sqrt(Q(X, Y))) / np.sqrt(2)
+      large_const = 10**10
+      r = p * np.log((p*10**10) / (q*10**10))
 
-  def hellinger_distance_monte_carlo(self, y=None, n_samples=1000000):
-    """
+      distances[i] = np.sqrt(np.mean(r / f))
+
+    assert distances.ndim == 1 and distances.shape[0] == x.shape[0]
+    return distances
+
+  def hellinger_distance_monte_carlo(self, x, n_samples=10000000):
+    """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
+
     Args:
-     y: y values to condition on - numpy array of shape (n_values, ndim_y)
-     n_samples: number of samples
-     upper_bound: b of x~U(a,b)
-     lower_bound: a of x~U(a,b)
+     x: x values to condition on - numpy array of shape (n_values, ndim_x)
+     n_samples: number of samples for monte carlo integration over the y space
 
     Returns:
-
+      squared hellinger distance of each x value to condition on - numpy array of shape (n_values,)
     """
+    assert x.ndim == 2 and x.shape[1] == self.estimator.ndim_x
 
-    if y is None:
-      y = np.random.random(size=(n_samples, self.estimator.ndim_y))
-    assert y.ndim == 2 and y.shape[1] == self.estimator.ndim_y
+    distances = np.zeros(x.shape[0])
 
-    P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    for i in range(x.shape[0]): # iterate over x values to condition on
+      P = self.probabilistic_model.pdf
+      Q = self.estimator.predict
 
-    samples = stats.cauchy.rvs(loc=0, scale=2, size=(n_samples, self.estimator.ndim_x))
-    f = stats.cauchy.pdf(samples, loc=0, scale=2)
+      samples = stats.cauchy.rvs(loc=0, scale=2, size=(n_samples, self.estimator.ndim_x))
+      f = _multidim_cauchy_pdf(samples, loc=0, scale=2)
 
-    p = np.sqrt(P(samples, y))
-    q = np.sqrt(Q(samples, y))
+      p = np.sqrt(P(x[i,:], samples))
+      q = np.sqrt(Q(x[i,:], samples))
 
-    r = (p - q)**2
+      r = (p - q)**2
 
+      distances[i] = np.sqrt(np.mean(r / f)/2)
 
-    return np.mean(r/f)/2
-
+    assert distances.ndim == 1 and distances.shape[0] == x.shape[0]
+    return distances
 
 
   def compute_results(self):
@@ -176,7 +184,8 @@ class GoodnessOfFit:
     gof_result.kl_divergence, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance_monte_carlo()
+    x = np.asarray([[0,0]])
+    gof_result.hellinger_distance = self.hellinger_distance_monte_carlo(x=x)
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
@@ -242,4 +251,16 @@ def cartesian_along_axis_0(X, Y):
   return X_res, Y_res
 
 
+def _multidim_cauchy_pdf(x, loc=0, scale=2):
+  """ multidimensional cauchy pdf """
 
+  return np.exp(_multidim_cauchy_log_pdf(x, loc=loc, scale=scale))
+
+def _multidim_cauchy_log_pdf(x, loc=0, scale=2):
+  """ multidimensional cauchy log pdf """
+  assert x.ndim == 2
+
+  p = np.zeros(x.shape[0])
+  for i in range(x.shape[1]):
+    p += stats.cauchy(loc=0, scale=scale).logpdf(x[:, i])
+  return p

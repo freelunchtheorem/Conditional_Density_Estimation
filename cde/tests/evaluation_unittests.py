@@ -3,7 +3,7 @@ import pytest
 import scipy.stats as stats
 import numpy as np
 from cde.density_simulation import EconDensity, GaussianMixture
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
 from cde.tests.Dummies import GaussianDummy, SimulationDummy
 
 alpha = 0.05
@@ -61,25 +61,49 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     gof_results2 = gof2.compute_results()
     self.assertLess(gof_results2.kl_divergence, gof_results1.kl_divergence)
 
-  def test_gaussian_dummy_hellinger_distance(self):
+  def test_gaussian_dummy_hellinger_distance_mc(self):
     mu1 = np.array([0, 0])
     mu2 = np.array([0, 0])
     sigma1 = np.identity(n=2)*2
     sigma2 = np.identity(n=2)*1
 
-    numerator = np.linalg.det(sigma1)**(1/4) * np.linalg.det(sigma2)**(1/4)
-    denominator = np.linalg.det((sigma1+sigma2)/2)**(1/2)
-    exponent = -1/8 * np.dot(np.dot((mu1-mu2).T, np.linalg.inv((sigma1+sigma2)/2)), (mu1-mu2))
+    # Analytical form Hellinger Distance
+    hd_squared_analytic_result = np.sqrt(1 - (2**0.5 / 1.5))
 
-    hd_squared_analytic_result = np.sqrt(1 - (numerator/denominator) * np.exp(exponent))
-
-    y = np.asarray([[0, 0]])
+    x = np.asarray([[0, 0], [1,1]])
 
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
     gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-    self.assertEqual(gof1.hellinger_distance_monte_carlo(y=y), hd_squared_analytic_result)
+    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_monte_carlo(x=x)[0], places=2)
+    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_monte_carlo(x=x)[1], places=2)
+
+  def test_gaussian_dummy_kl_divergence_mc(self):
+    mu1 = np.array([0, 0])
+    mu2 = np.array([0, 0])
+    sigma1 = np.identity(n=2) * 2
+    sigma2 = np.identity(n=2) * 1
+
+    # Analytical form Hellinger Distance
+    kl_divergence_analytical = 0.5 * (1 - 2 + np.log(4))
+
+    x = np.asarray([[0, 0], [1, 1]])
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
+
+    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_monte_carlo(x=x)[0], places=2)
+    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_monte_carlo(x=x)(x=x)[1], places=2)
+
+  def test_multidim_chauchy(self):
+    x1 = np.asarray([[1, 0], [0, 1]])
+    x2 = np.asarray([[1]])
+
+    self.assertEqual(_multidim_cauchy_pdf(x1)[0], _multidim_cauchy_pdf(x1)[1])
+    self.assertAlmostEqual(_multidim_cauchy_pdf(x2, scale=4)[0], stats.cauchy.pdf(x2[0], scale=4)[0])
+
 
 
 
