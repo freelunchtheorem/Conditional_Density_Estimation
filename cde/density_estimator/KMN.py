@@ -126,7 +126,7 @@ class KernelMixtureNetwork(BaseDensityEstimator):
 
         print("optimal scales: {}".format(self.sess.run(self.scales)))
 
-    def predict(self, X, Y):
+    def pdf(self, X, Y):
       """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
          Args:

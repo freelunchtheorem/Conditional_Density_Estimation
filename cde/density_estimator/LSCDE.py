@@ -82,7 +82,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
   def _loss_fun(self, alpha):
     return 0.5 * alpha.T.dot(self.H).dot(alpha) - self.h.T.dot(alpha) + self.regularization * alpha.T.dot(alpha)
 
-  def predict(self, X, Y):
+  def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
        Args:
@@ -130,7 +130,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     density = np.zeros(shape=[X.shape[0],Y.shape[0]])
     for i in range(X.shape[0]):
       x = np.tile(X[i,:], (Y.shape[0],1))
-      density[i, :] = self.predict(x, Y)
+      density[i, :] = self.pdf(x, Y)
 
     return density, Y
 

@@ -24,7 +24,7 @@ class BaseDensityEstimator(BaseEstimator):
     raise NotImplementedError
 
 
-  def predict(self, X, Y):
+  def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
        Args:
@@ -68,13 +68,16 @@ class BaseDensityEstimator(BaseEstimator):
     Returns:
       negative log likelihood of data
     """
-    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+    if hasattr(self, 'log_pdf'):
+      self.log_pdf(X, Y)
+    else:
+      X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
-    assert self.fitted, "model must be fitted to compute likelihood score"
-    with warnings.catch_warnings():
-      warnings.simplefilter("ignore")  # don't print division by zero warning
-      conditional_log_likelihoods = np.log(self.predict(X, Y))
-    return np.mean(conditional_log_likelihoods)
+      assert self.fitted, "model must be fitted to compute likelihood score"
+      with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # don't print division by zero warning
+        conditional_log_likelihoods = np.log(self.pdf(X, Y))
+      return np.mean(conditional_log_likelihoods)
 
 
   def fit_by_cv(self, X, Y, n_folds=5, param_grid=None):
@@ -140,7 +143,7 @@ class BaseDensityEstimator(BaseEstimator):
   #   X, Y = X.flatten(), Y.flatten()
   #
   #   # calculate values of distribution
-  #   Z = self.predict(X, Y)
+  #   Z = self.pdf(X, Y)
   #
   #   X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
   #     [resolution, resolution])

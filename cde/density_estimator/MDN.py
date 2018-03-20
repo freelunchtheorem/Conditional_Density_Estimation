@@ -55,7 +55,7 @@ class MixtureDensityNetwork(BaseDensityEstimator):
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
     self.fitted = True
 
-  def predict(self, X, Y):
+  def pdf(self, X, Y):
       """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
          Args:

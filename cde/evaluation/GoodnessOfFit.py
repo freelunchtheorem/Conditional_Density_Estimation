@@ -82,7 +82,7 @@ class GoodnessOfFit:
       Kl-divergence (float), time_to_predict (float) if measure_time is true
     """
     P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    Q = self.estimator.pdf
 
     # prepare mesh
     grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
@@ -97,7 +97,7 @@ class GoodnessOfFit:
     Z_Q = np.squeeze(Q(X,Y))
 
 
-    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to predict per 1000
+    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to pdf per 1000
 
 
     if measure_time:
@@ -116,7 +116,7 @@ class GoodnessOfFit:
     """
 
     P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    Q = self.estimator.pdf
 
     grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
     grid_y = get_variable_grid(self.Y, resolution=int(y_res ** (1/self.Y.shape[1])), low_percentile=0, high_percentile=100)
@@ -124,7 +124,7 @@ class GoodnessOfFit:
     X, Y = cartesian_along_axis_0(grid_x, grid_y)
 
     t_start = time.time()
-    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to predict per 1000
+    time_to_predict = (time.time() - t_start) * 1000 / X.shape[0]  # time to pdf per 1000
 
     if measure_time:
       return euclidean(np.sqrt(P(X,Y)), np.sqrt(Q(X,Y))) / np.sqrt(2), time_to_predict
@@ -148,7 +148,7 @@ class GoodnessOfFit:
     assert y.ndim == 2 and y.shape[1] == self.estimator.ndim_y
 
     P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    Q = self.estimator.pdf
 
     samples = stats.cauchy.rvs(loc=0, scale=2, size=(n_samples, self.estimator.ndim_x))
     f = stats.cauchy.pdf(samples, loc=0, scale=2)
