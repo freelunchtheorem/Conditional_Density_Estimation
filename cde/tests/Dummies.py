@@ -6,15 +6,25 @@ import numpy as np
 
 class GaussianDummy(BaseDensityEstimator):
 
-  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
-    self.mean = np.array(self.ndim_y*[mean])
-    self.cov = np.identity(self.ndim_y)
+    self.mean = mean
+    # check if mean is scalar
+    if isinstance(self.mean, list):
+      self.mean = np.array(self.ndim_y * [self.mean])
+
+    self.cov = cov
+
+    if self.cov is None:
+      self.cov = np.identity(self.ndim_y)
+
+
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
+    self.can_sample = True
 
   def fit(self, X, Y):
     self.fitted = True
@@ -42,15 +52,23 @@ class GaussianDummy(BaseDensityEstimator):
 
 
 class SimulationDummy(ConditionalDensity):
-  def __init__(self, mean=2, ndim_x=1, ndim_y=1):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
 
-    self.mean = np.array(self.ndim_y*[mean])
-    self.cov = np.identity(self.ndim_y)
+    self.mean = mean
+    self.cov = cov
+    # check if mean is scalar
+    if isinstance(self.mean, list):
+      self.mean = np.array(self.ndim_y*[self.mean])
+
+    if self.cov is None:
+      self.cov = np.identity(self.ndim_y)
+
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
+    self.can_sample = True
 
   def pdf(self, X, Y):
     return self.gaussian.pdf(Y)

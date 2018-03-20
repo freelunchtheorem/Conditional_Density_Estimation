@@ -22,9 +22,11 @@ class GoodnessOfFitResults:
       self.ks_pval = np.zeros(x_cond.shape[0])
 
 
-    self.mean_kl = None
+    self.kl_divergence = None
+    self.hellinger_distance = None
     self.mean_ks_stat = None
     self.mean_ks_pval = None
+
 
   def compute_means(self):
     if self.ks_stat is not None and self.ks_pval is not None:
@@ -33,7 +35,8 @@ class GoodnessOfFitResults:
 
   def report_dict(self):
     full_dict = self.__dict__
-    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "mean_kl", "mean_ks_stat", "mean_ks_pval", "time_to_fit", "time_to_predict"]
+    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "mean_ks_stat", "mean_ks_pval", "time_to_fit",
+                        "time_to_predict"]
     report_dict = dict([(key, full_dict[key]) for key in keys_of_interest])
 
     get_from_dict = lambda key: self.estimator_params[key] if key in self.estimator_params else None
@@ -51,4 +54,4 @@ class GoodnessOfFitResults:
 
 
   def __str__(self):
-    return "KL-Divergence: %.4f , KS Stat: %.4f, KS pval: %.4f"%(self.mean_kl, self.mean_ks_stat, self.mean_ks_pval)
+    return "KL-Divergence: %.4f , Hellinger distance: %.4f, KS Stat: %.4f, KS pval: %.4f"%(self.kl_divergence, self.hellinger_distance, self.mean_ks_stat, self.mean_ks_pval)

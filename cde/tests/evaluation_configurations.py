@@ -14,17 +14,17 @@ def prepare_configurations():
 
   """ configurations """
   estimator_params = {'KMN': tuple(itertools.product(["agglomerative", "k_means", "random"],  # center_sampling_method
-    [10, 20, 50],  # n_centers
+    [20, 50],  # n_centers
     [True, False],  # keep_edges
-    [[0.1], [0.2], [0.5], [1], [2], [5]],  # init_scales
+    [[0.1], [0.2], [1], [2]],  # init_scales
     [None], # estimator
     [None], #X_ph
     [True, False],  # train_scales
     [20])), # n training epochs
     'LSCDE': tuple(itertools.product(['k_means'],  # center_sampling_method
-      [0.1, 0.2, 1, 2, 5],  # bandwidth
-      [10, 20, 50],  # n_centers
-      [0.1, 0.2, 0.4, 0.5, 1],  # regularization
+      [0.1, 0.2, 1],  # bandwidth
+      [20, 50],  # n_centers
+      [0.1, 0.4, 0.5, 1],  # regularization
       [False, True]))}  # keep_edges}
 
   simulators_params = {

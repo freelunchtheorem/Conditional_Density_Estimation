@@ -13,7 +13,6 @@ class GaussianMixture(ConditionalDensity):
     :param n_kernels: number of mixture components
     :param ndim_x: dimensionality of X / number of random variables in X
     :param ndim_y: dimensionality of Y / number of random variables in Y
-    :param n_dims: sum of X and Y dimensions
     :param means_std: std. dev. when sampling the kernel means
     """
 
