@@ -62,7 +62,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.components = [multivariate_normal(mean=loc, cov=self.scales) for loc in self.locs_array]
 
 
-  def predict(self, X, Y):
+  def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
        Args:

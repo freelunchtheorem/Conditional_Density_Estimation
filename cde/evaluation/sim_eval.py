@@ -21,7 +21,7 @@ def generate_report():
   n_samples = 500
   X_test = np.asarray([1 for _ in range(n_samples)])
   Y_test = np.linspace(0, 8, num=n_samples)
-  Z = nke.predict(X_test, Y_test)
+  Z = nke.pdf(X_test, Y_test)
 
 
 
@@ -95,13 +95,13 @@ def plot_fitted_distribution():
   Y_plot = np.linspace(-10, 10, num=n_samples)
 
   X_plot = np.expand_dims(np.asarray([-1 for _ in range(n_samples)]), axis=1)
-  result = model.predict(X_plot, Y_plot)
+  result = model.pdf(X_plot, Y_plot)
   plt.plot(Y_plot, result)
   #plt.show()
 
   #2d plot
   X_plot = np.expand_dims(np.asarray([2 for _ in range(n_samples)]), axis=1)
-  result = model.predict(X_plot, Y_plot)
+  result = model.pdf(X_plot, Y_plot)
   plt.plot(Y_plot, result)
 
   plt.show()
@@ -113,7 +113,7 @@ def plot_fitted_distribution():
   X, Y = np.meshgrid(linspace_x, linspace_y)
   X, Y = X.flatten(), Y.flatten()
 
-  Z = model.predict(X, Y)
+  Z = model.pdf(X, Y)
 
   X, Y, Z = X.reshape([n_samples, n_samples]), Y.reshape([n_samples, n_samples]), Z.reshape([n_samples, n_samples])
   fig = plt.figure()

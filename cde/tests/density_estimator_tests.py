@@ -73,7 +73,7 @@ class TestHelpers(unittest.TestCase):
 
     y = np.arange(-1, 5, 0.5)
     x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.predict(x, y)
+    p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.01)
 
@@ -90,7 +90,7 @@ class TestHelpers(unittest.TestCase):
 
       y = np.arange(-1, 5, 0.5)
       x = np.asarray([2 for i in range(y.shape[0])])
-      p_est = model.predict(x, y)
+      p_est = model.pdf(x, y)
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
@@ -107,7 +107,7 @@ class TestHelpers(unittest.TestCase):
 
       y = np.arange(-1, 5, 0.5)
       x = np.asarray([2 for i in range(y.shape[0])])
-      p_est = model.predict(x, y)
+      p_est = model.pdf(x, y)
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
@@ -122,7 +122,7 @@ class TestHelpers(unittest.TestCase):
 
     y = np.arange(-1, 5, 0.5)
     x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.predict(x, y)
+    p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
@@ -148,7 +148,7 @@ class TestHelpers(unittest.TestCase):
 
     y = np.arange(-1, 5, 0.5)
     x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.predict(x, y)
+    p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertEqual(model.get_params()["n_centers"], 10)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
