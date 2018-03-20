@@ -1,2 +1,0 @@
-;estimator;simulator;n_observations;ndim_x;ndim_y;n_centers;mean_ks_stat;mean_ks_pval;mean_kl;time_to_fit;time_to_predict
-0;"Tensor(""dense_2/Elu:0"", shape=(?, 15), dtype=float32)";EconDensity;1000;1;1;10;;;1.7976931348623157e+308;12.716454029083252;0.12086200714111328
