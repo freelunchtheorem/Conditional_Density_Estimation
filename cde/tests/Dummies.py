@@ -34,9 +34,6 @@ class GaussianDummy(BaseDensityEstimator):
   def cdf(self, X, Y):
     return self.gaussian.cdf(Y)
 
-  def pdf(self, X, Y, resolution=50):
-    return self.pdf(X,Y)
-
   def sample(self, X):
     if np.size(X) == 1:
       Y = self.gaussian.rvs(size=1)
