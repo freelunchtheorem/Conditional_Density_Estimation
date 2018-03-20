@@ -3,7 +3,7 @@ from scipy.stats import norm
 import warnings
 
 from cde.density_estimator.helpers import *
-from cde.density_estimator import KernelMixtureNetwork, NeighborKernelDensityEstimation, LSConditionalDensityEstimation
+from cde.density_estimator import KernelMixtureNetwork, NeighborKernelDensityEstimation, LSConditionalDensityEstimation, MixtureDensityNetwork
 
 class TestHelpers(unittest.TestCase):
 
@@ -111,9 +111,24 @@ class TestHelpers(unittest.TestCase):
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+  def test_6_MDN_with_2d_gaussian(self):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], 1, size=(2000, 2))
+    X = data[:, 1]
+    Y = data[:, 1]
+
+    model = MixtureDensityNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.predict(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
   """ Fit by Cross-Validation"""
 
-  def test_6_KMN_with_2d_gaussian_fit_by_crossval(self):
+  def test_7_KMN_with_2d_gaussian_fit_by_crossval(self):
     np.random.seed(22)
     np.random.seed(22)
     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
