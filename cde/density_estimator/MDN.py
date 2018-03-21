@@ -3,11 +3,13 @@ import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
+from scipy.stats import multivariate_normal
 from keras.layers import Dense, Dropout, Reshape
 #import matplotlib.pyplot as plt
 
 from .helpers import sample_center_points
 from .base import BaseDensityEstimator
+
 
 
 class MixtureDensityNetwork(BaseDensityEstimator):
@@ -69,7 +71,33 @@ class MixtureDensityNetwork(BaseDensityEstimator):
       assert self.fitted, "model must be fitted to compute likelihood score"
 
       X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-      return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
+
+      p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.y_ph: Y})
+
+      assert p.ndim == 1 and p.shape[0] == X.shape[0]
+      return p
+
+  def cdf(self, X, Y):
+    """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+         conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
+
+    """
+    assert self.fitted, "model must be fitted to compute likelihood score"
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+
+    weights, locs, scales = self._get_mixture_components(X)
+
+    P = np.zeros(X.shape[0])
+    for i in range(X.shape[0]):
+      for j in range(self.n_centers):
+        P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
+    return P
 
   def predict_density(self, X, Y=None, resolution=100):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
@@ -223,6 +251,7 @@ class MixtureDensityNetwork(BaseDensityEstimator):
 
     # put mixture components together
     self.logits = logits = tf.layers.dense(net, self.n_centers, activation=None)
+    self.weights = tf.nn.softmax(logits)
     self.cat = cat = Categorical(logits=logits)
     self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
                   in zip(tf.unstack(locs, axis=1), tf.unstack(scales, axis=1))]
@@ -236,8 +265,8 @@ class MixtureDensityNetwork(BaseDensityEstimator):
     # tensor to store grid point densities
     self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
 
-    # tensor to compute likelihoods
-    self.likelihoods = mixture.prob(y_ph)
+    # tensor to compute probabilities
+    self.pdf_ = mixture.prob(y_ph)
 
   def _param_grid(self):
     n_centers = [1, 2, 4, 8, 16, 32]
@@ -246,3 +275,12 @@ class MixtureDensityNetwork(BaseDensityEstimator):
         "n_centers": n_centers,
     }
     return param_grid
+
+  def _get_mixture_components(self, X):
+    assert self.fitted
+    weights, locs, scales = self.sess.run([self.weights, self.locs, self.scales], feed_dict={self.X_ph: X})
+    return weights, locs, scales
+
+
+
+

@@ -69,7 +69,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     Y = data[:, 1]
     return X, Y
 
-  def test_3_NKDE_with_2d_gaussian(self):
+  def test_NKDE_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     model = NeighborKernelDensityEstimation(epsilon=0.1)
@@ -81,8 +81,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-
-  def test_4_LSCD_with_2d_gaussian(self):
+  def test_LSCD_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     for method in ["all", "k_means"]:
@@ -95,8 +94,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-
-  def test_5_KMN_with_2d_gaussian(self):
+  def test_KMN_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     for method in ["agglomerative"]:
@@ -109,7 +107,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-  def test_6_MDN_with_2d_gaussian(self):
+  def test_MDN_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     model = MixtureDensityNetwork(n_centers=5)
@@ -121,7 +119,11 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-  def test_7_CDE_with_2d_gaussian(self):
+    p_est = model.cdf(x, y)
+    p_true = norm.cdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_CDE_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     model = ConditionalKernelDensityEstimation()
@@ -131,6 +133,10 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     x = np.asarray([2 for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = model.cdf(x, y)
+    p_true = norm.cdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
 
@@ -185,7 +191,7 @@ if __name__ == '__main__':
 
   suite = unittest.TestSuite()
   suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
-  suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
+  #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
   suite.addTest(TestHelpers())
 
   suite.run()
