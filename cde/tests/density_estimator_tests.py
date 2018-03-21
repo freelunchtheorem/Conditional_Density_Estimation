@@ -65,7 +65,7 @@ class TestHelpers(unittest.TestCase):
   def test_3_NKDE_with_2d_gaussian(self):
     np.random.seed(22)
     data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 1]
+    X = data[:, 0]
     Y = data[:, 1]
 
     model = NeighborKernelDensityEstimation(epsilon=0.1)
@@ -81,7 +81,7 @@ class TestHelpers(unittest.TestCase):
   def test_4_LSCD_with_2d_gaussian(self):
     np.random.seed(22)
     data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 1]
+    X = data[:, 0]
     Y = data[:, 1]
 
     for method in ["all", "k_means"]:
@@ -98,7 +98,7 @@ class TestHelpers(unittest.TestCase):
   def test_5_KMN_with_2d_gaussian(self):
     np.random.seed(22)
     data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 1]
+    X = data[:, 0]
     Y = data[:, 1]
 
     for method in ["agglomerative"]:
@@ -114,7 +114,7 @@ class TestHelpers(unittest.TestCase):
   def test_6_MDN_with_2d_gaussian(self):
     np.random.seed(22)
     data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 1]
+    X = data[:, 0]
     Y = data[:, 1]
 
     model = MixtureDensityNetwork(n_centers=5)
@@ -134,7 +134,7 @@ class TestHelpers(unittest.TestCase):
     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
     print(data.shape)
 
-    X = data[:, 1]
+    X = data[:, 0]
     Y = data[:, 1]
 
     param_grid = {
