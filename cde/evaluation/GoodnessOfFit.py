@@ -23,7 +23,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations=100, n_x_cond=10, print_fit_result=False, seed=23):
+  def __init__(self, estimator, probabilistic_model, n_observations=100, n_x_cond=10, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
@@ -81,8 +81,10 @@ class GoodnessOfFit:
     Returns:
       Kl-divergence (float), time_to_predict (float) if measure_time is true
     """
+    np.random.seed(self.seed)
+
     P = self.probabilistic_model.pdf
-    Q = self.estimator.predict
+    Q = self.estimator.pdf
 
     # prepare mesh
     grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
@@ -105,71 +107,116 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
-  def kl_divergence_monte_carlo(self, x, n_samples=10000000):
-    """ Computes the KL divergence via monte carlo integration using importance sampling with a cauchy distribution
+  def kl_divergence_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
+    """ Computes the Kullback–Leibler divergence via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
-     x: x values to condition on - numpy array of shape (n_values, ndim_x)
+     x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
      n_samples: number of samples for monte carlo integration over the y space
+     batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
 
     Returns:
-      squared hellinger distance of each x value to condition on - numpy array of shape (n_values,)
+      KL divergence of each x value to condition on - numpy array of shape (n_values,)
     """
-    assert x.ndim == 2 and x.shape[1] == self.estimator.ndim_x
+    np.random.seed(self.seed)
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
 
-    distances = np.zeros(x.shape[0])
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.pdf
 
-    for i in range(x.shape[0]):  # iterate over x values to condition on
-      P = self.probabilistic_model.pdf
-      Q = self.estimator.predict
+    def kl_div(samples, x):
+      p = P(x, samples)
+      q = Q(x, samples)
+      q = np.ma.masked_where(q < 10 ** -64, q)
+      p = np.ma.masked_where(p < 10 ** -64, p)
 
-      samples = stats.cauchy.rvs(loc=0, scale=1, size=(n_samples, self.estimator.ndim_x))
-      f = _multidim_cauchy_pdf(samples, loc=0, scale=1)
+      r = p * np.log(p / q)
+      return r.filled(0)
 
-      p = P(x[i, :], samples)
-      q = Q(x[i, :], samples)
-      q = np.ma.masked_where(q < 10**-64, q)
-      p = np.ma.masked_hwere(p < 10**-64, p)
+    distances = self._mc_integration_cauchy(kl_div, x_cond, n_samples=n_samples, batch_size=batch_size)
 
-      large_const = 10**10
-      r = p * np.log((p*10**10) / (q*10**10))
-
-      distances[i] = np.sqrt(np.mean(r / f))
-
-    assert distances.ndim == 1 and distances.shape[0] == x.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def hellinger_distance_monte_carlo(self, x, n_samples=10000000):
+  def js_divergence_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
+    """ Computes the Jason Shannon divergence via monte carlo integration using importance sampling with a cauchy distribution
+    Args:
+     x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
+     n_samples: number of samples for monte carlo integration over the y space
+     batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
+
+    Returns:
+      jason-shannon divergence of each x value to condition on - numpy array of shape (n_values,)
+    """
+    np.random.seed(self.seed)
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
+
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.pdf
+
+    def js_div(samples, x):
+      p = P(x, samples)
+      q = Q(x, samples)
+      q = np.ma.masked_where(q < 10 ** -64, q)
+      p = np.ma.masked_where(p < 10 ** -64, p)
+      m = 0.5 * (p + q)
+      r = 0.5 * ((p * np.log(p / m)) + (q * np.log(q / m)))
+
+      return r.filled(0)
+
+    distances = self._mc_integration_cauchy(js_div, x_cond, n_samples=n_samples, batch_size=batch_size)
+
+    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    return distances
+
+  def hellinger_distance_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
     """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
-     x: x values to condition on - numpy array of shape (n_values, ndim_x)
+     x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
      n_samples: number of samples for monte carlo integration over the y space
+     batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
 
     Returns:
       squared hellinger distance of each x value to condition on - numpy array of shape (n_values,)
     """
-    assert x.ndim == 2 and x.shape[1] == self.estimator.ndim_x
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
 
-    distances = np.zeros(x.shape[0])
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.pdf
 
-    for i in range(x.shape[0]): # iterate over x values to condition on
-      P = self.probabilistic_model.pdf
-      Q = self.estimator.predict
-
-      samples = stats.cauchy.rvs(loc=0, scale=2, size=(n_samples, self.estimator.ndim_x))
-      f = _multidim_cauchy_pdf(samples, loc=0, scale=2)
-
-      p = np.sqrt(P(x[i,:], samples))
-      q = np.sqrt(Q(x[i,:], samples))
-
+    def hellinger_dist(samples, x):
+      p = np.sqrt(P(x, samples))
+      q = np.sqrt(Q(x, samples))
       r = (p - q)**2
+      return r
 
-      distances[i] = np.sqrt(np.mean(r / f)/2)
+    mc_integral = self._mc_integration_cauchy(hellinger_dist, x_cond, n_samples=n_samples, batch_size=batch_size)
+    distances = np.sqrt(mc_integral / 2)
 
-    assert distances.ndim == 1 and distances.shape[0] == x.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
+  def _mc_integration_cauchy(self, func, x_cond, n_samples=10 ** 7, batch_size=None):
+    if batch_size is None:
+      n_batches = 1
+      batch_size = n_samples
+    else:
+      n_batches = n_samples // batch_size + int(n_samples % batch_size > 0)
+
+    distances = np.zeros(x_cond.shape[0])
+
+    for i in range(x_cond.shape[0]):  # iterate over x values to condition on
+      batch_result = np.zeros(n_batches)
+      for j in range(n_batches):
+        samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size, self.estimator.ndim_x))
+        f = _multidim_cauchy_pdf(samples, loc=0, scale=2)
+        r = func(samples, x_cond)
+        batch_result[j] = np.mean(r / f)
+      distances[i] = batch_result.mean()
+
+    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    return distances
 
   def compute_results(self):
     """
@@ -185,7 +232,7 @@ class GoodnessOfFit:
 
     # Hellinger distance
     x = np.asarray([[0,0]])
-    gof_result.hellinger_distance = self.hellinger_distance_monte_carlo(x=x)
+    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x)
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
@@ -249,7 +296,6 @@ def cartesian_along_axis_0(X, Y):
       X_res[k, :] = X[i, :]
       Y_res[k, :] = Y[j, :]
   return X_res, Y_res
-
 
 def _multidim_cauchy_pdf(x, loc=0, scale=2):
   """ multidimensional cauchy pdf """
