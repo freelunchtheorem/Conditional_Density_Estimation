@@ -28,7 +28,6 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
     self.fitted = True
 
-
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
@@ -42,6 +41,20 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
      """
 
     return self.sm_kde.pdf(endog_predict=Y, exog_predict=X)
+
+  def cdf(self, X, Y):
+    """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
+
+    Args:
+      X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+      Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+    Returns:
+      conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
+
+    """
+    assert self.fitted, "model must be fitted to compute likelihood score"
+    return self.sm_kde.cdf(endog_predict=Y, exog_predict=X)
 
   def sample(self, X):
     raise NotImplementedError("Conditional Kernel Density Estimation is a lazy learner and does not support sampling")
