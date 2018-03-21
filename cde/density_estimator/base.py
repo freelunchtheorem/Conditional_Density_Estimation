@@ -23,7 +23,6 @@ class BaseDensityEstimator(BaseEstimator):
     """
     raise NotImplementedError
 
-
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
 
@@ -36,7 +35,6 @@ class BaseDensityEstimator(BaseEstimator):
 
      """
     raise NotImplementedError
-
 
   def predict_density(self, X, Y=None, resolution=50):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
@@ -53,10 +51,8 @@ class BaseDensityEstimator(BaseEstimator):
     """
     raise NotImplementedError
 
-
   def _param_grid(self):
     raise NotImplementedError
-
 
   def score(self, X, Y):
     """Computes the mean conditional log-likelihood of the provided data (X, Y)
@@ -69,7 +65,7 @@ class BaseDensityEstimator(BaseEstimator):
       negative log likelihood of data
     """
     if hasattr(self, 'log_pdf'):
-      self.log_pdf(X, Y)
+      return(np.mean(self.log_pdf(X, Y)))
     else:
       X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
@@ -229,6 +225,8 @@ class BaseMixtureEstimator(BaseDensityEstimator):
 
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
+    assert hasattr(self, '_get_mixture_components'), "cdf computation requires _get_mixture_components method"
+
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
     weights, locs, scales = self._get_mixture_components(X)
