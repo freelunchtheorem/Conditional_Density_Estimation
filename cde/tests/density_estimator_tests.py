@@ -3,7 +3,7 @@ from scipy.stats import norm
 import warnings
 
 from cde.density_estimator.helpers import *
-from cde.density_estimator import KernelMixtureNetwork, NeighborKernelDensityEstimation, LSConditionalDensityEstimation, MixtureDensityNetwork
+from cde.density_estimator import *
 
 class TestHelpers(unittest.TestCase):
 
@@ -60,13 +60,17 @@ class TestHelpers(unittest.TestCase):
     self.assertEqual(dist.shape, (20,10))
 
 
-  """ Conditional Density Estimators """
+class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
-  def test_3_NKDE_with_2d_gaussian(self):
+  def get_samples(self):
     np.random.seed(22)
     data = np.random.normal([2, 2], 1, size=(2000, 2))
     X = data[:, 0]
     Y = data[:, 1]
+    return X, Y
+
+  def test_3_NKDE_with_2d_gaussian(self):
+    X, Y = self.get_samples()
 
     model = NeighborKernelDensityEstimation(epsilon=0.1)
     model.fit(X, Y)
@@ -75,14 +79,11 @@ class TestHelpers(unittest.TestCase):
     x = np.asarray([2 for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.01)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
 
   def test_4_LSCD_with_2d_gaussian(self):
-    np.random.seed(22)
-    data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 0]
-    Y = data[:, 1]
+    X, Y = self.get_samples()
 
     for method in ["all", "k_means"]:
       model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
@@ -96,10 +97,7 @@ class TestHelpers(unittest.TestCase):
 
 
   def test_5_KMN_with_2d_gaussian(self):
-    np.random.seed(22)
-    data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 0]
-    Y = data[:, 1]
+    X, Y = self.get_samples()
 
     for method in ["agglomerative"]:
       model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
@@ -112,10 +110,7 @@ class TestHelpers(unittest.TestCase):
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_6_MDN_with_2d_gaussian(self):
-    np.random.seed(22)
-    data = np.random.normal([2, 2], 1, size=(2000, 2))
-    X = data[:, 0]
-    Y = data[:, 1]
+    X, Y = self.get_samples()
 
     model = MixtureDensityNetwork(n_centers=5)
     model.fit(X, Y)
@@ -126,16 +121,29 @@ class TestHelpers(unittest.TestCase):
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-  """ Fit by Cross-Validation"""
+  def test_7_CDE_with_2d_gaussian(self):
+    X, Y = self.get_samples()
 
-  def test_7_KMN_with_2d_gaussian_fit_by_crossval(self):
-    np.random.seed(22)
+    model = ConditionalKernelDensityEstimation()
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+
+class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
+  def get_samples(self):
     np.random.seed(22)
     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
-    print(data.shape)
-
     X = data[:, 0]
     Y = data[:, 1]
+    return X, Y
+
+  def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
 
     param_grid = {
       "n_centers": [3, 10],
@@ -154,7 +162,30 @@ class TestHelpers(unittest.TestCase):
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
+  def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
+
+    param_grid = {
+      "n_centers": [2, 10, 50]
+    }
+
+    model = MixtureDensityNetwork()
+    model.fit_by_cv(X, Y, param_grid=param_grid)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
 
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
-  unittest.main()
+
+  suite = unittest.TestSuite()
+  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
+  suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
+  suite.addTest(TestHelpers())
+
+  suite.run()
