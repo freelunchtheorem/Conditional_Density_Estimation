@@ -2,12 +2,12 @@ from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, GridSearchCV
 import numpy as np
 import warnings
-import os
-import matplotlib
+from scipy.stats import multivariate_normal
 #matplotlib.use("PS") #handles X11 server detection (required to run on console)
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 #from matplotlib import cm
+
 
 class BaseDensityEstimator(BaseEstimator):
   """ Interface for conditional density estimation models """
@@ -213,3 +213,28 @@ class BaseDensityEstimator(BaseEstimator):
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
     #param_dict['estimator'] = self.__class__.__name__
     return param_dict
+
+
+class BaseMixtureEstimator(BaseDensityEstimator):
+
+  def cdf(self, X, Y):
+    """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+         conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
+
+    """
+    assert self.fitted, "model must be fitted to compute likelihood score"
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+
+    weights, locs, scales = self._get_mixture_components(X)
+
+    P = np.zeros(X.shape[0])
+    for i in range(X.shape[0]):
+      for j in range(self.n_centers):
+        P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
+    return P

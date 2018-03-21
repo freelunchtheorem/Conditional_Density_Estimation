@@ -107,6 +107,10 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.pdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+      p_est = model.cdf(x, y)
+      p_true = norm.cdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
   def test_MDN_with_2d_gaussian(self):
     X, Y = self.get_samples()
 

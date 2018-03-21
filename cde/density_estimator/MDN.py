@@ -8,11 +8,11 @@ from keras.layers import Dense, Dropout, Reshape
 #import matplotlib.pyplot as plt
 
 from .helpers import sample_center_points
-from .base import BaseDensityEstimator
+from .base import BaseMixtureEstimator
 
 
 
-class MixtureDensityNetwork(BaseDensityEstimator):
+class MixtureDensityNetwork(BaseMixtureEstimator):
 
   def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000):
 
@@ -76,28 +76,6 @@ class MixtureDensityNetwork(BaseDensityEstimator):
 
       assert p.ndim == 1 and p.shape[0] == X.shape[0]
       return p
-
-  def cdf(self, X, Y):
-    """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
-
-       Args:
-         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-
-       Returns:
-         conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
-
-    """
-    assert self.fitted, "model must be fitted to compute likelihood score"
-    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-
-    weights, locs, scales = self._get_mixture_components(X)
-
-    P = np.zeros(X.shape[0])
-    for i in range(X.shape[0]):
-      for j in range(self.n_centers):
-        P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
-    return P
 
   def predict_density(self, X, Y=None, resolution=100):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
