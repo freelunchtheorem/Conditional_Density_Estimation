@@ -6,7 +6,7 @@ import numpy as np
 
 class GaussianDummy(BaseDensityEstimator):
 
-  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, can_sample=True):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
@@ -23,16 +23,14 @@ class GaussianDummy(BaseDensityEstimator):
 
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
-    self.can_sample = True
+    self.can_sample = can_sample
+    self.has_cdf = has_cdf
 
   def fit(self, X, Y):
     self.fitted = True
 
   def pdf(self, X, Y):
     return self.gaussian.pdf(Y)
-
-  def cdf(self, X, Y):
-    return self.gaussian.cdf(Y)
 
   def sample(self, X):
     if np.size(X) == 1:
