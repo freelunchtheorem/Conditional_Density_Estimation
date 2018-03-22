@@ -53,6 +53,9 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self.sess = ed.get_session()
     tf.global_variables_initializer().run()
 
+    self.can_sample = True
+    self.has_cdf = True
+
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
     self.fitted = True

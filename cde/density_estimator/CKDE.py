@@ -27,6 +27,8 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type='c', indep_type='c', bw=self.bandwidth_selection)
 
     self.fitted = True
+    self.can_sample = True
+    self.has_cdf = True
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.

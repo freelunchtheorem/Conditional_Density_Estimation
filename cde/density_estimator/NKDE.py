@@ -42,6 +42,9 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     self._build_model(X, Y)
 
+    self.can_sample = False
+    self.has_cdf = False
+
     self.fitted = True
 
 
