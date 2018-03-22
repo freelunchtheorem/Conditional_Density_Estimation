@@ -2,17 +2,19 @@
 # code skeleton from https://github.com/janvdvegt/KernelMixtureNetwork
 # this version additionally supports fit_by_crossval and multidimentional Y
 #
-
+import warnings
 import math
 import numpy as np
 import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
-from keras.layers import Dense, Dropout
+from keras import backend as K
+from keras.layers import Dense, Input
+from keras.layers.noise import GaussianNoise
 #import matplotlib.pyplot as plt
 
-from .helpers import sample_center_points
+from .helpers import sample_center_points, check_for_noise
 from .base import BaseMixtureEstimator
 
 import logging
@@ -39,10 +41,11 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     """
 
   def __init__(self, center_sampling_method='k_means', n_centers=200, keep_edges=False,
-               init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300):
+               init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300, x_noise_std=None, y_noise_std=None):
 
 
     self.sess = ed.get_session()
+    K.set_session(self.sess)
     self.inference = None
 
     self.estimator = estimator
@@ -67,6 +70,12 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
     self.fitted = False
     self.can_sample = True
+    self.has_cdf = True
+
+    self.x_noise_std = x_noise_std
+    self.y_noise_std = y_noise_std
+
+
 
   def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
     """ Fits the conditional density model with provided data
@@ -97,19 +106,39 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     """
     update model
     """
-
     # loop over epochs
     for i in range(n_epoch):
 
         # run inference, update trainable variables of the model
+
         info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
+
+        """ make sure noise is added to tensors if enabled """
+        if self.x_noise_std is not None:
+          # todo: find different method to check whether noise is used during training
+          noised_x = self.sess.run([self.X_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
+          #if np.allclose(noised_x, X):
+          #  warnings.warn("--- noise on X_ph enabled but has no effect ---")
+          #else:
+          #  print("noise detected in X_ph")
+
+        if self.y_noise_std is not None:
+          noised_y = self.sess.run(self.y_ph, feed_dict={self.X_ph: X, self.y_ph: Y})
+          #if np.allclose(noised_y, Y):
+          #  warnings.warn("--- noise on Y_ph enabled but has no effect ---")
+          #else:
+          #  print("noise detected in Y_ph")
+
 
         train_loss = info_dict['loss'] / len(Y)
         self.train_loss = np.append(self.train_loss, -train_loss)
 
         if eval_set is not None:
             X_test, y_test = eval_set
-            test_loss = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(y_test)
+            test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(
+              y_test)
+            check_for_noise(X_test_fed, X_test)
+            check_for_noise(y_test_fed, y_test)
             self.test_loss = np.append(self.test_loss, -test_loss)
 
         # only print progress for the initial fit, not for additional updates
@@ -137,7 +166,11 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     assert self.fitted, "model must be fitted to compute likelihood score"
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-    return self.sess.run(self.likelihoods, feed_dict={self.X_ph: X, self.y_ph: Y})
+    likelihoods, X_fed, y_fed = self.sess.run([self.likelihoods, self.X_ph, self.y_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
+
+    check_for_noise(X, X_fed, 'X_ph')
+    check_for_noise(Y, y_fed, 'Y_ph')
+    return likelihoods
 
   def predict_density(self, X, Y=None, resolution=100):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
@@ -156,21 +189,29 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         max_scale = np.max(self.sess.run(self.scales))
         Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
     X = self._handle_input_dimensionality(X)
-    return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
+    densities, X_fed, y_fed = self.sess.run(self.densities, self.X_ph, self.Y_ph, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
+
+    check_for_noise(X, X_fed, 'X_ph')
+    check_for_noise(Y, y_fed, 'Y_ph')
+    return densities
 
   def sample(self, X):
-      """ sample from the conditional mixture distributions - requires the model to be fitted
+    """ sample from the conditional mixture distributions - requires the model to be fitted
 
-      Args:
-        X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
+    Args:
+      X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
 
-      Returns: tuple (X, Y)
-        - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
-        - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
-      """
-      assert self.fitted, "model must be fitted to compute likelihood score"
-      X = self._handle_input_dimensionality(X)
-      return X, self.sess.run(self.samples, feed_dict={self.X_ph: X})
+    Returns: tuple (X, Y)
+      - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
+      - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
+    """
+    assert self.fitted, "model must be fitted to compute likelihood score"
+    X = self._handle_input_dimensionality(X)
+
+    samples, X_fed = self.sess.run(self.samples, X, feed_dict={self.X_ph: X})
+    check_for_noise(X, X_fed, 'X_ph')
+    return X, samples
+
 
   def _build_model(self, X, Y):
     """
@@ -180,13 +221,27 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.y_ph = y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
     self.n_sample_ph = tf.placeholder(tf.int32, None)
 
+
+
     # if no external estimator is provided, create a default neural network
     if self.estimator is None:
-        self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
-        # two dense hidden layers with 15 nodes each
-        x = Dense(15, activation='elu')(self.X_ph)
-        x = Dense(15, activation='elu')(x)
-        self.estimator = x
+        self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x], name="X_ph")
+
+        if self.x_noise_std is not None:
+          inp = Input(tensor=self.X_ph)
+          noised_x = GaussianNoise(stddev=self.x_noise_std)(inp)
+          x = Dense(15, activation='elu')(noised_x)
+          x = Dense(15, activation='elu')(x)
+          self.estimator = x
+        else:
+          # two dense hidden layers with 15 nodes each
+          x = Dense(15, activation='elu')(self.X_ph)
+          x = Dense(15, activation='elu')(x)
+          self.estimator = x
+
+        if self.y_noise_std is not None:
+          self.y_ph = GaussianNoise(stddev=self.y_noise_std)(self.y_ph)
+
 
     # get batch size
     self.batch_size = tf.shape(self.X_ph)[0]
@@ -226,27 +281,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     # tensor to compute likelihoods
     self.likelihoods = mixtures.prob(y_ph)
 
-  # def plot_loss(self):
-  #     """
-  #     plot train loss and optionally test loss over epochs
-  #     source: http://edwardlib.org/tutorials/mixture-density-network
-  #     """
-  #     # new figure
-  #     fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(12, 3))
-  #
-  #     # plot train loss
-  #     plt.plot(np.arange(len(self.train_loss)), self.train_loss, label='Train')
-  #
-  #     if len(self.test_loss) > 0:
-  #         # plot test loss
-  #         plt.plot(np.arange(len(self.test_loss)), self.test_loss, label='Test')
-  #
-  #     plt.legend(fontsize=20)
-  #     plt.xlabel('epoch', fontsize=15)
-  #     plt.ylabel('mean negative log-likelihood', fontsize=15)
-  #     plt.show()
-  #
-  #     return fig, axes
 
   def _param_grid(self):
     n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]

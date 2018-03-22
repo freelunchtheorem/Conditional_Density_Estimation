@@ -1,6 +1,7 @@
 from sklearn.cluster import KMeans, AgglomerativeClustering
 import pandas as pd
 import numpy as np
+import warnings
 
 
 
@@ -93,3 +94,19 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
     return np.concatenate([centers, cluster_centers], axis=0)
   else:
     return cluster_centers
+
+def check_for_noise(x_after, x_before, name='array'):
+  """checks if noise has been added to x_after. The difference between both arrays is determined with a relative tolerance of 1e-10
+
+    Args:
+      x_after: an ndarray containing numericals
+      x_before: an ndarray containing numericals
+
+    Returns:
+      true if all elements are equal or almost equal (relative tolerance 1e-10)
+
+  """
+  all_close = np.allclose(x_after, x_before, rtol=1e-10)
+  if not all_close:
+    warnings.warn("%s is changed by the model before evaluation. Possibly noise in test mode used.".format(name))
+  return all_close
