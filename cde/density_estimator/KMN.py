@@ -240,7 +240,8 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           self.estimator = x
 
         if self.y_noise_std is not None:
-          self.y_ph = GaussianNoise(stddev=self.y_noise_std)(self.y_ph)
+          inp = Input(tensor=self.y_ph)
+          self.y_ph = GaussianNoise(stddev=self.y_noise_std)(inp)
 
 
     # get batch size
@@ -265,7 +266,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     # mixture distributions
     self.cat = cat = Categorical(logits=logits)
     self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in locs_array for scale in scales_array]
-    self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(y_ph))
+    self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_ph))
 
     # tensor to store samples
     self.samples = mixtures.sample()
@@ -279,7 +280,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.densities = tf.transpose(mixtures.prob(tf.reshape(y_grid_ph, (-1, 1))))
 
     # tensor to compute likelihoods
-    self.likelihoods = mixtures.prob(y_ph)
+    self.likelihoods = mixtures.prob(self.y_ph)
 
 
   def _param_grid(self):
