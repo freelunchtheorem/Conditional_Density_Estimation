@@ -4,6 +4,7 @@ import warnings
 
 from cde.density_estimator.helpers import *
 from cde.density_estimator import *
+from cde.tests.Dummies import *
 
 class TestHelpers(unittest.TestCase):
 
@@ -58,6 +59,48 @@ class TestHelpers(unittest.TestCase):
     B = np.random.uniform(size=[10, 3])
     dist = norm_along_axis_1(A, B, squared=True)
     self.assertEqual(dist.shape, (20,10))
+
+
+class TestRiskMeasures(unittest.TestCase):
+  def test_value_at_risk_mc(self):
+    # prepare estimator dummy
+    mu1 = np.array([0])
+    sigma1 = np.identity(n=1)*1
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.01
+    VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
+    VaR_true = norm.ppf(alpha, loc=0, scale=1)
+    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+
+  def test_value_at_risk_cdf(self):
+    # prepare estimator dummy
+    mu1 = np.array([0])
+    sigma1 = np.identity(n=1)*1
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
+
+    alpha = 0.05
+    VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    VaR_true = norm.ppf(alpha, loc=0, scale=1)
+    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+
+  def test_conditional_value_at_risk_mc(self):
+    # prepare estimator dummy
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+
+    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
@@ -212,8 +255,9 @@ if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   suite = unittest.TestSuite()
-  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
+  #suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
   #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
-  suite.addTest(TestHelpers())
+  #suite.addTest(TestHelpers())
+  suite.addTest(TestRiskMeasures())
 
   suite.run()
