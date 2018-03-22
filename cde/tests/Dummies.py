@@ -23,6 +23,7 @@ class GaussianDummy(BaseDensityEstimator):
 
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
+
     self.can_sample = can_sample
     self.has_cdf = has_cdf
 
@@ -31,6 +32,9 @@ class GaussianDummy(BaseDensityEstimator):
 
   def pdf(self, X, Y):
     return self.gaussian.pdf(Y)
+
+  def cdf(self, X, Y):
+    return self.gaussian.cdf(Y)
 
   def sample(self, X):
     if np.size(X) == 1:
@@ -77,7 +81,7 @@ class SimulationDummy(ConditionalDensity):
     return X, Y
 
   def simulate_conditional(self, X):
-    Y = self.gaussian.rvs(size=(X.shape[0]))
+    Y = self.gaussian.rvs(size=X.shape[0])
     return X, Y
 
   def __str__(self):
