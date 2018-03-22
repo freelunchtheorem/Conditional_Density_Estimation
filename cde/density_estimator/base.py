@@ -210,6 +210,55 @@ class BaseDensityEstimator(BaseEstimator):
     #param_dict['estimator'] = self.__class__.__name__
     return param_dict
 
+  def value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Value-at-Risk of the fitted distribution. Only if ndim_y = 1
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, )
+      alpha: quantile percentage of the distribution
+
+    Returns:
+       x values to condition on - numpy array of shape (n_values)
+    """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.has_cdf:
+      return self._value_at_risk_cdf(x_cond, alpha=alpha)
+    elif self.can_sample:
+      return self._value_at_risk_mc(x_cond, alpha=alpha)
+    else:
+      raise NotImplementedError()
+
+  def _value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10**7):
+    VaRs = np.zeros(x_cond.shape)
+    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples,1))
+    for i in range(x_cond.shape[1]):
+      _, samples = self.sample(x_cond[:,i])
+      VaRs[i] = np.percentile(samples, alpha * 100.0)
+    return VaRs
+
+  def _value_at_risk_cdf(self, x_cond, alpha=0.01, eps=10**-8):
+    approx_error = 10**8
+    x = x_cond.reshape((1, x_cond.shape[0]))
+    left, right = -10**8, 10**8
+
+    VaRs = np.zeros(x_cond.shape)
+
+    # numerical approximation, i.e. Newton method
+    for j in range(x.shape[1]):
+      while approx_error > eps:
+        middle = (left+right) / 2
+        y = np.array([middle])
+        p = self.cdf(x[:,j],y)
+
+        if p > alpha:
+          right = middle
+        else:
+          left = middle
+        approx_error = np.abs(p - alpha)
+      VaRs[j] = middle
+    return VaRs
 
 class BaseMixtureEstimator(BaseDensityEstimator):
 
