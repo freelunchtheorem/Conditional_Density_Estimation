@@ -80,11 +80,27 @@ class TestRiskMeasures(unittest.TestCase):
     sigma1 = np.identity(n=1)*1
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
 
-    alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
+    alpha = 0.05
+    VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+
+  def test_conditional_value_at_risk_mc(self):
+    # prepare estimator dummy
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+
+    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):

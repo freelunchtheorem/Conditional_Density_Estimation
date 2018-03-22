@@ -211,14 +211,14 @@ class BaseDensityEstimator(BaseEstimator):
     return param_dict
 
   def value_at_risk(self, x_cond, alpha=0.01):
-    """ Computes the Value-at-Risk of the fitted distribution. Only if ndim_y = 1
+    """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, )
       alpha: quantile percentage of the distribution
 
     Returns:
-       x values to condition on - numpy array of shape (n_values)
+       VaR values for each x to condition on - numpy array of shape (n_values)
     """
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
     assert x_cond.ndim == 1
@@ -259,6 +259,35 @@ class BaseDensityEstimator(BaseEstimator):
         approx_error = np.abs(p - alpha)
       VaRs[j] = middle
     return VaRs
+
+  def conditional_value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, )
+         alpha: quantile percentage of the distribution
+
+       Returns:
+         CVaR values for each x to condition on - numpy array of shape (n_values)
+       """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.can_sample:
+      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
+    else:
+      raise NotImplementedError()
+
+  def _conditional_value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10**7):
+    VaR = self.value_at_risk(x_cond, alpha=alpha)
+    CVaRs = np.zeros(x_cond.shape)
+    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples, 1))
+    for i in range(x_cond.shape[1]):
+      _, samples = self.sample(x_cond[:, i])
+      shortfall_samples = np.ma.masked_where(VaR[i] < samples, samples)
+      CVaRs[i] = np.mean(shortfall_samples)
+
+    return CVaRs
 
 class BaseMixtureEstimator(BaseDensityEstimator):
 
