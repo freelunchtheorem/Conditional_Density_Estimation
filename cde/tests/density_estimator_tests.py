@@ -102,12 +102,35 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
+  def test_mean_mc(self):
+    # prepare estimator dummy
+    mu = np.array([0,1])
+    sigma = np.identity(n=2) * 1
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, has_cdf=False)
+
+    mean_est = est.mean_(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
+    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
+
+  def test_mean_mixture(self):
+    np.random.seed(22)
+    data = np.random.normal([2, 2, 7, -2], 1, size=(5000, 4))
+    X = data[:, 0:2]
+    Y = data[:, 2:4]
+
+    model = MixtureDensityNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    mean_est = model.mean_(x_cond=np.array([[1,2]]))
+    self.assertAlmostEqual(mean_est[0][0], 7, places=1)
+    self.assertAlmostEqual(mean_est[0][1], -2, places=1)
+
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
-  def get_samples(self):
+  def get_samples(self, std=1.0):
     np.random.seed(22)
-    data = np.random.normal([2, 2], 1, size=(2000, 2))
+    data = np.random.normal([2, 2], std, size=(2000, 2))
     X = data[:, 0]
     Y = data[:, 1]
     return X, Y
@@ -170,6 +193,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_est = model.cdf(x, y)
       p_true = norm.cdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
 
 
   def test_MDN_with_2d_gaussian(self):

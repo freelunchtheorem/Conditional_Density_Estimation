@@ -210,6 +210,29 @@ class BaseDensityEstimator(BaseEstimator):
     #param_dict['estimator'] = self.__class__.__name__
     return param_dict
 
+  def mean_(self, x_cond):
+    """ Mean of the fitted distribution conditioned on x_cond
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    assert x_cond.ndim == 2
+
+    if self.can_sample:
+      return self._mean_mc(x_cond)
+    else:
+      raise NotImplementedError()
+
+  def _mean_mc(self, x_cond, n_samples=10**7):
+    means = np.zeros((x_cond.shape[0], self.ndim_y))
+    for i in range(x_cond.shape[0]):
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, samples = self.sample(x)
+      means[i, :] = np.mean(samples, axis=0)
+    return means
+
   def value_at_risk(self, x_cond, alpha=0.01):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
@@ -290,6 +313,24 @@ class BaseDensityEstimator(BaseEstimator):
     return CVaRs
 
 class BaseMixtureEstimator(BaseDensityEstimator):
+
+  def mean_(self, x_cond):
+    """ Mean of the fitted distribution conditioned on x_cond
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    assert hasattr(self, '_get_mixture_components')
+
+    means = np.zeros((x_cond.shape[0], self.ndim_y))
+    weights, locs, _ = self._get_mixture_components(x_cond)
+    assert weights.ndim == 2 and locs.ndim == 3
+    for i in range(x_cond.shape[0]):
+      # mean of density mixture is weights * means of density components
+      means[i, :] = weights[i].dot(locs[i])
+    return means
 
   def cdf(self, X, Y):
     """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
