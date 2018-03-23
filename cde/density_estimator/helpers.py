@@ -2,6 +2,7 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 import pandas as pd
 import numpy as np
 import warnings
+import scipy.stats as stats
 
 
 
@@ -110,3 +111,44 @@ def check_for_noise(x_after, x_before, name='array'):
   if not all_close:
     warnings.warn("%s is changed by the model before evaluation. Possibly noise in test mode used.".format(name))
   return all_close
+
+def mc_integration_cauchy(func, ndim, n_samples=10**7, batch_size=None):
+  """ Monta carlo integration using importance sampling with a cauchy distribution
+
+  Args:
+    func: function to integrate over - must take numpy arrays of shape (n_samples, ndim) as first argument
+          and return a numpy array of shape (n_samples, ndim_out)
+    ndim: (int) number of dimensions to integrate over
+    n_samples: (int) number of samples
+    batch_size: (int) batch_size for junking the n_samples in batches (optional)
+
+  Returns:
+    approximated integral - numpy array of shape (ndim_out,)
+
+  """
+  if batch_size is None:
+    n_batches = 1
+    batch_size = n_samples
+  else:
+    n_batches = n_samples // batch_size + int(n_samples % batch_size > 0)
+
+  batch_results = []
+  for j in range(n_batches):
+    samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size,ndim))
+    f = np.expand_dims(_multidim_cauchy_pdf(samples, loc=0, scale=2), axis=1)
+    r = func(samples)
+    assert r.ndim == 2, 'func must return a 2-dimensional numpy array'
+    f = np.tile(f, (1, r.shape[1])) # bring f into same shape like r
+    assert(f.shape == r.shape)
+    batch_results.append(np.mean(r / f, axis=0))
+
+  result = np.mean(np.stack(batch_results, axis=0), axis=0)
+  return result
+
+def _multidim_cauchy_pdf(x, loc=0, scale=2):
+  """ multidimensional cauchy pdf """
+
+  p = stats.cauchy.pdf(x, loc=loc, scale=scale)
+  p = np.prod(p, axis=1).flatten()
+  assert p.ndim == 1
+  return p

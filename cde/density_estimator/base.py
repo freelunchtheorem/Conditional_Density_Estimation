@@ -8,6 +8,7 @@ from scipy.stats import multivariate_normal
 #from mpl_toolkits.mplot3d import Axes3D
 #from matplotlib import cm
 
+from .helpers import *
 
 class BaseDensityEstimator(BaseEstimator):
   """ Interface for conditional density estimation models """
@@ -223,7 +224,7 @@ class BaseDensityEstimator(BaseEstimator):
     if self.can_sample:
       return self._mean_mc(x_cond)
     else:
-      raise NotImplementedError()
+      return self._mean_pdf(x_cond)
 
   def _mean_mc(self, x_cond, n_samples=10**7):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
@@ -231,6 +232,15 @@ class BaseDensityEstimator(BaseEstimator):
       x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
       _, samples = self.sample(x)
       means[i, :] = np.mean(samples, axis=0)
+    return means
+
+  def _mean_pdf(self, x_cond, n_samples=10**7):
+    means = np.zeros((x_cond.shape[0], self.ndim_y))
+    for i in range(x_cond.shape[0]):
+      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      func = lambda y: y * np.tile(np.expand_dims(self.pdf(x,y), axis=1), (1, self.ndim_y))
+      integral = mc_integration_cauchy(func, ndim=2, n_samples=n_samples)
+      means[i] = integral
     return means
 
   def value_at_risk(self, x_cond, alpha=0.01):
