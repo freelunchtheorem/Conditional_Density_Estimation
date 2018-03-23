@@ -9,7 +9,6 @@ import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
-from keras import backend as K
 from keras.layers import Dense, Input
 from keras.layers.noise import GaussianNoise
 #import matplotlib.pyplot as plt
@@ -45,7 +44,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
 
     self.sess = ed.get_session()
-    K.set_session(self.sess)
     self.inference = None
 
     self.estimator = estimator
@@ -74,6 +72,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
+    tf.keras.backend.set_learning_phase(0)
 
 
 
@@ -87,7 +86,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         verbose: (boolean) controls the verbosity (console output)
 
     """
-
+    tf.keras.backend.set_learning_phase(1)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     # define the full model
@@ -101,56 +100,53 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
     self.fitted = True
+    tf.keras.backend.set_learning_phase(0)
 
   def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
     """
     update model
     """
+    assert tf.keras.backend.learning_phase() == 1
     # loop over epochs
     for i in range(n_epoch):
 
-        # run inference, update trainable variables of the model
+      # run inference, update trainable variables of the model
 
-        info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
+      info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
 
-        """ make sure noise is added to tensors if enabled """
-        if self.x_noise_std is not None:
-          # todo: find different method to check whether noise is used during training
-          noised_x = self.sess.run([self.X_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
-          #if np.allclose(noised_x, X):
-          #  warnings.warn("--- noise on X_ph enabled but has no effect ---")
-          #else:
-          #  print("noise detected in X_ph")
-
-        if self.y_noise_std is not None:
-          noised_y = self.sess.run(self.y_ph, feed_dict={self.X_ph: X, self.y_ph: Y})
-          #if np.allclose(noised_y, Y):
-          #  warnings.warn("--- noise on Y_ph enabled but has no effect ---")
-          #else:
-          #  print("noise detected in Y_ph")
+      """ make sure noise is added to tensors if enabled """
+      if self.x_noise_std is not None:
+        # todo: find different method to check whether noise is used during training
+        noised_x = self.sess.run([self.X_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
+        if np.allclose(noised_x, X):
+          warnings.warn("--- noise on X_ph enabled but has no effect ---")
+        else:
+          print("noise detected in X_ph")
 
 
-        train_loss = info_dict['loss'] / len(Y)
-        self.train_loss = np.append(self.train_loss, -train_loss)
+      train_loss = info_dict['loss'] / len(Y)
+      self.train_loss = np.append(self.train_loss, -train_loss)
 
-        if eval_set is not None:
-            X_test, y_test = eval_set
-            test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(
-              y_test)
-            check_for_noise(X_test_fed, X_test)
-            check_for_noise(y_test_fed, y_test)
-            self.test_loss = np.append(self.test_loss, -test_loss)
+      if eval_set is not None:
+        X_test, y_test = eval_set
+        test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(
+          y_test)
+        check_for_noise(X_test_fed, X_test)
+        check_for_noise(y_test_fed, y_test)
+        self.test_loss = np.append(self.test_loss, -test_loss)
 
-        # only print progress for the initial fit, not for additional updates
-        if not self.fitted and verbose:
-            self.inference.print_progress(info_dict)
+      # only print progress for the initial fit, not for additional updates
+      if not self.fitted and verbose:
+        self.inference.print_progress(info_dict)
 
     if verbose:
       print("mean log-loss train: {:.3f}".format(train_loss))
       if eval_set is not None:
-          print("mean log-loss test: {:.3f}".format(test_loss))
+        print("mean log-loss test: {:.3f}".format(test_loss))
 
       print("optimal scales: {}".format(self.sess.run(self.scales)))
+
+
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -164,6 +160,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
      """
     assert self.fitted, "model must be fitted to compute likelihood score"
+    assert tf.keras.backend.learning_phase() == 0
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
     likelihoods, X_fed, y_fed = self.sess.run([self.likelihoods, self.X_ph, self.y_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
@@ -185,6 +182,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
             in case it was provided as argument
     """
+    assert tf.keras.backend.learning_phase() == 0
     if Y is None:
         max_scale = np.max(self.sess.run(self.scales))
         Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
@@ -206,6 +204,8 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
       - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
+    assert tf.keras.backend.learning_phase() == 0
+
     X = self._handle_input_dimensionality(X)
 
     samples, X_fed = self.sess.run(self.samples, X, feed_dict={self.X_ph: X})
@@ -222,7 +222,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.n_sample_ph = tf.placeholder(tf.int32, None)
 
 
-
     # if no external estimator is provided, create a default neural network
     if self.estimator is None:
         self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x], name="X_ph")
@@ -230,6 +229,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         if self.x_noise_std is not None:
           inp = Input(tensor=self.X_ph)
           noised_x = GaussianNoise(stddev=self.x_noise_std)(inp)
+          #noised_x = GaussianNoise(input_shape=(self.ndim_x,), stddev=self.x_noise_std)(self.X_ph)
           x = Dense(15, activation='elu')(noised_x)
           x = Dense(15, activation='elu')(x)
           self.estimator = x
@@ -239,9 +239,9 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           x = Dense(15, activation='elu')(x)
           self.estimator = x
 
-        if self.y_noise_std is not None:
-          inp = Input(tensor=self.y_ph)
-          self.y_ph = GaussianNoise(stddev=self.y_noise_std)(inp)
+        #if self.y_noise_std is not None:
+        #  inp = Input(tensor=self.y_ph)
+        #  self.y_ph = GaussianNoise(stddev=self.y_noise_std)(inp)
 
 
     # get batch size
@@ -357,6 +357,8 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
   def _get_mixture_components(self, X):
     assert self.fitted
+    assert tf.keras.backend.learning_phase() == 0
+
     weights, scales = self.sess.run([self.weights, self.scales], feed_dict={self.X_ph: X})
 
     locs = np.tile(self.locs.reshape([1] + list(self.locs.shape)), (X.shape[0], scales.shape[0],1))
