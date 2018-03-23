@@ -243,6 +243,39 @@ class BaseDensityEstimator(BaseEstimator):
       means[i] = integral
     return means
 
+  def covariance(self, x_cond):
+    """ Covariance of the fitted distribution conditioned on x_cond
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+    """
+    return self._covariance_pdf(x_cond)
+
+  def _covariance_pdf(self, x_cond, n_samples=10**6):
+    covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
+    mean = self.mean_(x_cond)
+    for i in range(x_cond.shape[0]):
+      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+
+      def cov(y):
+        a = (y - mean[i])
+
+        #compute cov matrices c for sampled instances and weight them with the probability p from the pdf
+        c = np.empty((a.shape[0], a.shape[1]**2))
+        for j in range(a.shape[0]):
+          c[j,:] = np.outer(a[j],a[j]).flatten()
+
+        p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
+        res = c * p
+        return res
+
+      integral = mc_integration_cauchy(cov, ndim=self.ndim_y, n_samples=n_samples)
+      covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
+    return covs
+
   def value_at_risk(self, x_cond, alpha=0.01):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 

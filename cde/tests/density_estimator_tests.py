@@ -136,6 +136,9 @@ class TestRiskMeasures(unittest.TestCase):
 
   def test_mean_mixture(self):
     np.random.seed(22)
+    from tensorflow import set_random_seed
+    set_random_seed(22)
+
     data = np.random.normal([2, 2, 7, -2], 1, size=(5000, 4))
     X = data[:, 0:2]
     Y = data[:, 2:4]
@@ -147,155 +150,164 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(mean_est[0][0], 7, places=1)
     self.assertAlmostEqual(mean_est[0][1], -2, places=1)
 
+  def test_covariance(self):
+    # prepare estimator dummy
+    mu = np.array([0, 1])
+    sigma = np.array([[1,-0.2],[-0.2,2]])
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
 
-# class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
-#
-#   def get_samples(self, std=1.0):
-#     np.random.seed(22)
-#     data = np.random.normal([2, 2], std, size=(2000, 2))
-#     X = data[:, 0]
-#     Y = data[:, 1]
-#     return X, Y
-#
-#   def test_NKDE_with_2d_gaussian(self):
-#     X, Y = self.get_samples()
-#
-#     model = NeighborKernelDensityEstimation(epsilon=0.1)
-#     model.fit(X, Y)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#   def test_LSCD_with_2d_gaussian(self):
-#     X, Y = self.get_samples()
-#
-#     for method in ["all", "k_means"]:
-#       model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
-#       model.fit(X, Y)
-#
-#       y = np.arange(-1, 5, 0.5)
-#       x = np.asarray([2 for i in range(y.shape[0])])
-#       p_est = model.pdf(x, y)
-#       p_true = norm.pdf(y, loc=2, scale=1)
-#       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#   def test_KMN_with_2d_gaussian(self):
-#     X, Y = self.get_samples()
-#
-#     for method in ["agglomerative"]:
-#       model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
-#       model.fit(X, Y)
-#
-#       y = np.arange(-1, 5, 0.5)
-#       x = np.asarray([2 for i in range(y.shape[0])])
-#       p_est = model.pdf(x, y)
-#       p_true = norm.pdf(y, loc=2, scale=1)
-#       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#       p_est = model.cdf(x, y)
-#       p_true = norm.cdf(y, loc=2, scale=1)
-#       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#   def test_KMN_with_2d_gaussian_noise(self):
-#     X, Y = self.get_samples()
-#
-#     for method in ["agglomerative"]:
-#       model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5, x_noise_std=0.2, y_noise_std=0.2)
-#       model.fit(X, Y)
-#
-#       y = np.arange(-1, 5, 0.5)
-#       x = np.asarray([2 for i in range(y.shape[0])])
-#       p_est = model.pdf(x, y)
-#       p_true = norm.pdf(y, loc=2, scale=1)
-#       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#       p_est = model.cdf(x, y)
-#       p_true = norm.cdf(y, loc=2, scale=1)
-#       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#
-#
-#   def test_MDN_with_2d_gaussian(self):
-#     X, Y = self.get_samples()
-#
-#     model = MixtureDensityNetwork(n_centers=5)
-#     model.fit(X, Y)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#     p_est = model.cdf(x, y)
-#     p_true = norm.cdf(y, loc=2, scale=1)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#   def test_CDE_with_2d_gaussian(self):
-#     X, Y = self.get_samples()
-#
-#     model = ConditionalKernelDensityEstimation()
-#     model.fit(X, Y)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#     p_est = model.cdf(x, y)
-#     p_true = norm.cdf(y, loc=2, scale=1)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-#
-#
-# class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
-#   def get_samples(self):
-#     np.random.seed(22)
-#     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
-#     X = data[:, 0]
-#     Y = data[:, 1]
-#     return X, Y
-#
-#   def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
-#     X, Y = self.get_samples()
-#
-#     param_grid = {
-#       "n_centers": [3, 10],
-#       "center_sampling_method": ["k_means"],
-#       "keep_edges": [True]
-#     }
-#
-#     model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
-#     model.fit_by_cv(X, Y, param_grid=param_grid)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertEqual(model.get_params()["n_centers"], 10)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
-#
-#
-#   def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
-#     X, Y = self.get_samples()
-#
-#     param_grid = {
-#       "n_centers": [2, 10, 50]
-#     }
-#
-#     model = MixtureDensityNetwork()
-#     model.fit_by_cv(X, Y, param_grid=param_grid)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertEqual(model.get_params()["n_centers"], 10)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
-#
+    cov_est = est.covariance(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
+    self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
+
+class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
+
+  def get_samples(self, std=1.0):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], std, size=(2000, 2))
+    X = data[:, 0]
+    Y = data[:, 1]
+    return X, Y
+
+  def test_NKDE_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    model = NeighborKernelDensityEstimation(epsilon=0.1)
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_LSCD_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    for method in ["all", "k_means"]:
+      model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_KMN_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    for method in ["agglomerative"]:
+      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+      p_est = model.cdf(x, y)
+      p_true = norm.cdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_KMN_with_2d_gaussian_noise(self):
+    X, Y = self.get_samples()
+
+    for method in ["agglomerative"]:
+      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5, x_noise_std=0.2, y_noise_std=0.2)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+      p_est = model.cdf(x, y)
+      p_true = norm.cdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+
+
+  def test_MDN_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    model = MixtureDensityNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = model.cdf(x, y)
+    p_true = norm.cdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_CDE_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    model = ConditionalKernelDensityEstimation()
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = model.cdf(x, y)
+    p_true = norm.cdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+
+class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
+  def get_samples(self):
+    np.random.seed(22)
+    data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
+    X = data[:, 0]
+    Y = data[:, 1]
+    return X, Y
+
+  def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
+
+    param_grid = {
+      "n_centers": [3, 10],
+      "center_sampling_method": ["k_means"],
+      "keep_edges": [True]
+    }
+
+    model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
+    model.fit_by_cv(X, Y, param_grid=param_grid)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
+
+  def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
+
+    param_grid = {
+      "n_centers": [2, 10, 50]
+    }
+
+    model = MixtureDensityNetwork()
+    model.fit_by_cv(X, Y, param_grid=param_grid)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
 
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
