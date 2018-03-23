@@ -76,6 +76,73 @@ class BaseDensityEstimator(BaseEstimator):
         conditional_log_likelihoods = np.log(self.pdf(X, Y))
       return np.mean(conditional_log_likelihoods)
 
+  def mean_(self, x_cond):
+    """ Mean of the fitted distribution conditioned on x_cond
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    assert self.fitted, "model must be fitted"
+    assert x_cond.ndim == 2
+
+    if self.can_sample:
+      return self._mean_mc(x_cond)
+    else:
+      return self._mean_pdf(x_cond)
+
+  def covariance(self, x_cond):
+    """ Covariance of the fitted distribution conditioned on x_cond
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+    """
+    assert self.fitted, "model must be fitted"
+    return self._covariance_pdf(x_cond)
+
+  def value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, )
+      alpha: quantile percentage of the distribution
+
+    Returns:
+       VaR values for each x to condition on - numpy array of shape (n_values)
+    """
+    assert self.fitted, "model must be fitted"
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.has_cdf:
+      return self._value_at_risk_cdf(x_cond, alpha=alpha)
+    elif self.can_sample:
+      return self._value_at_risk_mc(x_cond, alpha=alpha)
+    else:
+      raise NotImplementedError()
+
+  def conditional_value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, )
+         alpha: quantile percentage of the distribution
+
+       Returns:
+         CVaR values for each x to condition on - numpy array of shape (n_values)
+       """
+    assert self.fitted, "model must be fitted"
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.can_sample:
+      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
+    else:
+      raise NotImplementedError()
 
   def fit_by_cv(self, X, Y, n_folds=5, param_grid=None):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
@@ -121,6 +188,20 @@ class BaseDensityEstimator(BaseEstimator):
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
 
+  def get_params(self, deep=True):
+    """ Get parameters for this estimator.
+
+    Args:
+      deep: boolean, optional If True, will return the parameters for this estimator and \
+             contained subobjects that are estimators.
+
+    Returns:
+      params - mapping of string to any Parameter names mapped to their values.
+
+    """
+    param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
+    # param_dict['estimator'] = self.__class__.__name__
+    return param_dict
 
   # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
   #   """ Plots the fitted conditional distribution if x and y are 1-dimensional each
@@ -191,41 +272,6 @@ class BaseDensityEstimator(BaseEstimator):
     else:
       return X, Y
 
-
-  def __str__(self):
-    raise NotImplementedError
-
-
-  def get_params(self, deep=True):
-    """ Get parameters for this estimator.
-
-    Args:
-      deep: boolean, optional If True, will return the parameters for this estimator and \
-             contained subobjects that are estimators.
-
-    Returns:
-      params - mapping of string to any Parameter names mapped to their values.
-
-    """
-    param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
-    #param_dict['estimator'] = self.__class__.__name__
-    return param_dict
-
-  def mean_(self, x_cond):
-    """ Mean of the fitted distribution conditioned on x_cond
-    Args:
-      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
-
-    Returns:
-      Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
-    """
-    assert x_cond.ndim == 2
-
-    if self.can_sample:
-      return self._mean_mc(x_cond)
-    else:
-      return self._mean_pdf(x_cond)
-
   def _mean_mc(self, x_cond, n_samples=10**7):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
@@ -242,17 +288,6 @@ class BaseDensityEstimator(BaseEstimator):
       integral = mc_integration_cauchy(func, ndim=2, n_samples=n_samples)
       means[i] = integral
     return means
-
-  def covariance(self, x_cond):
-    """ Covariance of the fitted distribution conditioned on x_cond
-
-    Args:
-      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
-
-    Returns:
-      Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
-    """
-    return self._covariance_pdf(x_cond)
 
   def _covariance_pdf(self, x_cond, n_samples=10**6):
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
@@ -275,26 +310,6 @@ class BaseDensityEstimator(BaseEstimator):
       integral = mc_integration_cauchy(cov, ndim=self.ndim_y, n_samples=n_samples)
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
-
-  def value_at_risk(self, x_cond, alpha=0.01):
-    """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
-
-    Args:
-      x_cond: different x values to condition on - numpy array of shape (n_values, )
-      alpha: quantile percentage of the distribution
-
-    Returns:
-       VaR values for each x to condition on - numpy array of shape (n_values)
-    """
-    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
-    assert x_cond.ndim == 1
-
-    if self.has_cdf:
-      return self._value_at_risk_cdf(x_cond, alpha=alpha)
-    elif self.can_sample:
-      return self._value_at_risk_mc(x_cond, alpha=alpha)
-    else:
-      raise NotImplementedError()
 
   def _value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10**7):
     VaRs = np.zeros(x_cond.shape)
@@ -326,24 +341,6 @@ class BaseDensityEstimator(BaseEstimator):
       VaRs[j] = middle
     return VaRs
 
-  def conditional_value_at_risk(self, x_cond, alpha=0.01):
-    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
-
-       Args:
-         x_cond: different x values to condition on - numpy array of shape (n_values, )
-         alpha: quantile percentage of the distribution
-
-       Returns:
-         CVaR values for each x to condition on - numpy array of shape (n_values)
-       """
-    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
-    assert x_cond.ndim == 1
-
-    if self.can_sample:
-      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
-    else:
-      raise NotImplementedError()
-
   def _conditional_value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10**7):
     VaR = self.value_at_risk(x_cond, alpha=alpha)
     CVaRs = np.zeros(x_cond.shape)
@@ -354,6 +351,10 @@ class BaseDensityEstimator(BaseEstimator):
       CVaRs[i] = np.mean(shortfall_samples)
 
     return CVaRs
+
+  def __str__(self):
+    raise NotImplementedError
+
 
 class BaseMixtureEstimator(BaseDensityEstimator):
 
@@ -366,6 +367,7 @@ class BaseMixtureEstimator(BaseDensityEstimator):
       Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
     """
     assert hasattr(self, '_get_mixture_components')
+    assert self.fitted, "model must be fitted"
 
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     weights, locs, _ = self._get_mixture_components(x_cond)
@@ -374,6 +376,37 @@ class BaseMixtureEstimator(BaseDensityEstimator):
       # mean of density mixture is weights * means of density components
       means[i, :] = weights[i].dot(locs[i])
     return means
+
+  def covariance(self, x_cond):
+    """ Covariance of the fitted distribution conditioned on x_cond
+
+      Args:
+        x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+      Returns:
+        Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+    """
+    assert self.fitted, "model must be fitted"
+    covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
+
+    # compute global mean_of mixture model
+    glob_mean = self.mean_(x_cond)
+
+    weights, locs, scales = self._get_mixture_components(x_cond)
+
+    for i in range(x_cond.shape[0]):
+      c1 = np.diag(weights[i].dot(scales[i]))
+
+      c2 = np.zeros(c1.shape)
+      for j in range(weights.shape[0]):
+        a = (locs[i][j] - glob_mean[i])
+        d = weights[i][j] * np.outer(a,a)
+        c2 += d
+      covs[i] = c1 + c2
+
+    return covs
+
+
 
   def cdf(self, X, Y):
     """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.

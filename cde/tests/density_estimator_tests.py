@@ -160,6 +160,22 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
+  def test_covariance_mixture(self):
+    np.random.seed(22)
+    from tensorflow import set_random_seed
+    set_random_seed(22)
+
+    data = np.random.normal([2, 2, 7, -2], 5, size=(5000, 4))
+    X = data[:, 0:2]
+    Y = data[:, 2:4]
+
+    model = MixtureDensityNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    cov_est = model.covariance(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(cov_est[0][1][0], 0.0, places=1)
+    self.assertLessEqual(cov_est[0][0][0] - 5.0,1.0)
+
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
   def get_samples(self, std=1.0):
