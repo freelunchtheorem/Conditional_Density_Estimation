@@ -2,6 +2,10 @@
 todo
 
 
+## edwards issues
+- https://github.com/blei-lab/edward/issues/874
+- https://stackoverflow.com/questions/49435335/check-if-noise-is-really-used-during-training-with-keras-edward-and-tensorflow
+
 ## tensorflow issues
 - on workstations with ferreira account execute ```source activate p3.6```
 - use tensorflow-gpu==1.2.0
