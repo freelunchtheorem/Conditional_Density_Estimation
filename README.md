@@ -2,7 +2,7 @@
 todo
 
 
-## edwards issues
+## edward issues
 - https://github.com/blei-lab/edward/issues/874
 - https://stackoverflow.com/questions/49435335/check-if-noise-is-really-used-during-training-with-keras-edward-and-tensorflow
 
