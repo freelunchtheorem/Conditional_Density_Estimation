@@ -3,7 +3,7 @@ todo
 
 
 ## tensorflow issues
-- on workstations, use source activate p3.6 (account: ferreira)
+- on workstations with ferreira account execute ```source activate p3.6```
 - use tensorflow-gpu==1.2.0
 - see https://www.tensorflow.org/install/install_sources#tested_source_configurations for cuDNN and cuda requirements
 
