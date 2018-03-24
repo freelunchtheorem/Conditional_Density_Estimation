@@ -199,11 +199,12 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
       - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
+    assert self.can_sample
     assert tf.keras.backend.learning_phase() == 0
 
     X = self._handle_input_dimensionality(X)
 
-    samples, X_fed = self.sess.run(self.samples, X, feed_dict={self.X_ph: X})
+    samples = self.sess.run(self.samples, feed_dict={self.X_ph: X})
     return X, samples
 
 

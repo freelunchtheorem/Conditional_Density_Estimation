@@ -24,7 +24,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations=10**5, n_x_cond=10**5, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, n_observations=10**5, n_x_cond=10**3, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
@@ -54,7 +54,7 @@ class GoodnessOfFit:
     self.estimator = estimator
 
 
-  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**7):
+  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**5):
     """ Calculates Kolmogorov-Smirnov Statistics
 
     Args:
@@ -108,7 +108,7 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
-  def kl_divergence_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
+  def kl_divergence_mc(self, x_cond, n_samples=10**5, batch_size=None):
     """ Computes the Kullback–Leibler divergence via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -139,7 +139,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def js_divergence_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
+  def js_divergence_mc(self, x_cond, n_samples=10**5, batch_size=None):
     """ Computes the Jason Shannon divergence via monte carlo integration using importance sampling with a cauchy distribution
     Args:
      x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -170,7 +170,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def hellinger_distance_mc(self, x_cond, n_samples=10 ** 7, batch_size=None):
+  def hellinger_distance_mc(self, x_cond, n_samples=10**5, batch_size=None):
     """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -198,7 +198,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def _mc_integration_cauchy(self, func, x_cond, n_samples=10 ** 7, batch_size=None):
+  def _mc_integration_cauchy(self, func, x_cond, n_samples=10**5, batch_size=None):
     if x_cond.shape[0] != n_samples:
       n_samples = x_cond.shape[0]
       logging.warning("number of samples reduced to %d since axis 0 of x_cond and samples must be equal.", x_cond.shape[0])
@@ -242,7 +242,7 @@ class GoodnessOfFit:
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
       for i in range(x_cond.shape[0]):
-        gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :])
+        gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :], n_samples=10**5)
 
     # Add time measurement
     gof_result.time_to_fit = self.time_to_fit

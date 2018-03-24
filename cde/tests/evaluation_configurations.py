@@ -18,7 +18,7 @@ def prepare_configurations():
     [True, False],  # keep_edges
     [[0.1], [0.2], [1], [2]],  # init_scales
     [None], # estimator
-    [None], #X_ph
+    [None], # X_ph
     [True, False],  # train_scales
     [20])), # n training epochs
     'LSCDE': tuple(itertools.product(['k_means'],  # center_sampling_method
@@ -47,7 +47,7 @@ def prepare_configurations():
 
 
 
-def create_configurations(configured_estimators, configured_simulators, n_observations=10000):
+def create_configurations(configured_estimators, configured_simulators, n_observations=10**4):
   """
   creates all possible combinations from the (configured) estimators and simulators.
   :param configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators
@@ -176,7 +176,7 @@ def poolcontext(*args, **kwargs):
 
 def main():
   conf_est, conf_sim = prepare_configurations()
-  tasks = create_configurations(conf_est, conf_sim)
+  tasks = create_configurations(conf_est, conf_sim, n_observations=10**3)
   run_configurations(tasks, output_dir="./", parallelized=False)
 
 
