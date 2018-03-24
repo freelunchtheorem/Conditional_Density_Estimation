@@ -47,7 +47,7 @@ def prepare_configurations():
 
 
 
-def create_configurations(configured_estimators, configured_simulators, n_observations=100000):
+def create_configurations(configured_estimators, configured_simulators, n_observations=10000):
   """
   creates all possible combinations from the (configured) estimators and simulators.
   :param configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators

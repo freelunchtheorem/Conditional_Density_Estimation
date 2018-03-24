@@ -14,7 +14,7 @@ from keras.layers.noise import GaussianNoise
 #import matplotlib.pyplot as plt
 
 
-from .helpers import sample_center_points, check_for_noise
+from .helpers import sample_center_points
 from .base import BaseMixtureEstimator
 
 import logging
@@ -132,8 +132,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         X_test, y_test = eval_set
         test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(
           y_test)
-        check_for_noise(X_test_fed, X_test)
-        check_for_noise(y_test_fed, y_test)
         self.test_loss = np.append(self.test_loss, -test_loss)
 
       # only print progress for the initial fit, not for additional updates
@@ -166,8 +164,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
     likelihoods, X_fed, y_fed = self.sess.run([self.likelihoods, self.X_ph, self.y_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
 
-    check_for_noise(X, X_fed, 'X_ph')
-    check_for_noise(Y, y_fed, 'Y_ph')
     return likelihoods
 
   def predict_density(self, X, Y=None, resolution=100):
@@ -190,8 +186,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     X = self._handle_input_dimensionality(X)
     densities, X_fed, y_fed = self.sess.run(self.densities, self.X_ph, self.Y_ph, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
 
-    check_for_noise(X, X_fed, 'X_ph')
-    check_for_noise(Y, y_fed, 'Y_ph')
     return densities
 
   def sample(self, X):
@@ -210,7 +204,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     X = self._handle_input_dimensionality(X)
 
     samples, X_fed = self.sess.run(self.samples, X, feed_dict={self.X_ph: X})
-    check_for_noise(X, X_fed, 'X_ph')
     return X, samples
 
 
