@@ -339,13 +339,36 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
+def suite():
+  suite = unittest.TestSuite()
+  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
+  suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
+  suite.addTest(TestHelpers())
+  suite.addTest(TestRiskMeasures())
+  return suite
+
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
-  suite = unittest.TestSuite()
-  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
-  #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
-  #suite.addTest(TestHelpers())
-  suite.addTest(TestRiskMeasures())
+  #runner = unittest.TextTestRunner()
 
-  suite.run()
+  #runner.run(suite())
+
+  testmodules = [
+   'density_estimator_tests.TestHelpers',
+   'density_estimator_tests.TestRiskMeasures',
+   'density_estimator_tests.TestConditionalDensityEstimators_2d_gaussian',
+   'density_estimator_tests.TestConditionalDensityEstimators_fit_by_crossval'   
+   ]
+  suite = unittest.TestSuite()
+  for t in testmodules:
+    try:
+        # If the module defines a suite() function, call it to get the suite.
+        mod = __import__(t, globals(), locals(), ['suite'])
+        suitefn = getattr(mod, 'suite')
+        suite.addTest(suitefn())
+    except (ImportError, AttributeError):
+        # else, just load all the test cases from the module.
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromName(t))
+
+  unittest.TextTestRunner().run(suite)

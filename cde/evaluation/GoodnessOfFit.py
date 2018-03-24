@@ -242,7 +242,7 @@ class GoodnessOfFit:
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
       for i in range(x_cond.shape[0]):
-        gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :], n_samples=10**5)
+        gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :], n_samples=10**4)
 
     # Add time measurement
     gof_result.time_to_fit = self.time_to_fit

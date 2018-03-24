@@ -124,7 +124,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
 
 
 def run_single_configuration(estimator, simulator, n_observations):
-  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=n_observations)
+  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=100)
   return gof, gof.compute_results()
 
 
