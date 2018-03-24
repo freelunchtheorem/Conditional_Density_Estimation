@@ -15,3 +15,14 @@ tensorflow version 1.1 works with installed cuDNN but "python3 density_estimator
 importing tensorflow yields:
 ImportError: /common/homes/students/ferreira/anaconda3/envs/p3.6/lib/python3.6/site-packages/tensorflow/python/../libtensorflow_framework.so: undefined symbol: cudnnSetRNNDescriptor_v6
 -> cuDNN 6 not properly installed, cuDNN 5 works
+
+
+cat /usr/local/cuda/include/cudnn.h | grep CUDNN_MAJOR -A 2
+#define CUDNN_MAJOR      5
+#define CUDNN_MINOR      1
+#define CUDNN_PATCHLEVEL 10
+
+cat /usr/include/x86_64-linux-gnu/cudnn_v*.h | grep CUDNN_MAJOR -A 2
+#define CUDNN_MAJOR      6
+#define CUDNN_MINOR      0
+#define CUDNN_PATCHLEVEL 21
