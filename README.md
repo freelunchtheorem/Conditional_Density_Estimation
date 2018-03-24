@@ -31,8 +31,8 @@ cat /usr/include/x86_64-linux-gnu/cudnn_v*.h | grep CUDNN_MAJOR -A 2
 
 
 check libcudnn 
-	libcudnn.so.6 -> libcudnn.so.6.0.21 (changed)
-	libcudnn.so.5 -> libcudnn.so.6 (changed)
-	libcudnn.so.5 -> libcudnn.so.6
-	libcudnn.so.6 -> libcudnn.so.6.0.21
+libcudnn.so.6 -> libcudnn.so.6.0.21 (changed)
+libcudnn.so.5 -> libcudnn.so.6 (changed)
+libcudnn.so.5 -> libcudnn.so.6
+libcudnn.so.6 -> libcudnn.so.6.0.21
 libcudnn is installed
