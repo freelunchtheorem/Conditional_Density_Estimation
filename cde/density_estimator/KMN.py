@@ -13,6 +13,7 @@ from keras.layers import Dense, Input
 from keras.layers.noise import GaussianNoise
 #import matplotlib.pyplot as plt
 
+
 from .helpers import sample_center_points, check_for_noise
 from .base import BaseMixtureEstimator
 

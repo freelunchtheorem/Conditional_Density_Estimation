@@ -251,7 +251,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     model_no_noise.fit(X,Y)
     var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=0.1, y_noise_std=None)
+    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=20, y_noise_std=None)
     model_noise.fit(X, Y)
     var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
@@ -343,7 +343,7 @@ if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   suite = unittest.TestSuite()
-  #suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
+  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
   #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
   #suite.addTest(TestHelpers())
   suite.addTest(TestRiskMeasures())
