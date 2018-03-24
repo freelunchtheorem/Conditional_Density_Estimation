@@ -20,9 +20,11 @@ ImportError: /common/homes/students/ferreira/anaconda3/envs/p3.6/lib/python3.6/s
 cat /usr/local/cuda/include/cudnn.h | grep CUDNN_MAJOR -A 2
 cat /usr/include/x86_64-linux-gnu/cudnn_v*.h | grep CUDNN_MAJOR -A 2
 
+```
 check libcudnn 
 libcudnn.so.6 -> libcudnn.so.6.0.21 (changed)
 libcudnn.so.5 -> libcudnn.so.6 (changed)
 libcudnn.so.5 -> libcudnn.so.6
 libcudnn.so.6 -> libcudnn.so.6.0.21
 libcudnn is installed
+```
