@@ -47,7 +47,7 @@ def prepare_configurations():
 
 
 
-def create_configurations(configured_estimators, configured_simulators, n_observations=1000):
+def create_configurations(configured_estimators, configured_simulators, n_observations=100000):
   """
   creates all possible combinations from the (configured) estimators and simulators.
   :param configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators
@@ -124,7 +124,7 @@ def run_configurations(tasks, output_dir="./", estimator_filter=None, paralleliz
 
 
 def run_single_configuration(estimator, simulator, n_observations):
-  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations)
+  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=n_observations)
   return gof, gof.compute_results()
 
 

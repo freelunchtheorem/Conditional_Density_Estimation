@@ -1,12 +1,13 @@
 import time
 import numpy as np
 import scipy
+import logging
 from scipy.stats import shapiro, kstest
 from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-from scipy.spatial.distance import euclidean
 from scipy import stats
+
 
 
 class GoodnessOfFit:
@@ -23,7 +24,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations=100, n_x_cond=10, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, n_observations=10**5, n_x_cond=10**5, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
@@ -53,7 +54,7 @@ class GoodnessOfFit:
     self.estimator = estimator
 
 
-  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=1000):
+  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**7):
     """ Calculates Kolmogorov-Smirnov Statistics
 
     Args:
@@ -198,6 +199,11 @@ class GoodnessOfFit:
     return distances
 
   def _mc_integration_cauchy(self, func, x_cond, n_samples=10 ** 7, batch_size=None):
+    if x_cond.shape[0] != n_samples:
+      n_samples = x_cond.shape[0]
+      logging.warning("number of samples reduced to %d since axis 0 of x_cond and samples must be equal.", x_cond.shape[0])
+
+
     if batch_size is None:
       n_batches = 1
       batch_size = n_samples
@@ -231,8 +237,7 @@ class GoodnessOfFit:
     gof_result.kl_divergence, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
 
     # Hellinger distance
-    x = np.asarray([[0,0]])
-    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x)
+    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond)
 
     # Kolmogorov Smirnov
     if self.estimator.ndim_y == 1 and self.estimator.can_sample:
