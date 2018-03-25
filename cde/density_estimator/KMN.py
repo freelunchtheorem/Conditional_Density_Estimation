@@ -10,7 +10,7 @@ import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
 from keras.layers import Dense, Input
-from keras.layers.noise import GaussianNoise
+from keras.layers.noise import GaussianNoise, GaussianDropout
 #import matplotlib.pyplot as plt
 
 
@@ -44,7 +44,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
                init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300, x_noise_std=None, y_noise_std=None):
 
 
-    self.sess = ed.get_session()
+    self.sess = None
     self.inference = None
 
     self.estimator = estimator
@@ -73,7 +73,9 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
-    tf.keras.backend.set_learning_phase(0)
+    from keras import backend as K
+    self.K = K
+    self.K.set_learning_phase(0)
 
 
 
@@ -87,7 +89,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         verbose: (boolean) controls the verbosity (console output)
 
     """
-    tf.keras.backend.set_learning_phase(1)
+    self.K.set_learning_phase(1)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     # define the full model
@@ -97,17 +99,18 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.inference = ed.MAP(data={self.mixtures: self.y_ph})
     self.inference.initialize(var_list=tf.trainable_variables(), n_iter=self.n_training_epochs)
     tf.global_variables_initializer().run()
+    self.sess = ed.get_session()
 
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
     self.fitted = True
-    tf.keras.backend.set_learning_phase(0)
+    self.K.set_learning_phase(0)
 
   def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
     """
     update model
     """
-    assert tf.keras.backend.learning_phase() == 1
+    assert self.K.learning_phase() == 1
     # loop over epochs
     for i in range(n_epoch):
 
@@ -159,7 +162,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
      """
     assert self.fitted, "model must be fitted to compute likelihood score"
-    assert tf.keras.backend.learning_phase() == 0
+    assert self.K.learning_phase() == 0
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
     likelihoods, X_fed, y_fed = self.sess.run([self.likelihoods, self.X_ph, self.y_ph], feed_dict={self.X_ph: X, self.y_ph: Y})
@@ -179,7 +182,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
             in case it was provided as argument
     """
-    assert tf.keras.backend.learning_phase() == 0
+    assert self.K.learning_phase() == 0
     if Y is None:
         max_scale = np.max(self.sess.run(self.scales))
         Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
@@ -200,7 +203,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
     assert self.can_sample
-    assert tf.keras.backend.learning_phase() == 0
+    assert self.K.learning_phase() == 0
 
     X = self._handle_input_dimensionality(X)
 
@@ -224,7 +227,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         if self.x_noise_std is not None:
           inp = Input(tensor=self.X_ph)
           noised_x = GaussianNoise(stddev=self.x_noise_std)(inp)
-          #noised_x = GaussianNoise(input_shape=(self.ndim_x,), stddev=self.x_noise_std)(self.X_ph)
           x = Dense(15, activation='elu')(noised_x)
           x = Dense(15, activation='elu')(x)
           self.estimator = x
@@ -234,9 +236,9 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           x = Dense(15, activation='elu')(x)
           self.estimator = x
 
-        #if self.y_noise_std is not None:
-        #  inp = Input(tensor=self.y_ph)
-        #  self.y_ph = GaussianNoise(stddev=self.y_noise_std)(inp)
+        if self.y_noise_std is not None:
+          inp = Input(tensor=self.y_ph)
+          self.y_ph = GaussianNoise(stddev=self.y_noise_std)(inp)
 
 
     # get batch size
@@ -352,7 +354,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
   def _get_mixture_components(self, X):
     assert self.fitted
-    assert tf.keras.backend.learning_phase() == 0
+    assert self.K.learning_phase() == 0
 
     weights, scales = self.sess.run([self.weights, self.scales], feed_dict={self.X_ph: X})
 
@@ -366,8 +368,9 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
   def __str__(self):
     return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \
-             "n_training_epochs: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges,
-                                                  self.init_scales, self.train_scales, self.n_training_epochs)
+             "n_training_epochs: {}\n x_noise_std: {}\n y_noise_std: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers,
+                                                  self.keep_edges, self.init_scales, self.train_scales, self.n_training_epochs, self.x_noise_std,
+                                                                                  self.y_noise_std)
 
   def __unicode__(self):
     return self.__str__()
