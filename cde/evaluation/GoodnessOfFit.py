@@ -244,8 +244,8 @@ class GoodnessOfFit:
         x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (samples.shape[0],1))
         r = func(samples, x)
         r, f = r.flatten(), f.flatten() # flatten r to avoid strange broadcasting behavior
-        print("f:", f.min(), f.max(), f.mean())
-        print("r:", r.min(), r.max(), r.mean())
+        #print("f:", f.min(), f.max(), f.mean())
+        #print("r:", r.min(), r.max(), r.mean())
         batch_result[j] = np.mean(r / f)
       distances[i] = batch_result.mean()
 
@@ -254,31 +254,29 @@ class GoodnessOfFit:
 
   def compute_results(self):
     """
-    Computes the statistics and returns a GoodnessOfFitResults object
-    :return: GoodnessOfFitResults object that holds the computed statistics
+      Computes the statistics and returns a GoodnessOfFitResults object
+      Returns:
+        GoodnessOfFitResults object that holds the computed statistics
     """
     x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
     gof_result = GoodnessOfFitResults(x_cond, self.estimator, self.probabilistic_model)
 
-    # KL - Divergence
-    gof_result.kl_divergence, gof_result.time_to_predict = self.kl_divergence(measure_time=True)
+    # KL - divergence
+    gof_result.kl_divergence = self.kl_divergence_mc(x_cond=x_cond, n_samples=self.n_observations)
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond)
+    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond, n_samples=self.n_observations)
 
-    # Kolmogorov Smirnov
-    if self.estimator.ndim_y == 1 and self.estimator.can_sample:
-      for i in range(x_cond.shape[0]):
-        gof_result.ks_stat[i], gof_result.ks_pval[i] = self.kolmogorov_smirnov_cdf(x_cond[i, :], n_samples=10**4)
+    # Wasserstein distance
+    #gof_result.wasserstein_distance = self.wasserstein_distance_mc(x_cond=x_cond, n_samples=self.n_observations)
 
-    # Add time measurement
-    gof_result.time_to_fit = self.time_to_fit
+    # Jason Shannon - divergence
+    gof_result.js_divergence = self.js_divergence_mc(x_cond=x_cond, n_samples=self.n_observations)
 
-    # Add number of observattions
+    # Add number of observations
     gof_result.n_observations = self.n_observations
 
-    gof_result.compute_means()
     return gof_result
 
   def __str__(self):

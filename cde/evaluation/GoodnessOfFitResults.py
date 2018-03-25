@@ -14,28 +14,17 @@ class GoodnessOfFitResults:
     self.estimator_params = estimator.get_params()
     self.probabilistic_model_params = probabilistic_model.get_params()
 
-    if estimator.ndim_y > 1: # cannot perform KS Test -> net respective variables to None
-      self.ks_stat = None
-      self.ks_pval = None
-    else:
-      self.ks_stat = np.zeros(x_cond.shape[0])
-      self.ks_pval = np.zeros(x_cond.shape[0])
-
-
     self.kl_divergence = None
     self.hellinger_distance = None
-    self.mean_ks_stat = None
-    self.mean_ks_pval = None
+    self.wasserstein_distance = None
+    self.js_divergence = None
 
+    self.n_observations = None
 
-  def compute_means(self):
-    if self.ks_stat is not None and self.ks_pval is not None:
-      self.mean_ks_stat = self.ks_stat.mean()
-      self.mean_ks_pval = self.ks_pval.mean()
 
   def report_dict(self):
     full_dict = self.__dict__
-    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "mean_ks_stat", "mean_ks_pval", "time_to_fit",
+    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "js_divergence", "time_to_fit",
                         "time_to_predict"]
     report_dict = dict([(key, full_dict[key]) for key in keys_of_interest])
 
@@ -54,4 +43,4 @@ class GoodnessOfFitResults:
 
 
   def __str__(self):
-    return "KL-Divergence: %.4f , Hellinger distance: %.4f, KS Stat: %.4f, KS pval: %.4f"%(self.kl_divergence, self.hellinger_distance, self.mean_ks_stat, self.mean_ks_pval)
+    return "KL divergence: %.4f, Hellinger distance: %.4f, Jason-Shannon divergence: %.4f"%(self.kl_divergence, self.hellinger_distance, self.js_divergence)
