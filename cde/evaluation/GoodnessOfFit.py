@@ -71,7 +71,6 @@ class GoodnessOfFit:
     estimator_conditional_samples = estimator_conditional_samples.flatten()
     return kstest(estimator_conditional_samples, lambda y: self.probabilistic_model.cdf(X_cond, y))
 
-
   def kl_divergence(self, y_res=100, measure_time = False):
     """ Calculates a discrete approximiation of KL_divergence of the fitted ditribution w.r.t. the true distribution
 
@@ -108,7 +107,7 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
-  def kl_divergence_mc(self, x_cond, n_samples=10**5, batch_size=None):
+  def kl_divergence_mc(self, x_cond, n_samples=10**6, batch_size=None):
     """ Computes the Kullback–Leibler divergence via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -139,7 +138,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def js_divergence_mc(self, x_cond, n_samples=10**5, batch_size=None):
+  def js_divergence_mc(self, x_cond, n_samples=10**6, batch_size=None):
     """ Computes the Jason Shannon divergence via monte carlo integration using importance sampling with a cauchy distribution
     Args:
      x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -170,7 +169,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def hellinger_distance_mc(self, x_cond, n_samples=10**5, batch_size=None):
+  def hellinger_distance_mc(self, x_cond, n_samples=10**6, batch_size=None):
     """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -179,7 +178,7 @@ class GoodnessOfFit:
      batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
 
     Returns:
-      squared hellinger distance of each x value to condition on - numpy array of shape (n_values,)
+      hellinger distance of each x value to condition on - numpy array of shape (n_values,)
     """
     assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
 
@@ -198,12 +197,37 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def _mc_integration_cauchy(self, func, x_cond, n_samples=10**5, batch_size=None):
-    if x_cond.shape[0] != n_samples:
-      n_samples = x_cond.shape[0]
-      logging.warning("number of samples reduced to %d since axis 0 of x_cond and samples must be equal.", x_cond.shape[0])
+  def wasserstein_distance_mc(self, x_cond, n_samples=10**6, batch_size=None):
+    """ Computes the Wasserstein distance via monte carlo integration using importance sampling with a cauchy distribution
 
+      Args:
+       x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
+       n_samples: number of samples for monte carlo integration over the y space
+       batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
 
+      Returns:
+        wasserstein distance for each x value to condition on - numpy array of shape (n_values,)
+      """
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
+    assert hasattr(self.probabilistic_model, "cdf")
+    assert hasattr(self.estimator, "cdf")
+
+    raise NotImplementedError("Wasserstein distance MC doesn't produce reliable results")
+
+    P = self.probabilistic_model.cdf
+    Q = self.estimator.cdf
+
+    def wasserstein_dist(samples, x):
+      return np.abs(P(x, samples) - Q(x, samples))
+
+      #return stats.multivariate_normal.pdf(samples, mean=[0,0], cov=np.diag([1,1]))
+
+    distances = self._mc_integration_cauchy(wasserstein_dist, x_cond, n_samples=n_samples, batch_size=batch_size)
+
+    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    return distances
+
+  def _mc_integration_cauchy(self, func, x_cond, n_samples=10 ** 7, batch_size=None):
     if batch_size is None:
       n_batches = 1
       batch_size = n_samples
@@ -217,7 +241,11 @@ class GoodnessOfFit:
       for j in range(n_batches):
         samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size, self.estimator.ndim_x))
         f = _multidim_cauchy_pdf(samples, loc=0, scale=2)
-        r = func(samples, x_cond)
+        x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (samples.shape[0],1))
+        r = func(samples, x)
+        r, f = r.flatten(), f.flatten() # flatten r to avoid strange broadcasting behavior
+        print("f:", f.min(), f.max(), f.mean())
+        print("r:", r.min(), r.max(), r.mean())
         batch_result[j] = np.mean(r / f)
       distances[i] = batch_result.mean()
 
@@ -252,7 +280,6 @@ class GoodnessOfFit:
 
     gof_result.compute_means()
     return gof_result
-
 
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
@@ -305,13 +332,7 @@ def cartesian_along_axis_0(X, Y):
 def _multidim_cauchy_pdf(x, loc=0, scale=2):
   """ multidimensional cauchy pdf """
 
-  return np.exp(_multidim_cauchy_log_pdf(x, loc=loc, scale=scale))
-
-def _multidim_cauchy_log_pdf(x, loc=0, scale=2):
-  """ multidimensional cauchy log pdf """
-  assert x.ndim == 2
-
-  p = np.zeros(x.shape[0])
-  for i in range(x.shape[1]):
-    p += stats.cauchy(loc=0, scale=scale).logpdf(x[:, i])
+  p = stats.cauchy.pdf(x, loc=loc, scale=scale)
+  p = np.prod(p, axis=1).flatten()
+  assert p.ndim == 1
   return p

@@ -102,9 +102,6 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     sigma1 = np.identity(n=2) * 2
     sigma2 = np.identity(n=2) * 1
 
-    # Analytical form Hellinger Distance
-    kl_divergence_analytical = 0.5 * (1 - 2 + np.log(4))
-
     x = np.asarray([[0, 0], [1, 1]])
 
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
@@ -114,6 +111,26 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertGreaterEqual(1, gof1.js_divergence_mc(x_cond=x)[0])
     self.assertLessEqual(0, gof1.js_divergence_mc(x_cond=x)[0])
 
+  def test_gaussian_dummy_wasserstein_distance_mc(self):
+    mu1 = np.array([0, 0])
+    mu2 = np.array([0, 0])
+    sigma1 = np.identity(n=2) * 2
+    sigma2 = np.identity(n=2) * 1
+
+    # Analytical form upper bound of wassersetin distance
+    wasserstein_upper = np.trace(sigma1 + sigma2 - 2*(np.linalg.cholesky(sigma1.dot(sigma2))))
+
+    x = np.asarray([[0, 0], [1, 1]])
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
+
+    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+    wasserstein_dist_mc = gof1.wasserstein_distance_mc(x_cond=x)[0]
+    print(wasserstein_dist_mc)
+    self.assertGreaterEqual(wasserstein_upper, wasserstein_dist_mc)
+    self.assertLessEqual(0, wasserstein_dist_mc)
+
   def test_multidim_chauchy(self):
     x1 = np.asarray([[1, 0], [0, 1]])
     x2 = np.asarray([[1]])
@@ -121,6 +138,37 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertEqual(_multidim_cauchy_pdf(x1)[0], _multidim_cauchy_pdf(x1)[1])
     self.assertAlmostEqual(_multidim_cauchy_pdf(x2, scale=4)[0], stats.cauchy.pdf(x2[0], scale=4)[0])
 
+  def test_mc_intrgration_chauchy_1(self):
+    mu1 = np.array([0])
+    mu2 = np.array([0])
+    sigma1 = np.identity(n=1) * 2
+    sigma2 = np.identity(n=1) * 1
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=1, ndim_y=1)
+
+    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+
+    func = lambda y, x: stats.uniform.pdf(y, loc=-1, scale=2)
+    x_cond = np.asarray([[0]])
+    integral = gof1._mc_integration_cauchy(func, x_cond, n_samples=10 ** 5, batch_size=10 ** 4)
+    self.assertAlmostEqual(1.0, integral[0], places=2)
+
+  def test_mc_intrgration_chauchy_2(self):
+    mu1 = np.array([0, 0])
+    mu2 = np.array([0, 0])
+    sigma1 = np.identity(n=2) * 2
+    sigma2 = np.identity(n=2) * 1
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
+
+    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+
+    func = lambda y, x: stats.multivariate_normal.pdf(y, mean=[0,0], cov=np.diag([2,2]))
+    x_cond = np.asarray([[0,0]])
+    integral = gof1._mc_integration_cauchy(func, x_cond, n_samples=10 ** 5, batch_size=10 ** 4)
+    self.assertAlmostEqual(1.0, integral[0], places=2)
 
 
 
