@@ -79,6 +79,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu1 = np.array([0])
     sigma1 = np.identity(n=1)*1
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+    est.fit(None, None)
 
     alpha = 0.01
     VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
@@ -91,6 +92,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu1 = np.array([0])
     sigma1 = np.identity(n=1)*1
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
+    est.fit(None, None)
 
     alpha = 0.05
     VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
@@ -105,6 +107,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu1 = np.array([mu])
     sigma1 = np.identity(n=1) * sigma
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+    est.fit(None, None)
 
     alpha = 0.02
 
@@ -119,6 +122,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu = np.array([0,1])
     sigma = np.identity(n=2) * 1
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, has_cdf=False)
+    est.fit(None, None)
 
     mean_est = est.mean_(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
@@ -129,6 +133,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu = np.array([0, 1])
     sigma = np.identity(n=2) * 1
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+    est.fit(None, None)
 
     mean_est = est.mean_(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
@@ -147,7 +152,7 @@ class TestRiskMeasures(unittest.TestCase):
     model.fit(X, Y)
 
     mean_est = model.mean_(x_cond=np.array([[1,2]]))
-    self.assertAlmostEqual(mean_est[0][0], 7, places=1)
+    self.assertAlmostEqual(mean_est[0][0], 7, places=0)
     self.assertAlmostEqual(mean_est[0][1], -2, places=1)
 
   def test_covariance(self):
@@ -155,6 +160,7 @@ class TestRiskMeasures(unittest.TestCase):
     mu = np.array([0, 1])
     sigma = np.array([[1,-0.2],[-0.2,2]])
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+    est.fit(None, None)
 
     cov_est = est.covariance(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
@@ -185,53 +191,36 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     Y = data[:, 1]
     return X, Y
 
-  # def test_NKDE_with_2d_gaussian(self):
-  #   X, Y = self.get_samples()
-  #
-  #   model = NeighborKernelDensityEstimation(epsilon=0.1)
-  #   model.fit(X, Y)
-  #
-  #   y = np.arange(-1, 5, 0.5)
-  #   x = np.asarray([2 for i in range(y.shape[0])])
-  #   p_est = model.pdf(x, y)
-  #   p_true = norm.pdf(y, loc=2, scale=1)
-  #   self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-  #
-  # def test_LSCD_with_2d_gaussian(self):
-  #   X, Y = self.get_samples()
-  #
-  #   for method in ["all", "k_means"]:
-  #     model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
-  #     model.fit(X, Y)
-  #
-  #     y = np.arange(-1, 5, 0.5)
-  #     x = np.asarray([2 for i in range(y.shape[0])])
-  #     p_est = model.pdf(x, y)
-  #     p_true = norm.pdf(y, loc=2, scale=1)
-  #     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-  #
-  # def test_KMN_with_2d_gaussian(self):
-  #   X, Y = self.get_samples()
-  #
-  #   for method in ["agglomerative"]:
-  #     model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
-  #     model.fit(X, Y)
-  #
-  #     y = np.arange(-1, 5, 0.5)
-  #     x = np.asarray([2 for i in range(y.shape[0])])
-  #     p_est = model.pdf(x, y)
-  #     p_true = norm.pdf(y, loc=2, scale=1)
-  #     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-  #
-  #     p_est = model.cdf(x, y)
-  #     p_true = norm.cdf(y, loc=2, scale=1)
-  #     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+  def test_NKDE_with_2d_gaussian(self):
+    X, Y = self.get_samples()
 
-  def test_KMN_with_2d_gaussian_noise(self):
+    model = NeighborKernelDensityEstimation(epsilon=0.1)
+    model.fit(X, Y)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_LSCD_with_2d_gaussian(self):
+    X, Y = self.get_samples()
+
+    for method in ["all", "k_means"]:
+      model = LSConditionalDensityEstimation(center_sampling_method=method, n_centers=400, bandwidth=0.5)
+      model.fit(X, Y)
+
+      y = np.arange(-1, 5, 0.5)
+      x = np.asarray([2 for i in range(y.shape[0])])
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_KMN_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
     for method in ["agglomerative"]:
-      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5, x_noise_std=0.2, y_noise_std=0.2)
+      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
       model.fit(X, Y)
 
       y = np.arange(-1, 5, 0.5)
@@ -244,14 +233,14 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.cdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-  def test_KMN_with_2d_gaussian_noise_2(self):
+  def test_KMN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 
     model_no_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=None)
     model_no_noise.fit(X, Y)
     var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=5., y_noise_std=None)
+    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=1)
     model_noise.fit(X, Y)
     var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
@@ -260,6 +249,65 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
     self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
 
+  def test_KMN_with_2d_gaussian_noise_x(self):
+    np.random.seed(22)
+    X = np.random.uniform(0, 6, size=4000)
+    Y = X + np.random.normal(0, 1, size=4000)
+
+    x_test_2 = np.ones(100) * 2
+    x_test_4 = np.ones(100) * 4
+    y_test = np.linspace(1, 5, num=100)
+
+    model_no_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+
+    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=2, y_noise_std=None)
+    model_noise.fit(X, Y)
+    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+
+    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+    print("Training w/ noise - pdf distance", pdf_distance_noise)
+
+    self.assertGreaterEqual(pdf_distance_no_noise / pdf_distance_noise, 2.0)
+
+  def test_MDN_with_2d_gaussian_noise_y(self):
+    X, Y = self.get_samples(std=0.5)
+
+    model_no_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    model_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=1)
+    model_noise.fit(X, Y)
+    var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    print("Training w/o noise:", var_no_noise)
+    print("Training w/ noise:", var_noise)
+
+    self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
+
+  def test_MDN_with_2d_gaussian_noise_x(self):
+    np.random.seed(22)
+    X = np.random.uniform(0, 6, size=4000)
+    Y = X + np.random.normal(0,1, size=4000)
+
+    x_test_2 = np.ones(100) * 2
+    x_test_4 = np.ones(100) * 4
+    y_test = np.linspace(1,5,num=100)
+
+    model_no_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+
+    model_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=2, y_noise_std=None)
+    model_noise.fit(X, Y)
+    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+
+    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+    print("Training w/ noise - pdf distance", pdf_distance_noise)
+
+    self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
   # def test_MDN_with_2d_gaussian(self):
   #   X, Y = self.get_samples()
   #
@@ -292,51 +340,51 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
   #   p_true = norm.cdf(y, loc=2, scale=1)
   #   self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-
-class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
-  def get_samples(self):
-    np.random.seed(22)
-    data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
-    X = data[:, 0]
-    Y = data[:, 1]
-    return X, Y
-
-  def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
-    X, Y = self.get_samples()
-
-    param_grid = {
-      "n_centers": [3, 10],
-      "center_sampling_method": ["k_means"],
-      "keep_edges": [True]
-    }
-
-    model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
-    model.fit_by_cv(X, Y, param_grid=param_grid)
-
-    y = np.arange(-1, 5, 0.5)
-    x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertEqual(model.get_params()["n_centers"], 10)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
-
-
-  def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
-    X, Y = self.get_samples()
-
-    param_grid = {
-      "n_centers": [2, 10, 50]
-    }
-
-    model = MixtureDensityNetwork()
-    model.fit_by_cv(X, Y, param_grid=param_grid)
-
-    y = np.arange(-1, 5, 0.5)
-    x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertEqual(model.get_params()["n_centers"], 10)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+#
+# class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
+#   def get_samples(self):
+#     np.random.seed(22)
+#     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
+#     X = data[:, 0]
+#     Y = data[:, 1]
+#     return X, Y
+#
+#   def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
+#     X, Y = self.get_samples()
+#
+#     param_grid = {
+#       "n_centers": [3, 10],
+#       "center_sampling_method": ["k_means"],
+#       "keep_edges": [True]
+#     }
+#
+#     model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
+#     model.fit_by_cv(X, Y, param_grid=param_grid)
+#
+#     y = np.arange(-1, 5, 0.5)
+#     x = np.asarray([2 for i in range(y.shape[0])])
+#     p_est = model.pdf(x, y)
+#     p_true = norm.pdf(y, loc=2, scale=1)
+#     self.assertEqual(model.get_params()["n_centers"], 10)
+#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+#
+#
+#   def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
+#     X, Y = self.get_samples()
+#
+#     param_grid = {
+#       "n_centers": [2, 10, 50]
+#     }
+#
+#     model = MixtureDensityNetwork()
+#     model.fit_by_cv(X, Y, param_grid=param_grid)
+#
+#     y = np.arange(-1, 5, 0.5)
+#     x = np.asarray([2 for i in range(y.shape[0])])
+#     p_est = model.pdf(x, y)
+#     p_true = norm.pdf(y, loc=2, scale=1)
+#     self.assertEqual(model.get_params()["n_centers"], 10)
+#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
 def suite():

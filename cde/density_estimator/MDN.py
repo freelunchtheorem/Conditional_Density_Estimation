@@ -13,8 +13,23 @@ from .base import BaseMixtureEstimator
 
 
 class MixtureDensityNetwork(BaseMixtureEstimator):
+  """ Mixture Density Network Estimator
 
-  def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000):
+    See "Machine Learning and Pattern Recognition", Bishop 2008
+
+    Args:
+        n_centers: Number of Gaussian mixture components
+        estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
+                   if None use a standard 15 -> 15 Dense network
+        X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
+              but should be easy to extend to a list of placeholders
+        n_training_epochs: Number of epochs for training
+        x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
+        y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+    """
+
+
+  def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000, x_noise_std=None, y_noise_std=None):
 
     self.n_centers = n_centers
 
@@ -25,6 +40,9 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self.test_loss = np.empty(0)
 
     self.n_training_epochs = n_training_epochs
+
+    self.x_noise_std = x_noise_std
+    self.y_noise_std = y_noise_std
 
     self.fitted = False
     self.can_sample = True
@@ -46,7 +64,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self._build_model(X, Y)
 
     # setup inference procedure
-    self.inference = ed.MAP(data={self.mixture: self.y_ph})
+    self.inference = ed.MAP(data={self.mixture: self.y_input})
     optimizer = tf.train.AdamOptimizer(5e-3)
     self.inference.initialize(var_list=tf.trainable_variables(), optimizer=optimizer, n_iter=self.n_training_epochs)
 
@@ -75,7 +93,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
 
       X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
-      p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.y_ph: Y})
+      p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
 
       assert p.ndim == 1 and p.shape[0] == X.shape[0]
       return p
@@ -184,7 +202,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     for i in range(n_epoch):
 
         # run inference, update trainable variables of the model
-        info_dict = self.inference.update(feed_dict={self.X_ph: X, self.y_ph: Y})
+        info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
 
         train_loss = info_dict['loss'] / len(Y)
         self.train_loss = np.append(self.train_loss, -train_loss)
@@ -210,16 +228,29 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     """
     implementation of the MDN
     """
-    # create a placeholder for the target
-    self.y_ph = y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
-    #self.y_ph = y_ph = tf.placeholder(tf.float32, [None])
+    # create a placeholders
+    self.Y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
     self.n_sample_ph = tf.placeholder(tf.int32, None)
+    self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
+
+    # Gaussian noise over Y during training
+    if self.y_noise_std:
+      y_noised = self.Y_ph + tf.random_normal(tf.shape(self.Y_ph), stddev=self.y_noise_std)
+      self.y_input = tf.cond(self.train_phase, lambda: y_noised, lambda: self.Y_ph)
+    else:
+      self.y_input = self.Y_ph
 
     # if no external estimator is provided, create a default neural network
     if self.estimator is None:
       self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
+      # Gaussian noise over input X during training
+      if self.x_noise_std:
+        x_noised = self.X_ph + tf.random_normal(tf.shape(self.X_ph), stddev=self.x_noise_std)
+        x_input = tf.cond(self.train_phase, lambda: x_noised, lambda: self.X_ph)
+      else:
+        x_input = self.X_ph
       # two dense hidden layers with 15 nodes each
-      net = tf.layers.dense(self.X_ph, 15, activation=tf.nn.relu)
+      net = tf.layers.dense(x_input, 15, activation=tf.nn.relu)
       net = tf.layers.dense(net, 15, activation=tf.nn.relu)
       self.estimator = net
 
@@ -236,7 +267,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self.cat = cat = Categorical(logits=logits)
     self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
                   in zip(tf.unstack(locs, axis=1), tf.unstack(scales, axis=1))]
-    self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(y_ph))
+    self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_input))
 
     # tensor to store samples
     self.samples = mixture.sample()
@@ -247,7 +278,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
 
     # tensor to compute probabilities
-    self.pdf_ = mixture.prob(y_ph)
+    self.pdf_ = mixture.prob(self.y_input)
 
   def _param_grid(self):
     n_centers = [1, 2, 4, 8, 16, 32]
