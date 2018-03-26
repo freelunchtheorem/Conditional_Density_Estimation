@@ -200,7 +200,7 @@ class BaseDensityEstimator(BaseEstimator):
 
     """
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
-    # param_dict['estimator'] = self.__class__.__name__
+    param_dict['estimator'] = self.__class__.__name__
     return param_dict
 
   # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):

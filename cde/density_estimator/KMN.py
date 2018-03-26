@@ -38,12 +38,13 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
         X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
               but should be easy to extend to a list of placeholders
         train_scales: Boolean that describes whether or not to make the scales trainable
-        x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
+        x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise. Adding noise is
+        automatically deactivated during
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
     """
 
   def __init__(self, center_sampling_method='k_means', n_centers=200, keep_edges=False,
-               init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=300, x_noise_std=None, y_noise_std=None):
+               init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=1000, x_noise_std=None, y_noise_std=None):
 
 
     self.sess = None
