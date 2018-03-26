@@ -203,7 +203,7 @@ class BaseDensityEstimator(BaseEstimator):
     param_dict['estimator'] = self.__class__.__name__
 
     for x in ["n_centers", "center_sampling_method", "x_noise_std", "y_noise_std",
-              "covariance", "mean_", "random_seed"]:
+              "random_seed"]:
       if hasattr(self, x):
         param_dict[x] = getattr(self, x)
       else:

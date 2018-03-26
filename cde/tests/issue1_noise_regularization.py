@@ -40,7 +40,7 @@ def issue1():
 
 
 if __name__ == '__main__':
-    keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', "x_noise_std",
+    keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                         'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence',
                     'hellinger_distance', 'js_divergence', 'x_cond', 'random_seed']
 
