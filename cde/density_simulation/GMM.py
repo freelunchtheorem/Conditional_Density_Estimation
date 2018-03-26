@@ -7,14 +7,17 @@ class GaussianMixture(ConditionalDensity):
   """
   A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the
   ConditionDensity class.
+
+  Args:
+    n_kernels: number of mixture components
+    ndim_x: dimensionality of X / number of random variables in X
+    ndim_y: dimensionality of Y / number of random variables in Y
+    means_std: std. dev. when sampling the kernel means
   """
-  def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5):
-    """
-    :param n_kernels: number of mixture components
-    :param ndim_x: dimensionality of X / number of random variables in X
-    :param ndim_y: dimensionality of Y / number of random variables in Y
-    :param means_std: std. dev. when sampling the kernel means
-    """
+
+  def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5, random_seed=None):
+
+    np.random.seed(None)
 
     """  set parameters, calculate weights, means and covariances """
     self.n_kernels = n_kernels
@@ -49,15 +52,39 @@ class GaussianMixture(ConditionalDensity):
       self.gaussians_x.append(stats.multivariate_normal(mean=self.means_x[i,], cov=self.covariances_x[i]))
       self.gaussians_y.append(stats.multivariate_normal(mean=self.means_y[i,], cov=self.covariances_y[i]))
 
-  def cdf(self, X, Y):
+  def pdf(self, X, Y):
+    """ conditional probability density function P(Y|X)
+        See "Conditional Gaussian Mixture Models for Environmental Risk Mapping" [Gilardi, Bengio] for the math.
+
+    Args:
+      X: the position/conditional variable for the distribution P(Y|X), array_like, shape:(n_samples, ndim_x)
+      Y: the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)
+
+    Returns:
+      the cond. distribution of Y given X, for the given realizations of X with shape:(n_samples,)
     """
-       Determines the conditional cumulative probability density function P(Y<y|X=x).
+
+    X, Y = self._handle_input_dimensionality(X,Y)
+
+    P_y = np.stack([self.gaussians_y[i].pdf(Y) for i in range(self.n_kernels)], axis=1) #shape(X.shape[0], n_kernels)
+    W_x = self._W_x(X)
+
+    cond_prob = np.sum(np.multiply(W_x, P_y), axis=1)
+    assert cond_prob.shape[0] == X.shape[0]
+    return cond_prob
+
+  def cdf(self, X, Y):
+    """ conditional cumulative probability density function P(Y<y|X=x).
        See "Conditional Gaussian Mixture Models for Environmental Risk Mapping" [Gilardi, Bengio] for the math.
-       :param X: the position/conditional variable for the distribution P(Y<y|X=x), array_like, shape:(n_samples,
-       ndim_x)
-       :param Y: the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)
-       :return: the cond. cumulative distribution of Y given X, for the given realizations of X with shape:(n_samples,)
-       """
+
+    Args:
+      X: the position/conditional variable for the distribution P(Y<y|X=x), array_like, shape:(n_samples, ndim_x)
+      Y: the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)
+
+    Returns:
+      the cond. cumulative distribution of Y given X, for the given realizations of X with shape:(n_samples,)
+    """
+
     X, Y = self._handle_input_dimensionality(X, Y)
 
     P_y = np.stack([self.gaussians_y[i].cdf(Y) for i in range(self.n_kernels)],
@@ -68,31 +95,17 @@ class GaussianMixture(ConditionalDensity):
     assert cond_prob.shape[0] == X.shape[0]
     return cond_prob
 
-  def pdf(self, X, Y):
-    """
-    Determines the conditional probability density function P(Y|X).
-    See "Conditional Gaussian Mixture Models for Environmental Risk Mapping" [Gilardi, Bengio] for the math.
-    :param X: the position/conditional variable for the distribution P(Y|X), array_like, shape:(n_samples,
-    ndim_x)
-    :param Y: the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)
-    :return: the cond. distribution of Y given X, for the given realizations of X with shape:(n_samples,)
-    """
-    X, Y = self._handle_input_dimensionality(X,Y)
-
-    P_y = np.stack([self.gaussians_y[i].pdf(Y) for i in range(self.n_kernels)], axis=1) #shape(X.shape[0], n_kernels)
-    W_x = self._W_x(X)
-
-    cond_prob = np.sum(np.multiply(W_x, P_y), axis=1)
-    assert cond_prob.shape[0] == X.shape[0]
-    return cond_prob
-
   def joint_pdf(self, X, Y):
+    """ joint probability density function P(X, Y)
+
+    Args:
+      X: variable X for the distribution P(X, Y), array_like, shape:(n_samples, ndim_x)
+      Y: variable Y for the distribution P(X, Y) array_like, shape:(n_samples, ndim_y)
+
+    Returns:
+      the joint distribution of X and Y wih shape:(n_samples,)
     """
-       Determines the joint probability density function P(X, Y).
-       :param X: variable X for the distribution P(X, Y), array_like, shape:(n_samples, ndim_x)
-       :param Y: variable Y for the distribution P(X, Y) array_like, shape:(n_samples, ndim_y)
-       :return: the joint distribution of X and Y wih shape:(n_samples,)
-       """
+
     X, Y = self._handle_input_dimensionality(X,Y)
     XY = np.concatenate([X,Y], axis=1)
     a = [self.weights[i] * self.gaussians[i].pdf(XY) for i in range(self.n_kernels)]
@@ -100,11 +113,15 @@ class GaussianMixture(ConditionalDensity):
     return np.sum(p_i, axis=1)
 
   def simulate_conditional(self, X):
+    """ Draws random samples from the conditional distribution
+
+    Args:
+      X: x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)
+
+    Returns:
+      Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
-    Draws for each x in X a sample y from P(y|x)
-    :param X: array_like, shape:(n_samples, ndim_x)
-    :return: X, Y  - Y is the arra
-    """
+
     W_x = self._W_x(X)
     Y = np.zeros(shape=(X.shape[0], self.ndim_y))
     for i in range(X.shape[0]):
@@ -115,11 +132,15 @@ class GaussianMixture(ConditionalDensity):
     return X, Y
 
   def simulate(self, n_samples=1000):
+    """ Draws random samples from the unconditional distribution p(x,y)
+
+    Args:
+      n_samples: (int) number of samples to be drawn from the conditional distribution
+
+    Returns:
+      (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
-    this draws (n_samples) instances from the (n_kernels)-multivariate normal distributions
-    :param n_samples:
-    :return:
-    """
+
     assert n_samples > 0
     discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), self.weights))
     indices = discrete_dist.rvs(size=n_samples)
@@ -135,19 +156,23 @@ class GaussianMixture(ConditionalDensity):
     return x_samples, y_samples
 
   def _sample_weights(self, n_weights):
-    """
-    samples density weights -> sum up to one
-    :param n_weights: number of weights
-    :return: ndarray of weights with shape (n_weights,)
+    """ samples density weights -> sum up to one
+    Args:
+      n_weights: number of weights
+    Returns:
+      ndarray of weights with shape (n_weights,)
     """
     weights = np.random.uniform(0, 1, size=[n_weights])
     return weights / np.sum(weights)
 
   def _W_x(self, X):
-    """
-    Helper function to normalize the joint density P(Y,X) by the marginal density P(X)
-    :param X: conditional random variable, array_like, shape:(n_samples, ndim_x)
-    :return: the normalized weighted marginal gaussian distributions P(X) for each n_kernel, shape:(n_samples,n_kernels)
+    """ Helper function to normalize the joint density P(Y,X) by the marginal density P(X)
+
+    Args:
+      X: conditional random variable, array_like, shape:(n_samples, ndim_x)
+
+    Return:
+      the normalized weighted marginal gaussian distributions P(X) for each n_kernel, shape:(n_samples,n_kernels)
     """
     w_p = np.stack([self.weights[i] * self.gaussians_x[i].pdf(X) for i in range(self.n_kernels)], axis=1)
     normalizing_term = np.sum(w_p, axis=1)
@@ -161,6 +186,3 @@ class GaussianMixture(ConditionalDensity):
   def __unicode__(self):
     return self.__str__()
 
-if __name__=="__main__":
-  model = GaussianMixture()
-  model.plot(mode="joint_pdf")
