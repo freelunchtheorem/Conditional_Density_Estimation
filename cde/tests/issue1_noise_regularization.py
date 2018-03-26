@@ -1,14 +1,14 @@
 import itertools
 import numpy as np
 import copy
-from cde.tests.evaluate_configurations import create_configurations, run_configurations
+from cde.tests.ConfigRunner import ConfigRunner
 from cde.density_simulation import GaussianMixture, EconDensity
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork
 
 
 def issue1():
   estimator_params = {
-  'KMN': tuple(itertools.product(
+  'KernelMixtureNetwork': tuple(itertools.product(
         ["k_means"],  # center_sampling_method
         [5, 10, 50, 100], # n_centers
         [True],  # keep_edges
@@ -20,7 +20,7 @@ def issue1():
         [0.01, 0.1, None],  # x_noise_std
         [0.01, 0.1, None]  # y_noise_std
         )),
-  'MDN': tuple(itertools.product(
+  'MixtureDensityNetwork': tuple(itertools.product(
          [5, 10, 20],  # n_centers
          [None],  # estimator
          [None],  # X_ph
@@ -31,34 +31,15 @@ def issue1():
 
 
   simulators_params = {
-  'Econ': tuple([1]),  # std
-  'GMM': (30, 1, 1, 4.5)  # n_kernels, ndim_x, ndim_y, means_std
+  'EconDensity': tuple([1]),  # std
+  'GaussianMixture': (30, 1, 1, 4.5)  # n_kernels, ndim_x, ndim_y, means_std
   }
 
-  """ object references """
-  estimator_references = {'KMN': KernelMixtureNetwork, 'MDN': MixtureDensityNetwork}
-  simulator_references = { 'Econ': EconDensity, 'GMM': GaussianMixture}
-
-  """ estimators """
-  configured_estimators = [copy.deepcopy(estimator_references[estimator])(*config) for estimator, est_params in estimator_params.items()
-                           for config in est_params]
-
-  #config_a = []
-  #for estimator, est_params in estimator_params.items():
-  #  for config in est_params:
-  #    config_a.append(copy.deepcopy(estimator_references[estimator](*config)))
-
-  """ simulators """
-  configured_simulators = [copy.deepcopy(simulator_references[simulator])(*sim_params) for simulator, sim_params in simulators_params.items()]
-
-  return configured_estimators, configured_simulators
-
-
+  return estimator_params, simulators_params
 
 
 
 if __name__ == '__main__':
     conf_est, conf_sim = issue1()
-    #configs = create_configurations(conf_est, conf_sim, 100*2**np.arange(0, 7))
-    configs = create_configurations(conf_est, conf_sim, 5)
-    run_configurations(configs, estimator_filter="KernelMixtureNetwork", output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)
+    conf_runner = ConfigRunner(conf_est, conf_sim, 100*2**np.arange(0, 7))
+    conf_runner.run_configurations(output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)

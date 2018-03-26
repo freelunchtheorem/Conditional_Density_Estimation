@@ -171,14 +171,15 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
 
-
 if __name__ == '__main__':
   #pytest.main('--html=unittest_report.html --self-contained-html')
   if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
 
-    testmodules = ['unittests_evaluations.TestGoodnessOfFitTests']
+    testmodules = [
+      'unittests_evaluations.TestGoodnessOfFitTests'
+                   ]
     suite = unittest.TestSuite()
     for t in testmodules:
       try:
