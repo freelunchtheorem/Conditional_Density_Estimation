@@ -1,7 +1,7 @@
 import os
 import pickle
+import pandas as pd
 from datetime import datetime
-from pathlib import Path
 
 
 def store_dataframe(dataframe, output_dir, file_name=None):
@@ -38,12 +38,17 @@ def append_obj_to_pickle(file_handle, obj):
 def append_result_to_csv(file_handle, result, index):
   if file_handle.closed:
     return False
-  if index == 0:
-    result.to_csv(file_handle, sep=';', header=True)
-  else:
-    result.to_csv(file_handle, sep=';', header=False, mode="a")
+  try:
+    if os.stat(file_handle.name).st_size == 0: # checks if csv file is empty
+      result.to_csv(file_handle.name, sep=';', header=True, mode='a', index=True)
+      print(index)
+    else:
+      result.to_csv(file_handle.name, sep=';', header=False, mode='a', index=True)
+      print(index + 1)
+  except Exception as e:
+    print("appending to csv not successful")
+    print(str(e))
   return True
-
 
 def get_full_path(output_dir, suffix=".pickle", file_name=None):
   assert os.path.exists(output_dir) or os.path.exists(os.path.abspath(os.path.join(os.getcwd(), output_dir))), "invalid path to output directory"

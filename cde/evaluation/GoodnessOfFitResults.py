@@ -22,6 +22,7 @@ class GoodnessOfFitResults:
     self.n_observations = None
 
     self.x_cond = x_cond
+    self.n_x_cond = len(x_cond)
 
 
   def report_dict(self):
