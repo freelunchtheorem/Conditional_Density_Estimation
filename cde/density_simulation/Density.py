@@ -39,7 +39,7 @@ class ConditionalDensity(BaseEstimator):
       X: x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)
 
     Returns:
-      Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_x)
+      Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     raise NotImplementedError
 
