@@ -26,7 +26,7 @@ class GoodnessOfFitResults:
 
   def report_dict(self):
     full_dict = self.__dict__
-    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "js_divergence", "time_to_fit",
+    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "js_divergence", "x_cond", "time_to_fit",
                         "time_to_predict"]
     report_dict = dict([(key, full_dict[key]) for key in keys_of_interest])
 

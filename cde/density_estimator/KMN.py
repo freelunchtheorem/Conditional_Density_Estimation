@@ -355,7 +355,3 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
   def __unicode__(self):
     return self.__str__()
 
-  def __reduce__(self):
-    return (self.__class__, (self.center_sampling_method, self.n_centers, self.keep_edges,
-      self.init_scales, self.estimator, self.X_ph, self.train_scales, self.n_training_epochs,
-      self.x_noise_std, self.y_noise_std))
