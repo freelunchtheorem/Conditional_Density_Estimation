@@ -6,3 +6,13 @@ Conditional Density Estimators
    :glob:
 
    ./*
+
+
+==========================================================
+Base Density Estimation Interface
+==========================================================
+
+.. automodule:: density_estimator
+
+.. autoclass:: BaseDensityEstimator
+    :members:
