@@ -1,6 +1,7 @@
 from .Density import ConditionalDensity
 from .GMM import GaussianMixture
 from .EconDensity import EconDensity
+from .ArmaJump import ArmaJump
 import inspect, sys
 import numpy as np
 
