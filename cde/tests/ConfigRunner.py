@@ -18,7 +18,7 @@ from multiprocessing import Pool
 
 
 class ConfigRunner():
-  def __init__(self, est_params, sim_params, n_observations, keys_of_interest):
+  def __init__(self, est_params, sim_params, n_observations, keys_of_interest, n_mc_samples=10**6, n_x_cond=5):
     assert est_params
     assert sim_params
     assert keys_of_interest
@@ -29,8 +29,12 @@ class ConfigRunner():
     self.configured_estimators = [globals()[estimator_name](*config) for estimator_name, estimator_params in est_params.items() for config in estimator_params]
     self.configured_simulators = [globals()[simulator_name](*sim_params) for simulator_name, sim_params in sim_params.items()]
 
+    self.n_mc_samples = n_mc_samples
+    self.n_x_cond = n_x_cond
+
     self.configs = self._create_configurations()
     self.keys_of_interest = keys_of_interest
+
 
 
   def _create_configurations(self):
@@ -46,15 +50,14 @@ class ConfigRunner():
         returned --> shape of tuples: (estimator object, simulator object)
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
+    print(
+      "total number of configurations to be generated: " + str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.n_observations)))
     if not np.isscalar(self.n_observations):
-      print("total number of configurations to be generated: " + str(len(self.configured_estimators) * len(self.configured_simulators) * len(
-        self.n_observations)))
-      return [copy.deepcopy((estimator, simulator, n_obs)) for estimator, simulator, n_obs in itertools.product(self.configured_estimators,
-                                                                                                self.configured_simulators, self.n_observations)]
+      return [copy.deepcopy((estimator, simulator, n_obs, self.n_mc_samples, self.n_x_cond)) for estimator, simulator, n_obs in itertools.product(
+        self.configured_estimators, self.configured_simulators, self.n_observations)]
     else:
-      print("total number of configurations to be generated: " + str(len(self.configured_estimators) * len(self.configured_simulators) * self.n_observations))
-      return [copy.deepcopy((estimator, simulator, self.n_observations)) for estimator, simulator in itertools.product(self.configured_estimators,
-                                                                                                                  self.configured_simulators)]
+      return [copy.deepcopy((estimator, simulator, self.n_observations, self.n_mc_samples, self.n_x_cond)) for estimator, simulator in itertools.product(
+        self.configured_estimators, self.configured_simulators)]
 
   def run_configurations(self, output_dir="./", prefix_filename=None, estimator_filter=None, parallelized=False, limit=None, export_configs=False):
     """
@@ -112,7 +115,6 @@ class ConfigRunner():
           print("Task:", i+1, "Estimator:", task[0].__class__.__name__, " Simulator: ", task[1].__class__.__name__)
           gof_object, gof_result = self._run_single_configuration(*task)
 
-          gof_result.x_cond = gof_result.x_cond.flatten()
 
           if export_configs:
             self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results,
@@ -138,8 +140,9 @@ class ConfigRunner():
           traceback.print_exc()
 
 
-  def _run_single_configuration(self, estimator, simulator, n_observations, n_x_cond=5):
-    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=n_x_cond)
+  def _run_single_configuration(self, estimator, simulator, n_observations, n_mc_samples, n_x_cond):
+    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations,
+                        n_mc_samples=n_mc_samples, n_x_cond=n_x_cond)
     return gof, gof.compute_results()
 
 
@@ -155,7 +158,6 @@ class ConfigRunner():
     assert n_results > 0, "no results given"
 
     result_dicts = results.report_dict(keys_of_interest=self.keys_of_interest)
-
 
     return pd.DataFrame(result_dicts, columns=self.keys_of_interest)
 
