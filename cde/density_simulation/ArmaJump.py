@@ -32,16 +32,42 @@ class ArmaJump(ConditionalDensity):
     self.ndim = self.ndim_x + self.ndim_y
 
   def pdf(self, X, Y):
+    """ Conditional probability density function p(y|x) of the underlying probability model
+
+    Args:
+      X: x to be conditioned on - numpy array of shape (n_points, ndim_x)
+      Y: y target values for witch the pdf shall be evaluated - numpy array of shape (n_points, ndim_y)
+
+    Returns:
+      p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )
+    """
     mean = self.arma_c * (1-self.arma_a1) + self.arma_a1 * X
     return (1-self.jump_prob) * stats.norm.pdf(Y - mean, scale=self.std).flatten() + \
                 self.jump_prob *  stats.norm.pdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()
 
   def cdf(self, X, Y):
+    """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
+
+        Args:
+          X: x to be conditioned on - numpy array of shape (n_points, ndim_x)
+          Y: y target values for witch the cdf shall be evaluated - numpy array of shape (n_points, ndim_y)
+
+        Returns:
+         P(Y < y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )
+        """
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
     return (1-self.jump_prob) * stats.norm.cdf(Y - mean, scale=self.std).flatten() + \
                 self.jump_prob * stats.norm.cdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()
 
   def simulate_conditional(self, X):
+    """ Draws random samples from the conditional distribution
+
+    Args:
+      X: x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)
+
+    Returns:
+      Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
+    """
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
     y_ar = np.random.normal(loc=mean, scale=self.std, size=X.shape[0])
 
@@ -53,6 +79,14 @@ class ArmaJump(ConditionalDensity):
     return np.select([jump_bernoulli, np.bitwise_not(jump_bernoulli)], [y_jump, y_ar])
 
   def simulate(self, x_0=0, n_samples=1000, burn_in=100):
+    """ Draws random samples from the unconditional distribution p(x,y)
+
+       Args:
+         n_samples: (int) number of samples to be drawn from the conditional distribution
+
+       Returns:
+         (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
+    """
     self.eps = np.random.normal(scale=self.std, size=n_samples + burn_in)
 
     x = np.zeros(n_samples + burn_in)
