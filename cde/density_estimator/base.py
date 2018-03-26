@@ -201,6 +201,14 @@ class BaseDensityEstimator(BaseEstimator):
     """
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
     param_dict['estimator'] = self.__class__.__name__
+
+    for x in ["n_centers", "center_sampling_method", "x_noise_std", "y_noise_std",
+              "covariance", "mean_", "random_seed"]:
+      if hasattr(self, x):
+        param_dict[x] = getattr(self, x)
+      else:
+        param_dict[x] = None
+
     return param_dict
 
   # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):

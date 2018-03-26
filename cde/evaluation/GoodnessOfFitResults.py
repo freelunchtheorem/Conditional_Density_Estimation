@@ -25,19 +25,20 @@ class GoodnessOfFitResults:
     self.n_x_cond = len(x_cond)
 
 
-  def report_dict(self):
+  def report_dict(self, keys_of_interest):
     full_dict = self.__dict__
-    keys_of_interest = ["n_observations", "ndim_x", "ndim_y", "kl_divergence", "hellinger_distance", "js_divergence", "x_cond", "time_to_fit",
-                        "time_to_predict"]
-    report_dict = dict([(key, full_dict[key]) for key in keys_of_interest])
 
-    get_from_dict = lambda key: self.estimator_params[key] if key in self.estimator_params else None
+    report_dict = dict()
 
-    for key in ["estimator", "n_centers", "center_sampling_method"]:
-      report_dict[key] = get_from_dict(key)
-
-
-    report_dict["simulator"] = self.probabilistic_model_params["simulator"]
+    for key in keys_of_interest:
+      if key in full_dict:
+        report_dict[key] = full_dict[key]
+      elif key in self.estimator_params:
+        report_dict[key] = self.estimator_params[key]
+      elif key in self.probabilistic_model_params:
+        report_dict[key] = self.probabilistic_model_params[key]
+      else:
+        report_dict[key] = None
 
     return report_dict
 

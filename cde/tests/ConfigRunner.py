@@ -18,9 +18,10 @@ from multiprocessing import Pool
 
 
 class ConfigRunner():
-  def __init__(self, est_params, sim_params, n_observations):
+  def __init__(self, est_params, sim_params, n_observations, keys_of_interest):
     assert est_params
     assert sim_params
+    assert keys_of_interest
     assert n_observations.all()
 
     logging.log(logging.INFO, "creating configurations...")
@@ -29,6 +30,7 @@ class ConfigRunner():
     self.configured_simulators = [globals()[simulator_name](*sim_params) for simulator_name, sim_params in sim_params.items()]
 
     self.configs = self._create_configurations()
+    self.keys_of_interest = keys_of_interest
 
 
   def _create_configurations(self):
@@ -105,7 +107,6 @@ class ConfigRunner():
       file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name=result_file_name)
       file_handle_results = open(file_results, "a+")
 
-      index = 0
       for i, task in enumerate(self.configs[:limit]):
         try:
           print("Task:", i+1, "Estimator:", task[0].__class__.__name__, " Simulator: ", task[1].__class__.__name__)
@@ -114,12 +115,11 @@ class ConfigRunner():
           gof_result.x_cond = gof_result.x_cond.flatten()
 
           if export_configs:
-            self._export_results(task=task, index=index, gof_result=gof_result, file_handle_results=file_handle_results,
+            self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results,
                                  gof_object=gof_object, file_handle_configs=file_handle_configs)
           else:
-            self._export_results(task=task, index=index, gof_result=gof_result, file_handle_results=file_handle_results)
+            self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results)
 
-          index = i + gof_result.n_x_cond
 
           """ write to file batch-wise to prevent memory overflow """
           if i % 50 == 0:
@@ -153,21 +153,19 @@ class ConfigRunner():
     """
     n_results = len(results)
     assert n_results > 0, "no results given"
-    columns = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence', 'hellinger_distance',
-               'js_divergence', 'x_cond']
+
+    result_dicts = results.report_dict(keys_of_interest=self.keys_of_interest)
 
 
-    result_dicts = results.report_dict()
+    return pd.DataFrame(result_dicts, columns=self.keys_of_interest)
 
-    return pd.DataFrame(result_dicts, columns=columns)
-
-  def _export_results(self, task, index, gof_result, file_handle_results, gof_object=None, file_handle_configs=None):
+  def _export_results(self, task, gof_result, file_handle_results, gof_object=None, file_handle_configs=None):
     assert len(gof_result) > 0, "no results given"
 
     """ write result to file"""
     try:
       gof_result_df = self._get_results_dataframe(results=gof_result)
-      io.append_result_to_csv(file_handle_results, gof_result_df, index)
+      io.append_result_to_csv(file_handle_results, gof_result_df)
     except Exception as e:
       print("appending to file was not successful for task: ", task)
       print(str(e))

@@ -35,16 +35,14 @@ def append_obj_to_pickle(file_handle, obj):
   return True
 
 
-def append_result_to_csv(file_handle, result, index):
+def append_result_to_csv(file_handle, result):
   if file_handle.closed:
     return False
   try:
     if os.stat(file_handle.name).st_size == 0: # checks if csv file is empty
-      result.to_csv(file_handle.name, sep=';', header=True, mode='a', index=True)
-      print(index)
+      result.to_csv(file_handle.name, sep=';', header=True, mode='a', index=False)
     else:
-      result.to_csv(file_handle.name, sep=';', header=False, mode='a', index=True)
-      print(index + 1)
+      result.to_csv(file_handle.name, sep=';', header=False, mode='a', index=False)
   except Exception as e:
     print("appending to csv not successful")
     print(str(e))

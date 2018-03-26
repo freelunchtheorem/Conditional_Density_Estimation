@@ -40,6 +40,14 @@ def issue1():
 
 
 if __name__ == '__main__':
+    keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', "x_noise_std",
+                        'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence',
+                    'hellinger_distance', 'js_divergence', 'x_cond', 'random_seed']
+
+
     conf_est, conf_sim = issue1()
-    conf_runner = ConfigRunner(conf_est, conf_sim, 100*2**np.arange(0, 7))
+    conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 7), keys_of_interest=keys_of_interest)
     conf_runner.run_configurations(output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)
+    #import pandas as pd
+    #df = pd.read_csv("issue1_noise_reg_result_03-26-18_20-29-41.csv")
+    #print(df.head())
