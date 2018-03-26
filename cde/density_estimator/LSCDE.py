@@ -7,19 +7,22 @@ from .base import BaseDensityEstimator
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 
-  def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1, keep_edges=False):
+  def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1,
+               keep_edges=False, random_seed=None):
     """ Least-Squares Density Ratio Estimator
 
       http://proceedings.mlr.press/v9/sugiyama10a.html
 
       Args:
-          center_sampling_method:
-          bandwidth:
-          n_centers:
-          keep_edges: if set to True, the extreme y values as centers are
-          kept (for expressiveness)
-
+          center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
+                                [all, random, distance, k_means, agglomerative]
+          bandwidth: scale / bandwith of the gaussian kernels
+          n_centers: Number of kernels to use in the output
+          keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
+          random_seed: (optional) seed (int) of the random number generators used
       """
+    np.random.seed(random_seed)
+
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
     self.keep_edges = keep_edges

@@ -26,10 +26,15 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
         n_training_epochs: Number of epochs for training
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+        random_seed: (optional) seed (int) of the random number generators used
     """
 
 
-  def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000, x_noise_std=None, y_noise_std=None):
+  def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000,
+               x_noise_std=None, y_noise_std=None, random_seed=None):
+
+    np.random.seed(random_seed)
+    tf.set_random_seed(random_seed)
 
     self.n_centers = n_centers
 

@@ -6,7 +6,8 @@ import statsmodels.api as sm
 class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
 
-  def __init__(self, bandwidth_selection='cv_ml'):
+  def __init__(self, bandwidth_selection='cv_ml', random_seed=None):
+    np.random.seed(random_seed)
 
     assert bandwidth_selection in ['normal_reference', 'cv_ml', 'cv_ls']
     self.bandwidth_selection = bandwidth_selection
