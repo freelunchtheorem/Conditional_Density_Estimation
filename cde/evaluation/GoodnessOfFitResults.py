@@ -21,6 +21,8 @@ class GoodnessOfFitResults:
 
     self.n_observations = None
 
+    self.x_cond = x_cond
+
 
   def report_dict(self):
     full_dict = self.__dict__

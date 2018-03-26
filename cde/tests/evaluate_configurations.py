@@ -3,6 +3,8 @@ import multiprocessing
 import pandas as pd
 import numpy as np
 import gc
+import copy
+import traceback
 
 from contextlib import contextmanager
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork
@@ -24,8 +26,8 @@ def prepare_configurations():
     [None],  # X_ph
     [True],  # train_scales
     [20],  # n training epochs
-    [0.1, 1., 2.],  # x_noise_std
-    [0.1, 1., 2.])),  # y_noise_std
+    [0.1, 1., 2., None],  # x_noise_std
+    [0.1, 1., 2., None])),  # y_noise_std
     'LSCDE': tuple(itertools.product(['k_means'],  # center_sampling_method
       [0.1, 0.2, 1.],  # bandwidth
       [20, 50],  # n_centers
@@ -33,7 +35,7 @@ def prepare_configurations():
       [False, True]))}  # keep_edges}
 
   simulators_params = {
-      'Econ': tuple([0]),  # std
+      'Econ': tuple([1]),  # std
       'GMM': (30, 1, 1, 4.5)  # n_kernels, ndim_x, ndim_y, means_std
   }
 
@@ -43,7 +45,7 @@ def prepare_configurations():
   simulator_references = { 'Econ': EconDensity, 'GMM': GaussianMixture}
 
   """ estimators """
-  configured_estimators = [estimator_references[estimator](*config) for estimator, est_params in estimator_params.items() for config in est_params]
+  configured_estimators = [estimator_references[estimator](*est_params) for estimator, est_params in estimator_params.items() for config in est_params]
 
   """ simulators """
   configured_simulators = [simulator_references[simulator](*sim_params) for simulator, sim_params in simulators_params.items()]
@@ -65,11 +67,17 @@ def create_configurations(configured_estimators, configured_simulators, n_observ
       returned --> shape of tuples: (estimator object, simulator object)
       if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
   """
-  if not np.isscalar(n_observations):
-    return [(estimator, simulator, n_obs) for estimator, simulator, n_obs in itertools.product(configured_estimators, configured_simulators, n_observations)]
-  else:
-    return [(estimator, simulator, n_observations) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
+  assert configured_simulators
+  assert configured_estimators
+  assert n_observations
 
+  if not np.isscalar(n_observations):
+    print("total number of configurations to be generated: " + str(len(configured_estimators) * len(configured_simulators) * len(n_observations)))
+    return [copy.deepcopy((estimator, simulator, n_obs)) for estimator, simulator, n_obs in itertools.product(configured_estimators, configured_simulators,
+                                                                                                   n_observations)]
+  else:
+    print("total number of configurations to be generated: " + str(len(configured_estimators) * len(configured_simulators) * n_observations))
+    return [copy.deepcopy((estimator, simulator, n_observations)) for estimator, simulator in itertools.product(configured_estimators, configured_simulators)]
 
 def run_configurations(tasks, output_dir="./", prefix_filename=None, estimator_filter=None, parallelized=False, limit=None):
   """
@@ -94,7 +102,7 @@ def run_configurations(tasks, output_dir="./", prefix_filename=None, estimator_f
   if estimator_filter is not None:
     tasks = [tupl for tupl in tasks if estimator_filter in tupl[0].__class__.__name__]
   assert len(tasks), "no tasks to execute after filtering for the estimator"
-  print("Running configurations. Number of total tasks: ", len(tasks))
+  print("Running configurations. Number of total tasks after filtering: ", len(tasks))
 
   if limit is not None:
     assert limit > 0, "limit mustn't be negative"
@@ -123,13 +131,21 @@ def run_configurations(tasks, output_dir="./", prefix_filename=None, estimator_f
           gof_object, gof_result = run_single_configuration(*task)
 
           """ write config to file"""
-          success_config = io.append_obj_to_pickle(obj=gof_object, file_handle=file_handle_configs)
-          print("appending to file was not successful for task: ", task) if not success_config else None
+          try:
+            io.append_obj_to_pickle(obj=gof_object, file_handle=file_handle_configs)
+          except Exception as e:
+            print("appending to file was not successful for task: ", task)
+            print(str(e))
+            traceback.print_exc()
 
           """ write result to file"""
-          gof_result_df = get_results_dataframe(results=gof_result, index=i)
-          success_result = io.append_result_to_csv(file_handle_results, gof_result_df, index=i)
-          print("appending to file was not successful for task: ", task) if not success_result else None
+          try:
+            gof_result_df = get_results_dataframe(results=gof_result)
+            io.append_result_to_csv(file_handle_results, gof_result_df, index=i)
+          except Exception as e:
+            print("appending to file was not successful for task: ", task)
+            print(str(e))
+            traceback.print_exc()
 
           if i % 50 == 0:
             """ write to file batch-wise to prevent memory overflow """
@@ -139,41 +155,43 @@ def run_configurations(tasks, output_dir="./", prefix_filename=None, estimator_f
             file_handle_configs = open(file_configurations, "a+b")
             gc.collect()
 
+
         except Exception as e:
           print("error in task: ", i+1, " configuration: ", task)
           print(str(e))
+          traceback.print_exc()
 
 
 
 
-def run_single_configuration(estimator, simulator, n_observations):
-  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=1)
+def run_single_configuration(estimator, simulator, n_observations, n_x_cond=5):
+  gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations, n_x_cond=n_x_cond)
   return gof, gof.compute_results()
 
 
-def get_results_dataframe(results, index):
+def get_results_dataframe(results):
   """
   retrieves the dataframe for one or more GoodnessOfFitResults result objects.
     Args:
-      results: a list or single object of type GoodnessOfFitResults
+        results: a list or single object of type GoodnessOfFitResults
     Returns:
        a pandas dataframe
   """
   n_results = len(results)
   assert n_results > 0, "no results given"
-  columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence', 'hellinger_distance',
-             'js_divergence']
+  columns = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence', 'hellinger_distance',
+             'js_divergence', 'x_cond']
 
 
   result_dicts = results.report_dict()
 
-  return pd.DataFrame(result_dicts, columns=columns, index=[index])
+  return pd.DataFrame(result_dicts, columns=columns)
 
 def export_results(results, output_dir=None, file_name=None, export_pickle=False, export_csv=False):
   assert len(results) > 0, "no results given"
 
   columns = ['estimator', 'simulator', 'n_observations', 'ndim_x', 'ndim_y', 'n_centers', 'kl_divergence', 'hellinger_distance',
-             'js_divergence']
+             'js_divergence', 'x_cond']
 
   result_dicts = [result.report_dict() for result in results]
   df = pd.DataFrame(result_dicts).reindex(columns, axis=1)

@@ -2,15 +2,13 @@
 # code skeleton from https://github.com/janvdvegt/KernelMixtureNetwork
 # this version additionally supports fit_by_crossval and multidimentional Y
 #
-import warnings
 import math
 import numpy as np
 import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
-from keras.layers import Dense, Input
-from keras.layers.noise import GaussianNoise, GaussianDropout
+from keras.layers import Dense
 #import matplotlib.pyplot as plt
 
 
@@ -358,5 +356,6 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     return self.__str__()
 
   def __reduce__(self):
-   return (self.__class__, (self.center_sampling_method, self.n_centers, self.keep_edges,
-              'default', None, None, False, 300))
+    return (self.__class__, (self.center_sampling_method, self.n_centers, self.keep_edges,
+      self.init_scales, self.estimator, self.X_ph, self.train_scales, self.n_training_epochs,
+      self.x_noise_std, self.y_noise_std))

@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import copy
 from cde.tests.evaluate_configurations import create_configurations, run_configurations
 from cde.density_simulation import GaussianMixture, EconDensity
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork
@@ -7,29 +8,30 @@ from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork
 
 def issue1():
   estimator_params = {
-  'KMN': tuple(itertools.product(["agglomerative", "k_means", "random"],  # center_sampling_method
-        [20, 50], # n_centers
+  'KMN': tuple(itertools.product(
+        ["k_means"],  # center_sampling_method
+        [5, 10, 50, 100], # n_centers
         [True],  # keep_edges
-        [[0.1], [1]],  # init_scales
+        [[0.1, 0.5, 1.]],  # init_scales
         [None],  # estimator
         [None],  # X_ph
         [True],  # train_scales
         [1000],  # n training epochs
-        [0.1, 0.5, 1., 2.],  # x_noise_std
-        [0.1, 0.5, 1., 2.]  # y_noise_std
+        [0.01, 0.1, None],  # x_noise_std
+        [0.01, 0.1, None]  # y_noise_std
         )),
   'MDN': tuple(itertools.product(
-         [20, 50],  # n_centers
+         [5, 10, 20],  # n_centers
          [None],  # estimator
          [None],  # X_ph
          [1000],  # n training epochs
-         [0.1, 0.5, 1., 2.],  # x_noise_std
-         [0.1, 0.5, 1., 2.]  # y_noise_std
+         [0.01, 0.1, None],  # x_noise_std
+         [0.01, 0.1, None]  # y_noise_std
   ))}
 
 
   simulators_params = {
-  'Econ': tuple([0]),  # std
+  'Econ': tuple([1]),  # std
   'GMM': (30, 1, 1, 4.5)  # n_kernels, ndim_x, ndim_y, means_std
   }
 
@@ -38,10 +40,16 @@ def issue1():
   simulator_references = { 'Econ': EconDensity, 'GMM': GaussianMixture}
 
   """ estimators """
-  configured_estimators = [estimator_references[estimator](*config) for estimator, est_params in estimator_params.items() for config in est_params]
+  configured_estimators = [copy.deepcopy(estimator_references[estimator])(*config) for estimator, est_params in estimator_params.items()
+                           for config in est_params]
+
+  #config_a = []
+  #for estimator, est_params in estimator_params.items():
+  #  for config in est_params:
+  #    config_a.append(copy.deepcopy(estimator_references[estimator](*config)))
 
   """ simulators """
-  configured_simulators = [simulator_references[simulator](*sim_params) for simulator, sim_params in simulators_params.items()]
+  configured_simulators = [copy.deepcopy(simulator_references[simulator])(*sim_params) for simulator, sim_params in simulators_params.items()]
 
   return configured_estimators, configured_simulators
 
@@ -51,5 +59,6 @@ def issue1():
 
 if __name__ == '__main__':
     conf_est, conf_sim = issue1()
-    configs = create_configurations(conf_est, conf_sim, np.arange(100, 10100, 100))
-    run_configurations(configs, output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)
+    #configs = create_configurations(conf_est, conf_sim, 100*2**np.arange(0, 7))
+    configs = create_configurations(conf_est, conf_sim, 5)
+    run_configurations(configs, estimator_filter="KernelMixtureNetwork", output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)

@@ -125,10 +125,10 @@ class GoodnessOfFit:
     Q = self.estimator.pdf
 
     def kl_div(samples, x):
-      p = P(x, samples)
-      q = Q(x, samples)
-      q = np.ma.masked_where(q < 10 ** -64, q)
-      p = np.ma.masked_where(p < 10 ** -64, p)
+      p = P(x, samples).flatten()
+      q = Q(x, samples).flatten()
+      q = np.ma.masked_where(q < 10 ** -64, q).flatten()
+      p = np.ma.masked_where(p < 10 ** -64, p).flatten()
 
       r = p * np.log(p / q)
       return r.filled(0)
@@ -155,8 +155,8 @@ class GoodnessOfFit:
     Q = self.estimator.pdf
 
     def js_div(samples, x):
-      p = P(x, samples)
-      q = Q(x, samples)
+      p = P(x, samples).flatten()
+      q = Q(x, samples).flatten()
       q = np.ma.masked_where(q < 10 ** -64, q)
       p = np.ma.masked_where(p < 10 ** -64, p)
       m = 0.5 * (p + q)
@@ -186,8 +186,8 @@ class GoodnessOfFit:
     Q = self.estimator.pdf
 
     def hellinger_dist(samples, x):
-      p = np.sqrt(P(x, samples))
-      q = np.sqrt(Q(x, samples))
+      p = np.sqrt(P(x, samples)).flatten()
+      q = np.sqrt(Q(x, samples)).flatten()
       r = (p - q)**2
       return r
 
@@ -276,6 +276,8 @@ class GoodnessOfFit:
 
     # Add number of observations
     gof_result.n_observations = self.n_observations
+
+    gof_result.x_cond = x_cond
 
     return gof_result
 

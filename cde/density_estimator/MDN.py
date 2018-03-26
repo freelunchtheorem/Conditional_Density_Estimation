@@ -250,19 +250,23 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
       else:
         x_input = self.X_ph
       # two dense hidden layers with 15 nodes each
-      net = tf.layers.dense(x_input, 15, activation=tf.nn.relu)
-      net = tf.layers.dense(net, 15, activation=tf.nn.relu)
+      net = Dense(15, activation='elu')(x_input)
+      net = Dense(15, activation='elu')(net)
       self.estimator = net
 
     # locations and scales of the mixture components
-    self.locs = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=None)
+    self.locs = Dense(self.n_centers * self.ndim_y)(net)
+    #self.locs = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=None)
     self.locs = locs = tf.reshape(self.locs, (-1, self.n_centers, self.ndim_y))
 
-    self.scales = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=tf.exp)
+    self.scales = Dense(self.n_centers * self.ndim_y, activation='softplus')(net)
+    #self.scales = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=tf.exp)
     self.scales = scales = tf.reshape(self.scales, (-1, self.n_centers, self.ndim_y))
 
     # put mixture components together
-    self.logits = logits = tf.layers.dense(net, self.n_centers, activation=None)
+
+    self.logits = logits = Dense(self.n_centers)(net)
+    #self.logits = logits = tf.layers.dense(net, self.n_centers, activation=None)
     self.weights = tf.nn.softmax(logits)
     self.cat = cat = Categorical(logits=logits)
     self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale

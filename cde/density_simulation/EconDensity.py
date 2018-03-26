@@ -1,7 +1,5 @@
 import scipy.stats as stats
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from .Density import ConditionalDensity
 
 class EconDensity(ConditionalDensity):
@@ -10,10 +8,12 @@ class EconDensity(ConditionalDensity):
   """
 
   def __init__(self, std=1):
+    assert std > 0
     self.std = std
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
+
 
   def pdf(self, X, Y):
     mean = X**2
