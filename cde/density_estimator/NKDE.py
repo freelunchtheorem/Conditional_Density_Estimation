@@ -17,11 +17,13 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     bandwidth: scale of the Gaussians
     weighted: if true - the neighborhood Gaussians are weighted according to their distance to the query point,
               if false - all neighborhood Gaussians are weighted equally
-
+    random_seed: (optional) seed (int) of the random number generators used
 
   """
 
-  def __init__(self, epsilon=5.0, bandwidth=1.0, weighted=True):
+  def __init__(self, epsilon=5.0, bandwidth=1.0, weighted=True, random_seed=None):
+
+    np.random.seed(random_seed)
 
     self.epsilon = epsilon
     self.weighted = weighted
