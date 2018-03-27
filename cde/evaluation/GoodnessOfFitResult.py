@@ -1,5 +1,3 @@
-import numpy as np
-
 
 class GoodnessOfFitResult:
   def __init__(self, x_cond, estimator_params, probabilistic_model_params):
@@ -10,6 +8,10 @@ class GoodnessOfFitResult:
 
     self.ndim_x = estimator_params["ndim_x"]
     self.ndim_y = estimator_params["ndim_y"]
+
+    # remove built in functions so that GoodnessOFFitResult remains pickable
+    if 'X_ph' in estimator_params:
+      del estimator_params['X_ph']
 
     self.estimator_params = estimator_params
     self.probabilistic_model_params = probabilistic_model_params

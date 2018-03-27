@@ -31,7 +31,11 @@ def store_objects(objs, output_dir, file_name=None):
 def dump_as_pickle(file_handle, obj):
   if file_handle.closed:
     return False
-  pickle.dump(obj=obj, file=file_handle)
+  try:
+    pickle.dump(obj=obj, file=file_handle)
+  except Exception as e:
+    print("dumping pickle object not successful")
+    print(str(e))
   return True
 
 

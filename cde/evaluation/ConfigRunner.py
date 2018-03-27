@@ -8,6 +8,7 @@ import traceback
 import logging
 
 from contextlib import contextmanager
+""" do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork
 from cde.density_simulation import EconDensity, GaussianMixture
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit
@@ -78,8 +79,8 @@ class ConfigRunner():
         export_pickle: determines if results should be exported to output dir as pickle in addition to the csv
 
       Returns:
-         a list of lists. Each sublist represents a configuration run, containing the task itself (a dict containing information about the estimator and
-         simulator hyperparameters as well as n_obs, n_x_cond and n_mc_samples) and the GoodnessOfFitResults object (the statistic results)
+         a list in which entry represents a configuration run result, containing information about the estimator and
+         simulator hyperparameters as well as n_obs, n_x_cond, n_mc_samples and the statistic results
     """
     assert len(self.configs) > 0
     if estimator_filter is not None:
@@ -121,7 +122,7 @@ class ConfigRunner():
 
           self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results)
 
-          results.append([task, gof_result])
+          results.append(gof_result)
 
           gc.collect()
 
