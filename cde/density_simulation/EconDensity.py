@@ -90,6 +90,7 @@ class EconDensity(ConditionalDensity):
     Returns:
       Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
     """
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
 
     return x_cond**2
 
@@ -102,6 +103,7 @@ class EconDensity(ConditionalDensity):
       Returns:
         Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
 
     covs = self._std(x_cond)
     return covs.reshape((covs.shape[0],self.ndim_y, self.ndim_y))

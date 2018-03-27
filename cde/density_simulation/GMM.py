@@ -17,7 +17,7 @@ class GaussianMixture(ConditionalDensity):
 
   def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5, random_seed=None):
 
-    np.random.seed(None)
+    np.random.seed(random_seed)
 
     """  set parameters, calculate weights, means and covariances """
     self.n_kernels = n_kernels
@@ -131,6 +131,12 @@ class GaussianMixture(ConditionalDensity):
     assert X.shape[0] == Y.shape[0]
     return X, Y
 
+  def _draw_from_discrete(self, w_x):
+    discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), w_x))
+    idx = discrete_dist.rvs()
+    return self.gaussians_y[idx].rvs()
+
+
   def simulate(self, n_samples=1000):
     """ Draws random samples from the unconditional distribution p(x,y)
 
@@ -155,6 +161,48 @@ class GaussianMixture(ConditionalDensity):
     assert y_samples.shape == (n_samples, self.ndim_y)
     return x_samples, y_samples
 
+  def mean_(self, x_cond):
+    """ Conditional mean of the distribution
+     Args:
+       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+     Returns:
+       Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+     """
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
+
+    W_x = self._W_x(x_cond)
+    means = W_x.dot(self.means_y)
+    return means
+
+  def covariance(self, x_cond):
+    """ Covariance of the distribution conditioned on x_cond
+
+      Args:
+        x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+      Returns:
+        Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+    """
+    assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
+    W_x = self._W_x(x_cond)
+
+    covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
+
+    glob_mean = self.mean_(x_cond)
+
+    for i in range(x_cond.shape[0]):
+      c1 = np.zeros((self.ndim_y, self.ndim_y))
+      c2 = np.zeros(c1.shape)
+      weights = W_x[i]
+      for j in range(weights.shape[0]):
+        c1 = weights[j] * self.covariances_y[j]
+        a = (self.means_y[j] - glob_mean[i])
+        d = weights[j] * np.outer(a, a)
+        c2 += d
+      covs[i] = c1 + c2
+    return covs
+
   def _sample_weights(self, n_weights):
     """ samples density weights -> sum up to one
     Args:
@@ -174,7 +222,11 @@ class GaussianMixture(ConditionalDensity):
     Return:
       the normalized weighted marginal gaussian distributions P(X) for each n_kernel, shape:(n_samples,n_kernels)
     """
-    w_p = np.stack([self.weights[i] * self.gaussians_x[i].pdf(X) for i in range(self.n_kernels)], axis=1)
+    assert X.ndim == 2 and X.shape[1] == self.ndim_x
+    if X.shape[0] == 1:
+      w_p = np.stack([np.array([self.weights[i] * self.gaussians_x[i].pdf(X)]) for i in range(self.n_kernels)], axis=1)
+    else:
+      w_p = np.stack([self.weights[i] * self.gaussians_x[i].pdf(X) for i in range(self.n_kernels)], axis=1)
     normalizing_term = np.sum(w_p, axis=1)
     result = w_p / normalizing_term[:,None]
     return result
