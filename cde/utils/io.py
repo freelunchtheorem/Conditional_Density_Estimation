@@ -29,8 +29,6 @@ def store_objects(objs, output_dir, file_name=None):
 
 
 def dump_as_pickle(file_handle, obj):
-  if file_handle.closed:
-    return False
   try:
     pickle.dump(obj=obj, file=file_handle)
     print("successfully dumped pickle file to {}".format(os.path.abspath(file_handle.name)))

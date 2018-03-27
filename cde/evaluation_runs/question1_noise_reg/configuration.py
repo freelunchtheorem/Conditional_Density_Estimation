@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     conf_est, conf_sim = issue1()
     conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 7), keys_of_interest=keys_of_interest,
-                               n_mc_samples=10**6, n_x_cond=5)
+                               n_mc_samples=10**3, n_x_cond=5)
     results_list, full_df, path_pickle = conf_runner.run_configurations(limit=2, output_dir="./", prefix_filename="question1_noise_reg")
     with open(path_pickle, 'rb') as pickle_file:
       content = pickle.load(pickle_file)

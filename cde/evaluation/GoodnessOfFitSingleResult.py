@@ -28,22 +28,24 @@ class GoodnessOfFitSingleResult:
     self.result_df = None
 
 
-  def report_dict(self, keys_of_interest):
+  def report_dict(self, keys_of_interest=None):
     full_dict = self.__dict__
 
-    report_dict = dict()
+    if keys_of_interest is not None:
+      report_dict = dict()
+      for key in keys_of_interest:
+        if key in full_dict:
+          report_dict[key] = full_dict[key]
+        elif key in self.estimator_params:
+          report_dict[key] = self.estimator_params[key]
+        elif key in self.probabilistic_model_params:
+          report_dict[key] = self.probabilistic_model_params[key]
+        else:
+          report_dict[key] = None
 
-    for key in keys_of_interest:
-      if key in full_dict:
-        report_dict[key] = full_dict[key]
-      elif key in self.estimator_params:
-        report_dict[key] = self.estimator_params[key]
-      elif key in self.probabilistic_model_params:
-        report_dict[key] = self.probabilistic_model_params[key]
-      else:
-        report_dict[key] = None
-
-    return report_dict
+      return report_dict
+    else:
+      return full_dict
 
   def __len__(self):
     return 1
