@@ -1,5 +1,5 @@
 
-class GoodnessOfFitResult:
+class GoodnessOfFitSingleResult:
   def __init__(self, x_cond, estimator_params, probabilistic_model_params):
     self.cond_values = x_cond
 
@@ -9,7 +9,7 @@ class GoodnessOfFitResult:
     self.ndim_x = estimator_params["ndim_x"]
     self.ndim_y = estimator_params["ndim_y"]
 
-    # remove built in functions so that GoodnessOFFitResult remains pickable
+    # remove built in functions so that GoodnessOfFitSingleResult remains pickable
     if 'X_ph' in estimator_params:
       del estimator_params['X_ph']
 
@@ -51,7 +51,3 @@ class GoodnessOfFitResult:
 
   def __str__(self):
     return "KL divergence: %.4f, Hellinger distance: %.4f, Jason-Shannon divergence: %.4f"%(self.kl_divergence, self.hellinger_distance, self.js_divergence)
-
-
-  def plot_metric(self, graph_dict, metric='hellinger_distance', simulator='EconDensity'):
-    raise NotImplementedError

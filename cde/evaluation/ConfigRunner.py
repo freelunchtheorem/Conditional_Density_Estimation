@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork
 from cde.density_simulation import EconDensity, GaussianMixture
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
 from multiprocessing import Pool
 
@@ -79,9 +80,12 @@ class ConfigRunner():
         export_pickle: determines if results should be exported to output dir as pickle in addition to the csv
 
       Returns:
-         a list in which entry represents a configuration run result, containing information about the estimator and
-         simulator hyperparameters as well as n_obs, n_x_cond, n_mc_samples and the statistic results. If export_pickle is True,
-         the path to the pickle file will be returned in addition, i.e. (results_list, path_to_pickle)
+         returns two objects: (result_list, full_df)
+          1) a list in which entry represents a configuration run result, containing information about the estimator and
+          simulator hyperparameters as well as n_obs, n_x_cond, n_mc_samples and the statistic results.
+          2) a full pandas dataframe of the csv
+          Additionally, if export_pickle is True, the path to the pickle file will be returned, i.e. (results_list, full_df, path_to_pickle)
+
     """
     assert len(self.configs) > 0
     if estimator_filter is not None:
@@ -104,8 +108,8 @@ class ConfigRunner():
     if parallelized:
       # todo: come up with a work-around for nested parallelized loops and tensorflow non-pickable objects
       with self._poolcontext(processes=None) as pool:
-        gof_objects, gof_results = pool.starmap(self._run_single_configuration, self.configs[:limit])
-        return gof_objects, gof_results
+        gof_objects, gof_single_res_collection = pool.starmap(self._run_single_configuration, self.configs[:limit])
+        return gof_objects, gof_single_res_collection
 
     else:
       if export_pickle:
@@ -113,17 +117,17 @@ class ConfigRunner():
         file_handle_results_pickle = open(results_pickle, "a+b")
 
       file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name=result_file_name)
-      file_handle_results = open(file_results, "a+")
+      file_handle_results_csv = open(file_results, "a+")
 
-      results = []
+      gof_single_res_collection = []
       for i, task in enumerate(self.configs[:limit]):
         try:
           print("Task:", i+1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
-          gof, gof_result = self._run_single_configuration(**task)
+          gof, gof_single_result = self._run_single_configuration(**task)
 
-          self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results)
+          self._export_results(task=task, gof_result=gof_single_result, file_handle_results=file_handle_results_csv)
 
-          results.append(gof_result)
+          gof_single_res_collection.append(gof_single_result)
 
           gc.collect()
 
@@ -132,11 +136,20 @@ class ConfigRunner():
           print(str(e))
           traceback.print_exc()
 
-      if export_pickle:
-        io.dump_as_pickle(file_handle_results_pickle, results)
-        return results, file_handle_results_pickle.name
+      gof_results = GoodnessOfFitResults(single_results_list=gof_single_res_collection)
 
-      return results
+      full_df = pd.read_csv(file_handle_results_csv.name, sep=';')
+
+
+      if export_pickle:
+        io.dump_as_pickle(file_handle_results_pickle, gof_single_res_collection)
+        file_handle_results_pickle.close()
+        return gof_single_res_collection, full_df, file_handle_results_pickle.name
+
+
+
+      file_handle_results_csv.close()
+      return gof_single_res_collection, full_df
 
 
 

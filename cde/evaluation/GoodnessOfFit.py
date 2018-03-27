@@ -8,7 +8,7 @@ import warnings
 from scipy.stats import shapiro, kstest
 from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
-from cde.evaluation.GoodnessOfFitResult import GoodnessOfFitResult
+from cde.evaluation.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
 from scipy import stats
 
 
@@ -249,8 +249,6 @@ class GoodnessOfFit:
         x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (samples.shape[0],1))
         r = func(samples, x)
         r, f = r.flatten(), f.flatten() # flatten r to avoid strange broadcasting behavior
-        #print("f:", f.min(), f.max(), f.mean())
-        #print("r:", r.min(), r.max(), r.mean())
         batch_result[j] = np.mean(r / f)
       distances[i] = batch_result.mean()
 
@@ -266,7 +264,7 @@ class GoodnessOfFit:
     """
     x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
-    gof_result = GoodnessOfFitResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
+    gof_result = GoodnessOfFitSingleResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
     if self.n_mc_samples < 10**5:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
