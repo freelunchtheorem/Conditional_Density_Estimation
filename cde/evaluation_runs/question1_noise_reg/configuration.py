@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
 
     conf_est, conf_sim = issue1()
-    conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 2), keys_of_interest=keys_of_interest,
+    conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 7), keys_of_interest=keys_of_interest,
                                n_mc_samples=10**6, n_x_cond=5)
-    results_list = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg",
-                                                  parallelized=False)
+    results_list = conf_runner.run_configurations(limit=2, output_dir="./", prefix_filename="question1_noise_reg")
+    print(results_list)
