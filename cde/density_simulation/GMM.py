@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.stats as stats
-from .Density import ConditionalDensity
+from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 from .helpers import project_to_pos_semi_def
 
-class GaussianMixture(ConditionalDensity):
+class GaussianMixture(BaseConditionalDensitySimulation):
   """
   A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the
   ConditionDensity class.
@@ -18,6 +18,9 @@ class GaussianMixture(ConditionalDensity):
   def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5, random_seed=None):
 
     np.random.seed(random_seed)
+
+    self.has_cdf = True
+    self.can_sample = True
 
     """  set parameters, calculate weights, means and covariances """
     self.n_kernels = n_kernels

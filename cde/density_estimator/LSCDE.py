@@ -2,8 +2,8 @@ import itertools
 import numpy as np
 import scipy.stats as stats
 
-from .helpers import sample_center_points, norm_along_axis_1
-from .base import BaseDensityEstimator
+from cde.helpers import sample_center_points, norm_along_axis_1
+from .BaseDensityEstimator import BaseDensityEstimator
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 

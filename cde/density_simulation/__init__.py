@@ -1,4 +1,4 @@
-from .Density import ConditionalDensity
+from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 from .GMM import GaussianMixture
 from .EconDensity import EconDensity
 from .ArmaJump import ArmaJump

@@ -2,10 +2,10 @@ import scipy.stats as stats
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from .Density import ConditionalDensity
+from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 
 
-class ArmaJump(ConditionalDensity):
+class ArmaJump(BaseConditionalDensitySimulation):
   """ AR(1) model with jump component
 
   Args:
@@ -30,6 +30,9 @@ class ArmaJump(ConditionalDensity):
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
+
+    self.has_cdf = True
+    self.can_sample = True
 
   def pdf(self, X, Y):
     """ Conditional probability density function p(y|x) of the underlying probability model

@@ -6,8 +6,8 @@ import warnings
 
 
 from scipy.stats import shapiro, kstest
-from cde.density_estimator.base import BaseDensityEstimator
-from cde.density_simulation import ConditionalDensity
+from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
+from cde.density_simulation import BaseConditionalDensitySimulation
 from cde.evaluation.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
 from scipy import stats
 
@@ -31,7 +31,7 @@ class GoodnessOfFit:
   def __init__(self, estimator, probabilistic_model, n_observations, n_x_cond, n_mc_samples, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
-    assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
+    assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
 
     self.probabilistic_model = probabilistic_model
     self.n_observations = n_observations
