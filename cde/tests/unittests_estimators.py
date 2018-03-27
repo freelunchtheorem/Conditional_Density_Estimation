@@ -2,7 +2,7 @@ import unittest
 from scipy.stats import norm
 import warnings
 
-from cde.density_estimator.helpers import *
+from cde.helpers import *
 from cde.density_estimator import *
 from cde.tests.Dummies import *
 

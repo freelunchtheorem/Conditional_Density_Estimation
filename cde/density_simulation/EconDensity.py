@@ -1,8 +1,8 @@
 import scipy.stats as stats
 import numpy as np
-from .Density import ConditionalDensity
+from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 
-class EconDensity(ConditionalDensity):
+class EconDensity(BaseConditionalDensitySimulation):
   """
   A simple, economically inspired distribution with the data generation process
   x = |N(0,1)|
@@ -22,7 +22,8 @@ class EconDensity(ConditionalDensity):
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
 
-
+    self.has_cdf = True
+    self.can_sample = True
 
   def pdf(self, X, Y):
     """ Conditional probability density function p(y|x) of the underlying probability model

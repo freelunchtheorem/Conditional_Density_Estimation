@@ -7,13 +7,13 @@ import numpy as np
 import sklearn
 import tensorflow as tf
 import edward as ed
-from edward.models import Categorical, Mixture, Normal, MultivariateNormalDiag
+from edward.models import Categorical, Mixture, MultivariateNormalDiag
 from keras.layers import Dense
 #import matplotlib.pyplot as plt
 
 
-from .helpers import sample_center_points
-from .base import BaseMixtureEstimator
+from cde.helpers import sample_center_points
+from .BaseDensityEstimator import BaseMixtureEstimator
 
 import logging
 logging.getLogger("tensorflow").setLevel(logging.ERROR)

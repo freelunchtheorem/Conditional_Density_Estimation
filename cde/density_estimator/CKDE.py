@@ -1,5 +1,5 @@
 import numpy as np
-from .base import BaseDensityEstimator
+from .BaseDensityEstimator import BaseDensityEstimator
 import statsmodels.api as sm
 
 

@@ -3,8 +3,8 @@ from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
 
-from .helpers import norm_along_axis_1
-from .base import BaseDensityEstimator
+from cde.helpers import norm_along_axis_1
+from .BaseDensityEstimator import BaseDensityEstimator
 
 
 

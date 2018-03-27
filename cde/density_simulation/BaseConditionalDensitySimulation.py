@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from sklearn.base import BaseEstimator
+from cde import ConditionalDensity
 
-class ConditionalDensity(BaseEstimator):
+class BaseConditionalDensitySimulation(ConditionalDensity):
 
   def pdf(self, X, Y):
     """ Conditional probability density function p(y|x) of the underlying probability model
@@ -31,7 +32,6 @@ class ConditionalDensity(BaseEstimator):
 
     raise NotImplementedError
 
-
   def simulate_conditional(self, X):
     """ Draws random samples from the conditional distribution
 
@@ -42,7 +42,6 @@ class ConditionalDensity(BaseEstimator):
       Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     raise NotImplementedError
-
 
   def simulate(self, n_samples):
     """ Draws random samples from the unconditional distribution p(x,y)
@@ -93,37 +92,74 @@ class ConditionalDensity(BaseEstimator):
     plt.ylabel("y")
     plt.show()
 
-  def __str__(self):
-    raise NotImplementedError
+  def mean_(self, x_cond):
+    """ Mean of the fitted distribution conditioned on x_cond
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
 
-  def _handle_input_dimensionality(self, X, Y=None, fitting=False):
-    # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    if np.size(X) == 1 and Y is None:
-      return X
+    Returns:
+      Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    assert x_cond.ndim == 2
 
-    if X.ndim == 1:
-      X = np.expand_dims(X, axis=1)
-
-    if Y is not None:
-      if Y.ndim == 1:
-        Y = np.expand_dims(Y, axis=1)
-
-      assert X.shape[0] == Y.shape[0], "X and Y must have the same length along axis 0"
-      assert X.ndim == Y.ndim == 2, "X and Y must be matrices"
-
-    if fitting: # store n_dim of training data
-      self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
+    if self.can_sample:
+      return self._mean_mc(x_cond)
     else:
-      assert X.shape[1] == self.ndim_x, "X must have shape (?, %i) but provided X has shape %s" % (self.ndim_x, X.shape)
-      if Y is not None:
-        assert Y.shape[1] == self.ndim_y, "Y must have shape (?, %i) but provided Y has shape %s" % (self.ndim_y, Y.shape)
+      return self._mean_pdf(x_cond)
 
-    if Y is None:
-      return X
+  def covariance(self, x_cond):
+    """ Covariance of the fitted distribution conditioned on x_cond
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+    """
+    return self._covariance_pdf(x_cond)
+
+  def value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, )
+      alpha: quantile percentage of the distribution
+
+    Returns:
+       VaR values for each x to condition on - numpy array of shape (n_values)
+    """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.has_cdf:
+      return self._value_at_risk_cdf(x_cond, alpha=alpha)
+    elif self.can_sample:
+      return self._value_at_risk_mc(x_cond, alpha=alpha)
     else:
-      return X, Y
+      raise NotImplementedError()
+
+  def conditional_value_at_risk(self, x_cond, alpha=0.01):
+    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, )
+         alpha: quantile percentage of the distribution
+
+       Returns:
+         CVaR values for each x to condition on - numpy array of shape (n_values)
+       """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 1
+
+    if self.can_sample:
+      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
+    else:
+      raise NotImplementedError()
 
   def get_params(self, deep=True):
-    param_dict = super(ConditionalDensity, self).get_params(deep=deep)
+    param_dict = super(BaseConditionalDensitySimulation, self).get_params(deep=deep)
     param_dict['simulator'] = self.__class__.__name__
     return param_dict
+
+  def __str__(self):
+    raise NotImplementedError
