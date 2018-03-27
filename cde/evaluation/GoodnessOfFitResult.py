@@ -25,6 +25,7 @@ class GoodnessOfFitResult:
 
     self.x_cond = x_cond
     self.n_x_cond = len(x_cond)
+    self.result_df = None
 
 
   def report_dict(self, keys_of_interest):
@@ -50,3 +51,7 @@ class GoodnessOfFitResult:
 
   def __str__(self):
     return "KL divergence: %.4f, Hellinger distance: %.4f, Jason-Shannon divergence: %.4f"%(self.kl_divergence, self.hellinger_distance, self.js_divergence)
+
+
+  def plot_metric(self, graph_dict, metric='hellinger_distance', simulator='EconDensity'):
+    raise NotImplementedError

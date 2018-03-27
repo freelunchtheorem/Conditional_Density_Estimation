@@ -62,7 +62,7 @@ class ConfigRunner():
                                                       "n_x_cond": self.n_x_cond})) for estimator, simulator in itertools.product(self.configured_estimators,
                                                                                              self.configured_simulators))]
 
-  def run_configurations(self, output_dir="./", prefix_filename=None, estimator_filter=None, parallelized=False, limit=None, export_pickle=True):
+  def run_configurations(self, output_dir="./", prefix_filename=None, estimator_filter=None, limit=None, parallelized=False, export_pickle=True):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -80,7 +80,8 @@ class ConfigRunner():
 
       Returns:
          a list in which entry represents a configuration run result, containing information about the estimator and
-         simulator hyperparameters as well as n_obs, n_x_cond, n_mc_samples and the statistic results
+         simulator hyperparameters as well as n_obs, n_x_cond, n_mc_samples and the statistic results. If export_pickle is True,
+         the path to the pickle file will be returned in addition, i.e. (results_list, path_to_pickle)
     """
     assert len(self.configs) > 0
     if estimator_filter is not None:
@@ -133,8 +134,11 @@ class ConfigRunner():
 
       if export_pickle:
         io.dump_as_pickle(file_handle_results_pickle, results)
+        return results, file_handle_results_pickle.name
 
       return results
+
+
 
   def _run_single_configuration(self, estimator, simulator, n_obs, n_mc_samples, n_x_cond):
     gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_obs,
@@ -163,6 +167,7 @@ class ConfigRunner():
     """ write result to file"""
     try:
       gof_result_df = self._get_results_dataframe(results=gof_result)
+      gof_result.result_df = gof_result_df
       io.append_result_to_csv(file_handle_results, gof_result_df)
     except Exception as e:
       print("appending to file was not successful for task: ", task)

@@ -33,6 +33,7 @@ def dump_as_pickle(file_handle, obj):
     return False
   try:
     pickle.dump(obj=obj, file=file_handle)
+    print("successfully dumped pickle file to {}".format(os.path.abspath(file_handle.name)))
   except Exception as e:
     print("dumping pickle object not successful")
     print(str(e))
