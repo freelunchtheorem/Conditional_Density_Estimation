@@ -33,6 +33,8 @@ class GoodnessOfFit:
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
 
+    np.seterr(divide='ignore')
+
     self.probabilistic_model = probabilistic_model
     self.n_observations = n_observations
     self.n_x_cond = n_x_cond

@@ -19,7 +19,7 @@ class GoodnessOfFitResults:
     for single_result in self.single_results:
       dfs.append(pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest)))
 
-    self.results_df = pd.concat(dfs, axis=0, ignore_index=True)
+    self.results_df = pd.concat(dfs, axis=0, ignore_index=True).reindex_axis(keys_of_interest, axis=1)
     return self.results_df
 
 
