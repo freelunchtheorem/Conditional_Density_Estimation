@@ -28,23 +28,26 @@ def store_objects(objs, output_dir, file_name=None):
   print("Dumped pickle to", full_path)
 
 
-def append_obj_to_pickle(file_handle, obj):
+def dump_as_pickle(file_handle, obj):
   if file_handle.closed:
     return False
-  pickle.dump(obj=obj, file=file_handle)
+  try:
+    pickle.dump(obj=obj, file=file_handle)
+    print("successfully dumped pickle file to {}".format(os.path.abspath(file_handle.name)))
+  except Exception as e:
+    print("dumping pickle object not successful")
+    print(str(e))
   return True
 
 
-def append_result_to_csv(file_handle, result, index):
+def append_result_to_csv(file_handle, result):
   if file_handle.closed:
     return False
   try:
     if os.stat(file_handle.name).st_size == 0: # checks if csv file is empty
-      result.to_csv(file_handle.name, sep=';', header=True, mode='a', index=True)
-      print(index)
+      result.to_csv(file_handle.name, sep=';', header=True, mode='a', index=False)
     else:
-      result.to_csv(file_handle.name, sep=';', header=False, mode='a', index=True)
-      print(index + 1)
+      result.to_csv(file_handle.name, sep=';', header=False, mode='a', index=False)
   except Exception as e:
     print("appending to csv not successful")
     print(str(e))

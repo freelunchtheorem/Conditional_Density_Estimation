@@ -1,12 +1,16 @@
 import time
 import numpy as np
 import scipy
-import logging
+import warnings
+
+
+
 from scipy.stats import shapiro, kstest
 from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
 from scipy import stats
+
 
 
 
@@ -24,7 +28,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations=10**5, n_x_cond=10**3, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, n_observations, n_x_cond, n_mc_samples, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, ConditionalDensity), "probabilistic model must inherit from ConditionalDensity"
@@ -32,6 +36,7 @@ class GoodnessOfFit:
     self.probabilistic_model = probabilistic_model
     self.n_observations = n_observations
     self.n_x_cond = n_x_cond
+    self.n_mc_samples = n_mc_samples
 
     self.proba_model_conditional_pdf = probabilistic_model.pdf
     self.proba_model_conditional_cdf = probabilistic_model.cdf
@@ -54,7 +59,7 @@ class GoodnessOfFit:
     self.estimator = estimator
 
 
-  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**5):
+  def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
 
     Args:
@@ -197,7 +202,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def wasserstein_distance_mc(self, x_cond, n_samples=10**6, batch_size=None):
+  def wasserstein_distance_mc(self, x_cond, n_samples=10**7, batch_size=None):
     """ Computes the Wasserstein distance via monte carlo integration using importance sampling with a cauchy distribution
 
       Args:
@@ -244,8 +249,6 @@ class GoodnessOfFit:
         x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (samples.shape[0],1))
         r = func(samples, x)
         r, f = r.flatten(), f.flatten() # flatten r to avoid strange broadcasting behavior
-        #print("f:", f.min(), f.max(), f.mean())
-        #print("r:", r.min(), r.max(), r.mean())
         batch_result[j] = np.mean(r / f)
       distances[i] = batch_result.mean()
 
@@ -254,30 +257,45 @@ class GoodnessOfFit:
 
   def compute_results(self):
     """
-      Computes the statistics and returns a GoodnessOfFitResults object
+      Computes statistics and stores the results in GoodnessOfFitResult object
+
       Returns:
-        GoodnessOfFitResults object that holds the computed statistics
+        GoodnessOfFitResult object that holds the computed statistics
     """
     x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
-    gof_result = GoodnessOfFitResults(x_cond, self.estimator, self.probabilistic_model)
+    gof_result = GoodnessOfFitSingleResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
+
+    if self.n_mc_samples < 10**5:
+      warnings.warn("using less than 10**5 samples for monte carlo not recommended")
 
     # KL - divergence
-    gof_result.kl_divergence = self.kl_divergence_mc(x_cond=x_cond, n_samples=self.n_observations)
+    gof_result.kl_divergence = self.kl_divergence_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond, n_samples=self.n_observations)
-
-    # Wasserstein distance
-    #gof_result.wasserstein_distance = self.wasserstein_distance_mc(x_cond=x_cond, n_samples=self.n_observations)
+    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
 
     # Jason Shannon - divergence
-    gof_result.js_divergence = self.js_divergence_mc(x_cond=x_cond, n_samples=self.n_observations)
+    gof_result.js_divergence = self.js_divergence_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
 
     # Add number of observations
     gof_result.n_observations = self.n_observations
 
-    gof_result.x_cond = x_cond
+    gof_result.x_cond = str(x_cond.flatten())
+
+    gof_result.n_mc_samples = self.n_mc_samples
+
+    """ estimator mean and cov """
+    gof_result.mean_est = str(self.estimator.mean_(x_cond).flatten())
+
+    gof_result.cov_est = str(self.estimator.covariance(x_cond).flatten())
+
+    """ simulator mean and cov """
+    # todo
+    #gof_result.mean_sim = self.probabilistic_model.mean_(x_cond)
+
+    #gof_result.cov_sim = self.probabilistic_model.covariance(x_cond).flatten()
+
 
     return gof_result
 

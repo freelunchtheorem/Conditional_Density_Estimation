@@ -21,7 +21,9 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
           keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
           random_seed: (optional) seed (int) of the random number generators used
       """
+    self.random_seed = random_seed
     np.random.seed(random_seed)
+
 
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
@@ -111,7 +113,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       Args:
          X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
          Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resulution: integer specifying the resolution of evaluation grid
+         resulution: integer specifying the resolution of evaluation_runs grid
 
        Returns: tuple (P, Y)
           - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)

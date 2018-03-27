@@ -43,7 +43,7 @@ class BaseDensityEstimator(BaseEstimator):
       Args:
         X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-        resulution: integer specifying the resolution of evaluation grid
+        resulution: integer specifying the resolution of evaluation_runs grid
 
       Returns: tuple (P, Y)
          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
@@ -148,7 +148,7 @@ class BaseDensityEstimator(BaseEstimator):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
 
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-      the conditional log-likelihood is used for evaluation.
+      the conditional log-likelihood is used for evaluation_runs.
     - Fits the model with the previously selected hyperparameter configuration
 
     Args:
@@ -201,6 +201,14 @@ class BaseDensityEstimator(BaseEstimator):
     """
     param_dict = super(BaseDensityEstimator, self).get_params(deep=deep)
     param_dict['estimator'] = self.__class__.__name__
+
+    for x in ["n_centers", "center_sampling_method", "x_noise_std", "y_noise_std",
+              "random_seed", "ndim_x", "ndim_y"]:
+      if hasattr(self, x):
+        param_dict[x] = getattr(self, x)
+      else:
+        param_dict[x] = None
+
     return param_dict
 
   # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):

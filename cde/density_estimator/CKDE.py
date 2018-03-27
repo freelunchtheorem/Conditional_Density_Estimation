@@ -7,6 +7,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
 
   def __init__(self, bandwidth_selection='cv_ml', random_seed=None):
+    self.random_seed = random_seed
     np.random.seed(random_seed)
 
     assert bandwidth_selection in ['normal_reference', 'cv_ml', 'cv_ls']

@@ -33,6 +33,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
   def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000,
                x_noise_std=None, y_noise_std=None, random_seed=None):
 
+    self.random_seed = random_seed
     np.random.seed(random_seed)
     tf.set_random_seed(random_seed)
 
@@ -109,7 +110,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
       Args:
          X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
          Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resulution: integer specifying the resolution of evaluation grid
+         resulution: integer specifying the resolution of evaluation_runs grid
 
        Returns: tuple (P, Y)
           - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
@@ -140,7 +141,7 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-        the conditional log-likelihood is used for evaluation.
+        the conditional log-likelihood is used for evaluation_runs.
       - Fits the model with the previously selected hyperparameter configuration
 
       Args:
