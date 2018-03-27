@@ -3,9 +3,9 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from .Density import ConditionalDensity
+from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 
-class NonlinearNonGaussian(ConditionalDensity):
+class NonlinearNonGaussian(BaseConditionalDensitySimulation):
   """
   Model by Christoffersen et al. (2016), "Time-varying Crash Risk: The Role of Market Liquiditiy"
   """
@@ -45,6 +45,9 @@ class NonlinearNonGaussian(ConditionalDensity):
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
+
+    self.has_cdf = False
+    self.can_sample = True
 
   def pdf(self, X, Y):
     raise NotImplementedError
