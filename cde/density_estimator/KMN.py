@@ -162,7 +162,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
       Args:
          X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
          Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resulution: integer specifying the resolution of evaluation grid
+         resulution: integer specifying the resolution of evaluation_runs grid
 
        Returns: tuple (P, Y)
           - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
@@ -280,7 +280,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
 
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-      the conditional log-likelihood is used for evaluation.
+      the conditional log-likelihood is used for evaluation_runs.
     - Fits the model with the previously selected hyperparameter configuration
 
     Args:

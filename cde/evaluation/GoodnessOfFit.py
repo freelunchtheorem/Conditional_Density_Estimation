@@ -3,14 +3,13 @@ import numpy as np
 import scipy
 import logging
 import warnings
-from pathos.multiprocessing import Pool
 
 
 
 from scipy.stats import shapiro, kstest
 from cde.density_estimator.base import BaseDensityEstimator
 from cde.density_simulation import ConditionalDensity
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation.GoodnessOfFitResult import GoodnessOfFitResult
 from scipy import stats
 
 
@@ -261,16 +260,14 @@ class GoodnessOfFit:
 
   def compute_results(self):
     """
-      Computes the statistics and returns a GoodnessOfFitResults object
+      Computes statistics and stores the results in GoodnessOfFitResult object
+
       Returns:
-        GoodnessOfFitResults object that holds the computed statistics
+        GoodnessOfFitResult object that holds the computed statistics
     """
     x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
-    gof_result = GoodnessOfFitResults(x_cond, self.estimator, self.probabilistic_model)
-
-    # todo: parallelize
-    #result = _run_functions_parallel([self.kl_divergence_mc, self.hellinger_distance_mc], x_cond=x_cond)
+    gof_result = GoodnessOfFitResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
     if self.n_mc_samples < 10**5:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
@@ -360,24 +357,3 @@ def _multidim_cauchy_pdf(x, loc=0, scale=2):
   p = np.prod(p, axis=1).flatten()
   assert p.ndim == 1
   return p
-
-#
-# def _worker(return_dict, i, f, x_cond):
-#   return_dict[i] = f(x_cond)
-#
-# def _run_functions_parallel(fns, x_cond):
-#   jobs = []
-#   manager = multiprocessing.Manager()
-#   return_dict = manager.dict()
-#
-#   for i, f in enumerate(fns):
-#     p = multiprocessing.Process(target=_worker, args=(return_dict, i, f, x_cond))
-#     p.start()
-#     jobs.append(p)
-#
-#
-#
-#   for p in jobs:
-#     p.join()
-#
-#   return return_dict.values()

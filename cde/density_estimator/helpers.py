@@ -109,7 +109,7 @@ def check_for_noise(x_after, x_before, name='array'):
   """
   all_close = np.allclose(x_after, x_before, rtol=1e-10)
   if not all_close:
-    logging.warning("%s is changed by the model before evaluation. Possibly noise in test mode used.", name)
+    logging.warning("%s is changed by the model before evaluation_runs. Possibly noise in test mode used.", name)
   return all_close
 
 def mc_integration_cauchy(func, ndim, n_samples=10**7, batch_size=None):

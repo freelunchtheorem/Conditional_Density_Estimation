@@ -1,9 +1,8 @@
 import itertools
+
 import numpy as np
-import copy
-from cde.tests.ConfigRunner import ConfigRunner
-from cde.density_simulation import GaussianMixture, EconDensity
-from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork
+
+from cde.evaluation.ConfigRunner import ConfigRunner
 
 
 def issue1():
@@ -33,7 +32,7 @@ def issue1():
 
 
   simulators_params = {
-  #'EconDensity': tuple([1]),  # std
+  'EconDensity': tuple([1]),  # std
   'GaussianMixture': (30, 2, 2, 4.5, 22)  # n_kernels, ndim_x, ndim_y, means_std, #random_seed
   }
 
@@ -50,6 +49,7 @@ if __name__ == '__main__':
 
 
     conf_est, conf_sim = issue1()
-    conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 7), keys_of_interest=keys_of_interest,
+    conf_runner = ConfigRunner(conf_est, conf_sim, n_observations=100*2**np.arange(0, 2), keys_of_interest=keys_of_interest,
                                n_mc_samples=10**6, n_x_cond=5)
-    conf_runner.run_configurations(output_dir="./", prefix_filename="issue1_noise_reg", parallelized=False)
+    results_list = conf_runner.run_configurations(limit=5, output_dir="./", prefix_filename="question1_noise_reg",
+                                                  parallelized=False)

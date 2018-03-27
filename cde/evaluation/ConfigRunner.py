@@ -50,16 +50,18 @@ class ConfigRunner():
         returned --> shape of tuples: (estimator object, simulator object)
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
-    print(
-      "total number of configurations to be generated: " + str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.n_observations)))
+    print("total number of configurations to be generated: " +
+          str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.n_observations)))
     if not np.isscalar(self.n_observations):
-      return [copy.deepcopy((estimator, simulator, n_obs, self.n_mc_samples, self.n_x_cond)) for estimator, simulator, n_obs in itertools.product(
-        self.configured_estimators, self.configured_simulators, self.n_observations)]
+      return [copy.deepcopy((dict({"estimator": estimator, "simulator": simulator, "n_obs": n_obs, "n_mc_samples": self.n_mc_samples,
+                                   "n_x_cond": self.n_x_cond}))) for estimator, simulator, n_obs in itertools.product(self.configured_estimators,
+                                                                                                            self.configured_simulators, self.n_observations)]
     else:
-      return [copy.deepcopy((estimator, simulator, self.n_observations, self.n_mc_samples, self.n_x_cond)) for estimator, simulator in itertools.product(
-        self.configured_estimators, self.configured_simulators)]
+      return [copy.deepcopy((dict({"estimator": estimator, "simulator": simulator, "n_obs": self.n_observations, "n_mc_samples": self.n_mc_samples,
+                                                      "n_x_cond": self.n_x_cond})) for estimator, simulator in itertools.product(self.configured_estimators,
+                                                                                             self.configured_simulators))]
 
-  def run_configurations(self, output_dir="./", prefix_filename=None, estimator_filter=None, parallelized=False, limit=None, export_configs=False):
+  def run_configurations(self, output_dir="./", prefix_filename=None, estimator_filter=None, parallelized=False, limit=None, export_pickle=True):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -73,22 +75,23 @@ class ConfigRunner():
                           must be one of the density estimator class types
         limit: limit the number of (potentially filtered) tasks
         parallelized: if True, the configurations are run in parallel mode on all available cpu's
-        export_configs: determines if estimator configurations (weights etc.) should be exported to output dir, too
+        export_pickle: determines if results should be exported to output dir as pickle in addition to the csv
 
       Returns:
-         a list of GoodnessOfFitResults objects (one per configuration run) and a list of the GoodnessOfFit objects (one per configuration run)
-        which contain the fitted estimators
+         a list of lists. Each sublist represents a configuration run, containing the task itself (a dict containing information about the estimator and
+         simulator hyperparameters as well as n_obs, n_x_cond and n_mc_samples) and the GoodnessOfFitResults object (the statistic results)
     """
     assert len(self.configs) > 0
     if estimator_filter is not None:
-      self.configs = [tupl for tupl in self.configs if estimator_filter in tupl[0].__class__.__name__]
-    assert len(self.configs), "no tasks to execute after filtering for the estimator"
+      self.configs = [tupl for tupl in self.configs if estimator_filter in tupl["estimator"].__class__.__name__]
+    if len(self.configs) == 0:
+      print("no tasks to execute after filtering for the estimator")
+      return
     print("Running configurations. Number of total tasks after filtering: ", len(self.configs))
 
     if limit is not None:
-      assert limit > 0, "limit mustn't be negative"
-    else:
-      limit = len(self.configs)
+      assert limit > 0, "limit must not be negative"
+      print("Limit enabled. Running only the first {} configurations".format(limit))
 
     config_file_name = "configurations"
     result_file_name = "result"
@@ -103,34 +106,22 @@ class ConfigRunner():
         return gof_objects, gof_results
 
     else:
-      if export_configs:
-        file_configurations = io.get_full_path(output_dir=output_dir, suffix=".pickle", file_name=config_file_name)
-        file_handle_configs = open(file_configurations, "a+b")
+      if export_pickle:
+        results_pickle = io.get_full_path(output_dir=output_dir, suffix=".pickle", file_name=config_file_name)
+        file_handle_results_pickle = open(results_pickle, "a+b")
 
       file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name=result_file_name)
       file_handle_results = open(file_results, "a+")
 
+      results = []
       for i, task in enumerate(self.configs[:limit]):
         try:
-          print("Task:", i+1, "Estimator:", task[0].__class__.__name__, " Simulator: ", task[1].__class__.__name__)
-          gof_object, gof_result = self._run_single_configuration(*task)
+          print("Task:", i+1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+          gof, gof_result = self._run_single_configuration(**task)
 
+          self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results)
 
-          if export_configs:
-            self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results,
-                                 gof_object=gof_object, file_handle_configs=file_handle_configs)
-          else:
-            self._export_results(task=task, gof_result=gof_result, file_handle_results=file_handle_results)
-
-
-          """ write to file batch-wise to prevent memory overflow """
-          if i % 50 == 0:
-           file_handle_results.close()
-           file_handle_results = open(file_results, "a+")
-
-           if export_configs:
-             file_handle_configs.close()
-             file_handle_configs = open(file_configurations, "a+b")
+          results.append([task, gof_result])
 
           gc.collect()
 
@@ -139,9 +130,13 @@ class ConfigRunner():
           print(str(e))
           traceback.print_exc()
 
+      if export_pickle:
+        io.dump_as_pickle(file_handle_results_pickle, results)
 
-  def _run_single_configuration(self, estimator, simulator, n_observations, n_mc_samples, n_x_cond):
-    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_observations,
+      return results
+
+  def _run_single_configuration(self, estimator, simulator, n_obs, n_mc_samples, n_x_cond):
+    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_obs,
                         n_mc_samples=n_mc_samples, n_x_cond=n_x_cond)
     return gof, gof.compute_results()
 
@@ -161,7 +156,7 @@ class ConfigRunner():
 
     return pd.DataFrame(result_dicts, columns=self.keys_of_interest)
 
-  def _export_results(self, task, gof_result, file_handle_results, gof_object=None, file_handle_configs=None):
+  def _export_results(self, task, gof_result, file_handle_results):
     assert len(gof_result) > 0, "no results given"
 
     """ write result to file"""
@@ -172,15 +167,6 @@ class ConfigRunner():
       print("appending to file was not successful for task: ", task)
       print(str(e))
       traceback.print_exc()
-
-    if file_handle_configs and gof_object:
-      """ write config to file"""
-      try:
-       io.append_obj_to_pickle(obj=gof_object, file_handle=file_handle_configs)
-      except Exception as e:
-       print("appending to file was not successful for task: ", task)
-       print(str(e))
-       traceback.print_exc()
 
 
   def _merge_names(self, a, b):

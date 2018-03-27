@@ -1,18 +1,18 @@
 import numpy as np
 
 
-class GoodnessOfFitResults:
-  def __init__(self, x_cond, estimator, probabilistic_model):
+class GoodnessOfFitResult:
+  def __init__(self, x_cond, estimator_params, probabilistic_model_params):
     self.cond_values = x_cond
 
     self.time_to_fit = None
     self.time_to_predict = None
 
-    self.ndim_x = estimator.ndim_x
-    self.ndim_y = estimator.ndim_y
+    self.ndim_x = estimator_params["ndim_x"]
+    self.ndim_y = estimator_params["ndim_y"]
 
-    self.estimator_params = estimator.get_params()
-    self.probabilistic_model_params = probabilistic_model.get_params()
+    self.estimator_params = estimator_params
+    self.probabilistic_model_params = probabilistic_model_params
 
     self.kl_divergence = None
     self.hellinger_distance = None

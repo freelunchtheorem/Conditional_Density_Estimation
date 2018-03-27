@@ -28,7 +28,7 @@ def store_objects(objs, output_dir, file_name=None):
   print("Dumped pickle to", full_path)
 
 
-def append_obj_to_pickle(file_handle, obj):
+def dump_as_pickle(file_handle, obj):
   if file_handle.closed:
     return False
   pickle.dump(obj=obj, file=file_handle)
