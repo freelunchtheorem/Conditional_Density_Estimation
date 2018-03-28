@@ -62,6 +62,8 @@ class ConfigRunner():
       return [copy.deepcopy((dict({"estimator": estimator, "simulator": simulator, "n_obs": self.n_observations, "n_mc_samples": self.n_mc_samples,
                                                       "n_x_cond": self.n_x_cond})) for estimator, simulator in itertools.product(self.configured_estimators,
                                                                                              self.configured_simulators))]
+    # x_cond = sample_x_cond(self.X, n_x_cond=self.x_cond)
+
 
   def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None, limit=None, export_pickle=True):
     """
@@ -146,7 +148,7 @@ class ConfigRunner():
 
   def _run_single_configuration(self, estimator, simulator, n_obs, n_mc_samples, n_x_cond):
     gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_obs,
-                        n_mc_samples=n_mc_samples, n_x_cond=n_x_cond)
+                        n_mc_samples=n_mc_samples, x_cond=n_x_cond)
     return gof, gof.compute_results()
 
 
