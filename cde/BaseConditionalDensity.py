@@ -30,6 +30,7 @@ class ConditionalDensity(BaseEstimator):
 
   def _covariance_pdf(self, x_cond, n_samples=10 ** 6):
     assert hasattr(self, "mean_")
+    assert hasattr(self, "pdf")
 
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
     mean = self.mean_(x_cond)
@@ -51,6 +52,24 @@ class ConditionalDensity(BaseEstimator):
       integral = mc_integration_cauchy(cov, ndim=self.ndim_y, n_samples=n_samples)
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
+
+  def _covariance_mc(self, x_cond, n_samples=10 ** 7):
+    if hasattr(self, 'sample'):
+      sample = self.sample
+    elif hasattr(self, 'simulate_conditional'):
+      sample = self.simulate_conditional
+    else:
+      raise AssertionError("Requires sample or simulate_conditional method")
+
+    covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
+    for i in range(x_cond.shape[0]):
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, y_sample = sample(x)
+
+      c = np.cov(y_sample, rowvar=False)
+      covs[i] = c
+    return covs
+
 
   def _value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     if hasattr(self, 'sample'):

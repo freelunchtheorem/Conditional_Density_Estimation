@@ -44,6 +44,7 @@ class JumpDiffusionModel(BaseConditionalDensitySimulation):
     self.ndim = self.ndim_x + self.ndim_y
 
     self.has_cdf = False
+    self.has_pdf = False
     self.can_sample = True
 
   def pdf(self, X, Y):

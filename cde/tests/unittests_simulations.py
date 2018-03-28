@@ -175,6 +175,19 @@ class TestJumpDiffusionModel(unittest.TestCase):
     skew = stats.skew(y2)
     self.assertLessEqual(skew, -0.5)
 
+  def test_mean(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    mean = jdm.mean_(x_cond)[0][0]
+    self.assertAlmostEqual(mean, 0.0, places=2)
+
+  def test_covariance(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    cov = jdm.covariance(x_cond)[0][0][0]
+    self.assertAlmostEqual(cov, 0.0, places=2)
 
 def mean_pdf(density, x_cond, n_samples=10 ** 6):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
