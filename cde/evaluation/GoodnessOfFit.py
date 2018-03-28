@@ -265,7 +265,6 @@ class GoodnessOfFit:
         GoodnessOfFitResult object that holds the computed statistics
     """
     x_cond = sample_x_cond(self.X, n_x_cond=self.n_x_cond)
-    #x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
     gof_result = GoodnessOfFitSingleResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
@@ -290,16 +289,16 @@ class GoodnessOfFit:
 
     gof_result.n_mc_samples = self.n_mc_samples
 
+    # todo
     """ estimator mean and cov """
     gof_result.mean_est = str(self.estimator.mean_(x_cond).flatten())
 
     gof_result.cov_est = str(self.estimator.covariance(x_cond).flatten())
 
     """ simulator mean and cov """
-    # todo
-    #gof_result.mean_sim = self.probabilistic_model.mean_(x_cond)
+    gof_result.mean_sim = str(self.probabilistic_model.mean_(x_cond).flatten())
 
-    #gof_result.cov_sim = self.probabilistic_model.covariance(x_cond).flatten()
+    gof_result.cov_sim = str(self.probabilistic_model.covariance(x_cond).flatten())
 
 
     return gof_result
@@ -333,7 +332,7 @@ def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
     high = np.percentile(X[:,i], high_percentile)
     samples_per_dim.append(np.random.uniform(low, high, size=(n_x_cond, 1)))
 
-  x_cond = np.vstack(samples_per_dim)
+  x_cond = np.hstack(samples_per_dim)
 
   assert x_cond.shape[1] == X.shape[1] and x_cond.shape[0] == n_x_cond
   return x_cond
