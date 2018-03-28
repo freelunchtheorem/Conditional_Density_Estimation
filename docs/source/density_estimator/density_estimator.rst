@@ -12,7 +12,7 @@ Conditional Density Estimators
 Base Density Estimation Interface
 ==========================================================
 
-.. automodule:: density_estimator
+.. automodule:: cde.density_estimator
 
 .. autoclass:: BaseDensityEstimator
     :members:

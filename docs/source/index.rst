@@ -10,7 +10,7 @@ Table of contents
 ###########################################################
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :glob:
 
    density_estimator/density_estimator
