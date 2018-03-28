@@ -28,7 +28,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations, n_x_cond, n_mc_samples, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, n_observations, x_cond, n_mc_samples, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
@@ -37,7 +37,7 @@ class GoodnessOfFit:
 
     self.probabilistic_model = probabilistic_model
     self.n_observations = n_observations
-    self.n_x_cond = n_x_cond
+    self.x_cond = x_cond
     self.n_mc_samples = n_mc_samples
 
     self.proba_model_conditional_pdf = probabilistic_model.pdf
@@ -94,7 +94,7 @@ class GoodnessOfFit:
     Q = self.estimator.pdf
 
     # prepare mesh
-    grid_x = get_variable_grid(self.X, resolution=self.n_x_cond, low_percentile=0, high_percentile=100)
+    grid_x = get_variable_grid(self.X, resolution=self.x_cond, low_percentile=0, high_percentile=100)
     grid_y = get_variable_grid(self.Y, resolution=int(y_res ** (1/self.Y.shape[1])), low_percentile=0, high_percentile=100)
 
     X, Y = cartesian_along_axis_0(grid_x, grid_y)
@@ -114,7 +114,7 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
-  def kl_divergence_mc(self, x_cond, n_samples=10**6, batch_size=None):
+  def kl_divergence_mc(self, n_samples=10**6, batch_size=None):
     """ Computes the Kullback–Leibler divergence via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -126,7 +126,7 @@ class GoodnessOfFit:
       KL divergence of each x value to condition on - numpy array of shape (n_values,)
     """
     np.random.seed(self.seed)
-    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
+    assert self.x_cond.ndim == 2 and self.x_cond.shape[1] == self.estimator.ndim_x
 
     P = self.probabilistic_model.pdf
     Q = self.estimator.pdf
@@ -140,12 +140,12 @@ class GoodnessOfFit:
       r = p * np.log(p / q)
       return r.filled(0)
 
-    distances = self._mc_integration_cauchy(kl_div, x_cond, n_samples=n_samples, batch_size=batch_size)
+    distances = self._mc_integration_cauchy(kl_div, n_samples=n_samples, batch_size=batch_size)
 
-    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
-  def js_divergence_mc(self, x_cond, n_samples=10**6, batch_size=None):
+  def js_divergence_mc(self, n_samples=10**6, batch_size=None):
     """ Computes the Jason Shannon divergence via monte carlo integration using importance sampling with a cauchy distribution
     Args:
      x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -156,7 +156,7 @@ class GoodnessOfFit:
       jason-shannon divergence of each x value to condition on - numpy array of shape (n_values,)
     """
     np.random.seed(self.seed)
-    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
+    assert self.x_cond.ndim == 2 and self.x_cond.shape[1] == self.estimator.ndim_x
 
     P = self.probabilistic_model.pdf
     Q = self.estimator.pdf
@@ -171,12 +171,12 @@ class GoodnessOfFit:
 
       return r.filled(0)
 
-    distances = self._mc_integration_cauchy(js_div, x_cond, n_samples=n_samples, batch_size=batch_size)
+    distances = self._mc_integration_cauchy(js_div, n_samples=n_samples, batch_size=batch_size)
 
-    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
-  def hellinger_distance_mc(self, x_cond, n_samples=10**6, batch_size=None):
+  def hellinger_distance_mc(self, n_samples=10**6, batch_size=None):
     """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -187,7 +187,7 @@ class GoodnessOfFit:
     Returns:
       hellinger distance of each x value to condition on - numpy array of shape (n_values,)
     """
-    assert x_cond.ndim == 2 and x_cond.shape[1] == self.estimator.ndim_x
+    assert self.x_cond.ndim == 2 and self.x_cond.shape[1] == self.estimator.ndim_x
 
     P = self.probabilistic_model.pdf
     Q = self.estimator.pdf
@@ -198,10 +198,10 @@ class GoodnessOfFit:
       r = (p - q)**2
       return r
 
-    mc_integral = self._mc_integration_cauchy(hellinger_dist, x_cond, n_samples=n_samples, batch_size=batch_size)
+    mc_integral = self._mc_integration_cauchy(hellinger_dist, n_samples=n_samples, batch_size=batch_size)
     distances = np.sqrt(mc_integral / 2)
 
-    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
   def wasserstein_distance_mc(self, x_cond, n_samples=10**7, batch_size=None):
@@ -234,27 +234,27 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
     return distances
 
-  def _mc_integration_cauchy(self, func, x_cond, n_samples=10 ** 7, batch_size=None):
+  def _mc_integration_cauchy(self, func, n_samples=10 ** 7, batch_size=None):
     if batch_size is None:
       n_batches = 1
       batch_size = n_samples
     else:
       n_batches = n_samples // batch_size + int(n_samples % batch_size > 0)
 
-    distances = np.zeros(x_cond.shape[0])
+    distances = np.zeros(self.x_cond.shape[0])
 
-    for i in range(x_cond.shape[0]):  # iterate over x values to condition on
+    for i in range(self.x_cond.shape[0]):  # iterate over x values to condition on
       batch_result = np.zeros(n_batches)
       for j in range(n_batches):
         samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size, self.estimator.ndim_x))
         f = _multidim_cauchy_pdf(samples, loc=0, scale=2)
-        x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (samples.shape[0],1))
+        x = np.tile(self.x_cond[i].reshape((1, self.x_cond[i].shape[0])), (samples.shape[0],1))
         r = func(samples, x)
         r, f = r.flatten(), f.flatten() # flatten r to avoid strange broadcasting behavior
         batch_result[j] = np.mean(r / f)
       distances[i] = batch_result.mean()
 
-    assert distances.ndim == 1 and distances.shape[0] == x_cond.shape[0]
+    assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
   def compute_results(self):
@@ -264,48 +264,46 @@ class GoodnessOfFit:
       Returns:
         GoodnessOfFitResult object that holds the computed statistics
     """
-    x_cond = sample_x_cond(self.X, n_x_cond=self.n_x_cond)
 
-    gof_result = GoodnessOfFitSingleResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
+    gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
     if self.n_mc_samples < 10**5:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
 
     # KL - divergence
-    gof_result.kl_divergence = self.kl_divergence_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
+    gof_result.kl_divergence = self.kl_divergence_mc(n_samples=self.n_mc_samples)
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
+    gof_result.hellinger_distance = self.hellinger_distance_mc(n_samples=self.n_mc_samples)
 
     # Jason Shannon - divergence
-    gof_result.js_divergence = self.js_divergence_mc(x_cond=x_cond, n_samples=self.n_mc_samples)
+    gof_result.js_divergence = self.js_divergence_mc(n_samples=self.n_mc_samples)
 
     # Add number of observations
     gof_result.n_observations = self.n_observations
 
-    gof_result.x_cond = str(x_cond.flatten())
+    gof_result.x_cond = str(self.x_cond.flatten())
 
-    gof_result.x_cond_mean = np.mean(x_cond)
 
     gof_result.n_mc_samples = self.n_mc_samples
 
     # todo
     """ estimator mean and cov """
-    gof_result.mean_est = str(self.estimator.mean_(x_cond).flatten())
+    gof_result.mean_est = str(self.estimator.mean_(self.x_cond).flatten())
 
-    gof_result.cov_est = str(self.estimator.covariance(x_cond).flatten())
+    gof_result.cov_est = str(self.estimator.covariance(self.x_cond).flatten())
 
     """ simulator mean and cov """
-    gof_result.mean_sim = str(self.probabilistic_model.mean_(x_cond).flatten())
+    gof_result.mean_sim = str(self.probabilistic_model.mean_(self.x_cond).flatten())
 
-    gof_result.cov_sim = str(self.probabilistic_model.covariance(x_cond).flatten())
+    gof_result.cov_sim = str(self.probabilistic_model.covariance(self.x_cond).flatten())
 
 
     return gof_result
 
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
-      self.estimator, self.probabilistic_model, self.n_observations, self.n_x_cond))
+      self.estimator, self.probabilistic_model, self.n_observations, self.x_cond))
 
 
 def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
