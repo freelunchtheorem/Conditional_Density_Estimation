@@ -92,7 +92,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
 
     alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -104,7 +104,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
 
     alpha = 0.05
-    VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -120,7 +120,7 @@ class TestRiskMeasures(unittest.TestCase):
     alpha = 0.02
 
     CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
@@ -188,6 +188,13 @@ class TestJumpDiffusionModel(unittest.TestCase):
     x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
     cov = jdm.covariance(x_cond)[0][0][0]
     self.assertAlmostEqual(cov, 0.0, places=2)
+
+  def test_VaR(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    VaR = jdm.value_at_risk(x_cond)[0]
+    self.assertLessEqual(VaR, -0.01)
 
 def mean_pdf(density, x_cond, n_samples=10 ** 6):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
