@@ -156,6 +156,25 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
 
+class TestJumpDiffusionModel(unittest.TestCase):
+
+  def test_simulate_on_skewness(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    _, y = jdm.simulate(n_samples=10000)
+    skew = stats.skew(y)
+    self.assertLessEqual(skew, -0.5)
+
+  def test_simulate_conditional_on_skewness(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x, y = jdm.simulate(n_samples=10000)
+    x_cond = np.tile(np.expand_dims(x[5], axis=0), (10000, 1))
+    _, y2 = jdm.simulate_conditional(x_cond)
+
+    skew = stats.skew(y2)
+    self.assertLessEqual(skew, -0.5)
+
 
 def mean_pdf(density, x_cond, n_samples=10 ** 6):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
@@ -187,3 +206,25 @@ def covariance_pdf(density, x_cond, n_samples=10 ** 6):
     integral = mc_integration_cauchy(cov, ndim=density.ndim_y, n_samples=n_samples)
     covs[i] = integral.reshape((density.ndim_y, density.ndim_y))
   return covs
+
+
+if __name__ == '__main__':
+  #pytest.main('--html=unittest_report.html --self-contained-html')
+  if __name__ == '__main__':
+
+
+    testmodules = [
+      'unittests_simulations.TestJumpDiffusionModel'
+                   ]
+    suite = unittest.TestSuite()
+    for t in testmodules:
+      try:
+        # If the module defines a suite() function, call it to get the suite.
+        mod = __import__(t, globals(), locals(), ['suite'])
+        suitefn = getattr(mod, 'suite')
+        suite.addTest(suitefn())
+      except (ImportError, AttributeError):
+        # else, just load all the test cases from the module.
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromName(t))
+
+    unittest.TextTestRunner().run(suite)
