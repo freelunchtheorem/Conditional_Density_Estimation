@@ -264,7 +264,8 @@ class GoodnessOfFit:
       Returns:
         GoodnessOfFitResult object that holds the computed statistics
     """
-    x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
+    x_cond = sample_x_cond(self.X, n_x_cond=self.n_x_cond)
+    #x_cond = get_variable_grid(self.X, resolution=int(self.n_x_cond ** (1/self.X.shape[1])))
 
     gof_result = GoodnessOfFitSingleResult(x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
@@ -284,6 +285,8 @@ class GoodnessOfFit:
     gof_result.n_observations = self.n_observations
 
     gof_result.x_cond = str(x_cond.flatten())
+
+    gof_result.x_cond_mean = np.mean(x_cond)
 
     gof_result.n_mc_samples = self.n_mc_samples
 
@@ -306,14 +309,45 @@ class GoodnessOfFit:
       self.estimator, self.probabilistic_model, self.n_observations, self.n_x_cond))
 
 
+def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
+  """
+  uniformly samples n_xcond points within the specified percentiles in X
+
+  Args:
+    X: data on which the percentiles shall be computed - ndarray with shape (n_samples, ndim_x)
+    n_x_cond: number of x_cond points to be sampled
+    low_percentile: lower percentile (int)
+    high_percentile: upper percentile (int)
+
+  Returns:
+    sampled x_cond points - ndarray of shape (n_xcond, ndim_x)
+  """
+  assert 0 <= low_percentile < high_percentile <= 100
+
+  if X.ndim == 1:
+    X = np.expand_dims(X, axis=1)
+
+  samples_per_dim = []
+  for i in range(X.shape[1]):
+    low = np.percentile(X[:,i], low_percentile)
+    high = np.percentile(X[:,i], high_percentile)
+    samples_per_dim.append(np.random.uniform(low, high, size=(n_x_cond, 1)))
+
+  x_cond = np.vstack(samples_per_dim)
+
+  assert x_cond.shape[1] == X.shape[1] and x_cond.shape[0] == n_x_cond
+  return x_cond
+
 def get_variable_grid(X, resolution=20, low_percentile = 10, high_percentile=90):
   """
   computes grid of equidistant points between the specified percentiles in X
-  :param X: data on which the percentiles shall be computed - ndarray with shape (n_samples, ndim_x)
-  :param resolution: number of equidistant points in each direction
-  :param low_percentile: lower percentile (int)
-  :param high_percentile: upper percentile (int)
-  :return: ndarray of shape (resolution * ndim_x, ndim_x)
+  Args:
+    X: data on which the percentiles shall be computed - ndarray with shape (n_samples, ndim_x)
+    resolution: number of equidistant points in each direction
+    low_percentile: lower percentile (int)
+    high_percentile: upper percentile (int)
+  Returns:
+    ndarray of shape (resolution * ndim_x, ndim_x)
   """
   assert 0 <= low_percentile < high_percentile <= 100
 

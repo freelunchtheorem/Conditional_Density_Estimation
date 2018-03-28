@@ -1,5 +1,6 @@
 import pandas as pd
 import traceback
+import matplotlib.pyplot as plt
 from cde.utils import io
 
 class GoodnessOfFitResults:
@@ -45,10 +46,20 @@ class GoodnessOfFitResults:
     assert self.results_df is not None, "first generate results df"
     assert simulator in list(self.results_df["simulator"]), simulator + " not in the results dataframe"
     assert metric in self.results_df
+    # todo: check if all keys exist, required keys are: x_noise_std or y_noise_std, estimator
 
 
     for graph_dict in graph_dicts:
-      n_obs = self.results_df.loc["estimator" == graph_dict["estimator"]]
+      sub_df = self.results_df.where((self.results_df.estimator == graph_dict["estimator"])
+                                     & (self.results_df.simulator == simulator)
+                                     & (self.results_df.x_noise_std == graph_dict["x_noise_std"])
+                                     & (self.results_df.y_noise_std == graph_dict["y_noise_std"])
+                                     )
+      metric = sub_df[metric]
+      n_obs = sub_df.loc[:, "n_observations"]
+
+      plt.plot(n_obs, metric)
+
 
 
     raise NotImplementedError
