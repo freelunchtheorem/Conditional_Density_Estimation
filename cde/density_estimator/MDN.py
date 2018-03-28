@@ -48,8 +48,12 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
 
-    self.fitted = False
     self.can_sample = True
+    self.has_pdf = True
+    self.has_cdf = True
+
+    self.fitted = False
+
 
   def fit(self, X, Y, random_seed=None, verbose=True, eval_set=None, **kwargs):
     """ Fits the conditional density model with provided data

@@ -32,6 +32,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
     self.ndim = self.ndim_x + self.ndim_y
 
     self.has_cdf = True
+    self.has_pdf = True
     self.can_sample = True
 
   def pdf(self, X, Y):

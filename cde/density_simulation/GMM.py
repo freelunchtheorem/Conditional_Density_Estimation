@@ -19,6 +19,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
 
     np.random.seed(random_seed)
 
+    self.has_pdf = True
     self.has_cdf = True
     self.can_sample = True
 

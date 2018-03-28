@@ -76,6 +76,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.fitted = False
     self.can_sample = True
     self.has_cdf = True
+    self.has_pdf = True
 
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
