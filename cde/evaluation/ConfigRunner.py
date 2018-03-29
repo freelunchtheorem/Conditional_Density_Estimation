@@ -19,20 +19,28 @@ class ConfigRunner():
     est_params: dict containing estimator parametrization
                 example:
 
-                {'KernelMixtureNetwork': (  ('k_means', 5, True, [0.1, 0.5, 1.0], None, None, True, 1000, 0.01, 0.01, 22),
-                                             ....
-                                            ('k_means', 5, True, [0.1, 0.5, 1.0], None, None, True, 1000, 0.01, 0.1, 22),
-                                         )
-                 'MixtureDensityNetwork': ( (5, None, None, 1000, 0.01, 0.01, 22),
-                                            ....
-                                          )
+                { 'KernelMixtureNetwork':
+                          {'center_sampling_method': ["k_means"],
+                           'n_centers': [20],
+                           ...
+                           'random_seed': [22]
+                           }
+                  'MixtureDensityNetwork':
+                          {
+                          ...
+                           }
                 }
 
 
     sim_params: diction containing simulator parametrization
                 example:
 
-                {'EconDensity': (1,), 'GaussianMixture': (30, 2, 2, 4.5, 22)}
+                {'EconDensity': {'std': [1],
+                                'heteroscedastic': [True]
+                                },
+
+                'GaussianMixture': { ... }
+                }
 
     n_observations: either a array-like or a scalar value that defines the number of observations from the
                     simulation model that are used to train the estimators
@@ -50,20 +58,23 @@ class ConfigRunner():
     assert keys_of_interest
     assert observations.all()
 
+    est_configs = _create_configurations(est_params)
+    sim_configs = _create_configurations(sim_params)
+
     logging.log(logging.INFO, "creating configurations...")
     self.observations = observations
-    self.configured_estimators = [globals()[estimator_name](*config) for estimator_name, estimator_params in est_params.items() for config in estimator_params]
-    self.configured_simulators = [globals()[simulator_name](*sim_params) for simulator_name, sim_params in sim_params.items()]
+    self.configured_estimators = [globals()[estimator_name](**config) for estimator_name, estimator_params in est_configs.items() for config in estimator_params]
+    self.configured_simulators = [globals()[simulator_name](**config) for simulator_name, sim_params in sim_configs.items() for config in sim_params]
 
     self.n_mc_samples = n_mc_samples
     self.n_x_cond = n_x_cond
 
-    self.configs = self._create_configurations()
+    self.configs = self._merge_configurations()
     self.keys_of_interest = keys_of_interest
 
 
 
-  def _create_configurations(self):
+  def _merge_configurations(self):
     """
     Creates all possible combinations from the (configured) estimators and simulators.
     Requires configured estimators and simulators in the constructor:
@@ -239,3 +250,12 @@ class ConfigRunner():
     if self.export_csv:
       self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
       self.file_handle_results_csv = open(self.results_csv_path, "a+")
+
+def _create_configurations(params_dict):
+  confs = {}
+  for conf_instance, conf_dict in params_dict.items():
+    conf_product = list(itertools.product(*list(conf_dict.values())))
+    conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
+    confs[conf_instance] = conf_product_dicts
+
+  return confs

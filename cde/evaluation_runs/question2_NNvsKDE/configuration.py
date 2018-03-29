@@ -4,28 +4,35 @@ import numpy as np
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 
-
 def issue2():
   estimator_params = {
-  'KernelMixtureNetwork': tuple(itertools.product(
-        ["k_means"],  # center_sampling_method
-        [20], # n_centers
-        [True],  # keep_edges
-        [[0.1, 0.5, 1.]],  # init_scales
-        [None],  # estimator
-        [None],  # X_ph
-        [True],  # train_scales
-        [1000],  # n training epochs
-        [0.01, None],  # x_noise_std
-        [0.01, None],  # y_noise_std
-        [22]  # random_seed
-        ))
+  'KernelMixtureNetwork':
+
+    {'center_sampling_method': ["k_means"],
+     'n_centers': [20],
+     'keep_edges': [True],
+     'init_scales': [[0.1, 0.5, 1.]],
+     'estimator': [None],
+     'X_ph': [None],
+     'train_scales': [True],
+     'n_training_epochs': [100],
+     'x_noise_std': [0.01, None],
+     'y_noise_std': [0.01, None],
+     'random_seed': [22]
+     }
   }
 
-
   simulators_params = {
-  'EconDensity': tuple([1]),  # std
-  'GaussianMixture': (30, 2, 2, 4.5, 22)  # n_kernels, ndim_x, ndim_y, means_std, #random_seed
+  'EconDensity': {'std': [1],
+                  'heteroscedastic': [True]
+                  },
+
+  'GaussianMixture': {'n_kernels' : [20],
+                      'ndim_x': [2],
+                      'ndim_y': [2],
+                      'means_std': [1.5],
+                      'random_seed': [24]
+                      }
   }
 
   return estimator_params, simulators_params
@@ -33,7 +40,7 @@ def issue2():
 
 if __name__ == '__main__':
 
-  run = False
+  run = True
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
@@ -47,12 +54,12 @@ if __name__ == '__main__':
 
     conf_est, conf_sim = issue2()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=10**3, n_x_cond=5)
+                               n_mc_samples=10**7, n_x_cond=5)
 
-    results_list, full_df, path_pickle = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_NNvsKDE")
+    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_NNvsKDE")
 
   if load:
-    path_pickle = "question2_NNvsKDE_configurations_03-29-18_15-50-53.pickle"
+    path_pickle = "question2_NNvsKDE_result_03-29-18_18-04-22.pickle"
     with open(path_pickle, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
