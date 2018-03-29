@@ -46,8 +46,7 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
                init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=1000,
                x_noise_std=None, y_noise_std=None, random_seed=None):
 
-    self.random_seed = random_seed
-    np.random.seed(random_seed)
+    self.random_state = np.random.RandomState(seed=random_seed)
     tf.set_random_seed(random_seed)
 
     self.sess = None

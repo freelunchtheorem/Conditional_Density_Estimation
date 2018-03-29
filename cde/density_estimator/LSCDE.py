@@ -21,8 +21,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
           keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
           random_seed: (optional) seed (int) of the random number generators used
       """
-    self.random_seed = random_seed
-    np.random.seed(random_seed)
+    self.random_state = np.random.RandomState(seed=random_seed)
 
 
     self.center_sampling_method = center_sampling_method
