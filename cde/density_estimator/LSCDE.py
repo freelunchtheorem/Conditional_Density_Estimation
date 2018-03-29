@@ -33,6 +33,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     self.fitted = False
     self.can_sample = True
+    self.has_pdf = True
+    self.has_cdf = False
 
   def _build_model(self, X, Y):
     # save variance of data

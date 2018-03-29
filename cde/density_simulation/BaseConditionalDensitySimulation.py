@@ -116,20 +116,25 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     Returns:
       Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
-    return self._covariance_pdf(x_cond)
+    if self.has_pdf:
+      return self._covariance_pdf(x_cond)
+    elif self.can_sample:
+      return self._covariance_mc(x_cond)
+    else:
+      raise NotImplementedError()
 
   def value_at_risk(self, x_cond, alpha=0.01):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
-      x_cond: different x values to condition on - numpy array of shape (n_values, )
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
       alpha: quantile percentage of the distribution
 
     Returns:
        VaR values for each x to condition on - numpy array of shape (n_values)
     """
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
-    assert x_cond.ndim == 1
+    assert x_cond.ndim == 2
 
     if self.has_cdf:
       return self._value_at_risk_cdf(x_cond, alpha=alpha)
@@ -142,14 +147,14 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
 
        Args:
-         x_cond: different x values to condition on - numpy array of shape (n_values, )
+         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
          alpha: quantile percentage of the distribution
 
        Returns:
          CVaR values for each x to condition on - numpy array of shape (n_values)
        """
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
-    assert x_cond.ndim == 1
+    assert x_cond.ndim == 2
 
     if self.can_sample:
       return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)

@@ -10,7 +10,7 @@ If heteroscedastic = True, :math:`\sigma_y` is a linear function of x:
 
 .. math:: \sigma_y = 1 + x
 
-.. automodule:: density_simulation
+.. automodule:: cde.density_simulation
 
 .. autoclass:: EconDensity
     :members:

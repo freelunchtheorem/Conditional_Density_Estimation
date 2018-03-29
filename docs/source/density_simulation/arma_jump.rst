@@ -10,7 +10,7 @@ Data generation process:
 where :math:`\epsilon_t \sim N(0,1)` denotes a Gaussian shock and :math:`z_t \sim B(1,p)` a Bernoulli distributed jump indicator with :math:`p`
 being the probability for a negative jump.
 
-.. automodule:: density_simulation
+.. automodule:: cde.density_simulation
 
 .. autoclass:: ArmaJump
     :members:

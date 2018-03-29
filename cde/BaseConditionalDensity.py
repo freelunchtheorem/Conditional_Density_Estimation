@@ -30,6 +30,7 @@ class ConditionalDensity(BaseEstimator):
 
   def _covariance_pdf(self, x_cond, n_samples=10 ** 6):
     assert hasattr(self, "mean_")
+    assert hasattr(self, "pdf")
 
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
     mean = self.mean_(x_cond)
@@ -52,6 +53,23 @@ class ConditionalDensity(BaseEstimator):
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
 
+  def _covariance_mc(self, x_cond, n_samples=10 ** 7):
+    if hasattr(self, 'sample'):
+      sample = self.sample
+    elif hasattr(self, 'simulate_conditional'):
+      sample = self.simulate_conditional
+    else:
+      raise AssertionError("Requires sample or simulate_conditional method")
+
+    covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
+    for i in range(x_cond.shape[0]):
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, y_sample = sample(x)
+
+      c = np.cov(y_sample, rowvar=False)
+      covs[i] = c
+    return covs
+
   def _value_at_risk_mc(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
       sample = self.sample
@@ -60,26 +78,27 @@ class ConditionalDensity(BaseEstimator):
     else:
       raise AssertionError("Requires sample or simulate_conditional method")
 
-    VaRs = np.zeros(x_cond.shape)
-    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples, 1))
+    assert x_cond.ndim == 2
+    VaRs = np.zeros(x_cond.shape[0])
+    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0], x_cond.shape[1])), (n_samples,1, 1))
     for i in range(x_cond.shape[1]):
-      _, samples = sample(x_cond[:, i])
+      _, samples = sample(x_cond[:, i,:])
       VaRs[i] = np.percentile(samples, alpha * 100.0)
     return VaRs
 
   def _value_at_risk_cdf(self, x_cond, alpha=0.01, eps=10 ** -8):
     approx_error = 10 ** 8
-    x = x_cond.reshape((1, x_cond.shape[0]))
     left, right = -10 ** 8, 10 ** 8
 
-    VaRs = np.zeros(x_cond.shape)
+    VaRs = np.zeros(x_cond.shape[0])
 
     # numerical approximation, i.e. Newton method
-    for j in range(x.shape[1]):
+    for j in range(x_cond.shape[0]):
       while approx_error > eps:
         middle = (left + right) / 2
         y = np.array([middle])
-        p = self.cdf(x[:, j], y)
+
+        p = self.cdf(x_cond[j, :], y)
 
         if p > alpha:
           right = middle
@@ -98,10 +117,10 @@ class ConditionalDensity(BaseEstimator):
       raise AssertionError("Requires sample or simulate_conditional method")
 
     VaR = self.value_at_risk(x_cond, alpha=alpha)
-    CVaRs = np.zeros(x_cond.shape)
-    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples, 1))
+    CVaRs = np.zeros(x_cond.shape[0])
+    x_cond = np.tile(x_cond.reshape((1, x_cond.shape[0], x_cond.shape[1])), (n_samples, 1, 1))
     for i in range(x_cond.shape[1]):
-      _, samples = sample(x_cond[:, i])
+      _, samples = sample(x_cond[:, i, :])
       shortfall_samples = np.ma.masked_where(VaR[i] < samples, samples)
       CVaRs[i] = np.mean(shortfall_samples)
 

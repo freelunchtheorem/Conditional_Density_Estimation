@@ -82,7 +82,7 @@ class TestRiskMeasures(unittest.TestCase):
     est.fit(None, None)
 
     alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -95,7 +95,7 @@ class TestRiskMeasures(unittest.TestCase):
     est.fit(None, None)
 
     alpha = 0.05
-    VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -112,7 +112,7 @@ class TestRiskMeasures(unittest.TestCase):
     alpha = 0.02
 
     CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)

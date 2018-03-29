@@ -1,7 +1,7 @@
 Mixture Density Network
 ==================================================
 
-.. automodule:: density_estimator
+.. automodule:: cde.density_estimator
 
 .. autoclass:: MixtureDensityNetwork
     :members:

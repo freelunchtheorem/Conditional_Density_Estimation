@@ -92,7 +92,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
 
     alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([0,1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -104,7 +104,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
 
     alpha = 0.05
-    VaR_est = est.value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
     VaR_true = norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
@@ -120,7 +120,7 @@ class TestRiskMeasures(unittest.TestCase):
     alpha = 0.02
 
     CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([0, 1]), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
@@ -156,6 +156,45 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
 
+class TestJumpDiffusionModel(unittest.TestCase):
+
+  def test_simulate_on_skewness(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    _, y = jdm.simulate(n_samples=10000)
+    skew = stats.skew(y)
+    self.assertLessEqual(skew, -0.5)
+
+  def test_simulate_conditional_on_skewness(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x, y = jdm.simulate(n_samples=10000)
+    x_cond = np.tile(np.expand_dims(x[5], axis=0), (10000, 1))
+    _, y2 = jdm.simulate_conditional(x_cond)
+
+    skew = stats.skew(y2)
+    self.assertLessEqual(skew, -0.5)
+
+  def test_mean(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    mean = jdm.mean_(x_cond)[0][0]
+    self.assertAlmostEqual(mean, 0.0, places=2)
+
+  def test_covariance(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    cov = jdm.covariance(x_cond)[0][0][0]
+    self.assertAlmostEqual(cov, 0.0, places=2)
+
+  def test_VaR(self):
+    np.random.seed(22)
+    jdm = JumpDiffusionModel()
+    x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
+    VaR = jdm.value_at_risk(x_cond)[0]
+    self.assertLessEqual(VaR, -0.01)
 
 def mean_pdf(density, x_cond, n_samples=10 ** 6):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
@@ -187,3 +226,25 @@ def covariance_pdf(density, x_cond, n_samples=10 ** 6):
     integral = mc_integration_cauchy(cov, ndim=density.ndim_y, n_samples=n_samples)
     covs[i] = integral.reshape((density.ndim_y, density.ndim_y))
   return covs
+
+
+if __name__ == '__main__':
+  #pytest.main('--html=unittest_report.html --self-contained-html')
+  if __name__ == '__main__':
+
+
+    testmodules = [
+      'unittests_simulations.TestJumpDiffusionModel'
+                   ]
+    suite = unittest.TestSuite()
+    for t in testmodules:
+      try:
+        # If the module defines a suite() function, call it to get the suite.
+        mod = __import__(t, globals(), locals(), ['suite'])
+        suitefn = getattr(mod, 'suite')
+        suite.addTest(suitefn())
+      except (ImportError, AttributeError):
+        # else, just load all the test cases from the module.
+        suite.addTest(unittest.defaultTestLoader.loadTestsFromName(t))
+
+    unittest.TextTestRunner().run(suite)

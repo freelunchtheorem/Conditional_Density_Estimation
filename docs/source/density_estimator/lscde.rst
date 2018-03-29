@@ -51,7 +51,7 @@ While [SUG2010]_ propose to select center points for the kernel functions random
 
 
 
-.. automodule:: density_estimator
+.. automodule:: cde.density_estimator
 
 .. autoclass:: LSConditionalDensityEstimation
     :members:

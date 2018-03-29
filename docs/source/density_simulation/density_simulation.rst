@@ -13,7 +13,7 @@ Conditional Density Simulation
 Conditional Density Simulation Interface
 ===========================================================
 
-.. automodule:: density_simulation
+.. automodule:: cde.density_simulation
 
-.. autoclass:: ConditionalDensity
+.. autoclass:: BaseConditionalDensitySimulation
     :members:

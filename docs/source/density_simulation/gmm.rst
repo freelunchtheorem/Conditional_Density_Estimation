@@ -3,7 +3,7 @@ Gaussian Mixture
 
 Gaussian Mixture Model with diagonal covariance matrices
 
-.. automodule:: density_simulation
+.. automodule:: cde.density_simulation
 
 .. autoclass:: GaussianMixture
     :members:

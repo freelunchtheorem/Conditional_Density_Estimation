@@ -23,6 +23,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     self.ndim = self.ndim_x + self.ndim_y
 
     self.has_cdf = True
+    self.has_pdf = True
     self.can_sample = True
 
   def pdf(self, X, Y):
@@ -71,9 +72,9 @@ class EconDensity(BaseConditionalDensitySimulation):
     return X, Y
 
   def simulate(self, n_samples=1000):
-    """ Draws random samples from the unconditional distribution p(x,y)
+    """ Draws random samples from the joint distribution p(x,y)
     Args:
-      n_samples: (int) number of samples to be drawn from the conditional distribution
+      n_samples: (int) number of samples to be drawn from the joint distribution
 
     Returns:
       (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)

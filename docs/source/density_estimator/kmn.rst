@@ -29,7 +29,7 @@ In addition to the approach described in the paper, the implementation has the f
     - **agglomorative:** uses agglomorative clustering to determine k kernel centers
 
 
-.. automodule:: density_estimator
+.. automodule:: cde.density_estimator
 
 .. autoclass:: KernelMixtureNetwork
     :members:

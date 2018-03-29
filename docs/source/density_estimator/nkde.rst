@@ -20,7 +20,7 @@ This implementation currently supports two types of weighting:
 - weights :math:`w_j` proportional to :math:`||x_j - x||_2`, the euclidean distance w.r.t. to x
 
 
-.. automodule:: density_estimator
+.. automodule:: cde.density_estimator
 
 .. autoclass:: NeighborKernelDensityEstimation
     :members:
