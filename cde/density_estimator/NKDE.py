@@ -22,8 +22,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
   """
 
   def __init__(self, epsilon=5.0, bandwidth=1.0, weighted=True, random_seed=None):
-    self.random_seed = random_seed
-    np.random.seed(random_seed)
+    self.random_state = np.random.RandomState(seed=random_seed)
 
     self.epsilon = epsilon
     self.weighted = weighted

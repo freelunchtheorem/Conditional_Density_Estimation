@@ -11,11 +11,14 @@ class EconDensity(BaseConditionalDensitySimulation):
   Args:
     std: standard deviation of the Gaussian noise in y
     heteroscedastic: boolean indicating whether std is fixed or a function of x
+    random_seed: seed for the random_number generator
   """
 
-  def __init__(self, std=1, heteroscedastic=True):
+  def __init__(self, std=1, heteroscedastic=True, random_seed=None):
     assert std > 0
     self.heteroscedastic = heteroscedastic
+    self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     self.std = std
     self.ndim_x = 1
@@ -66,7 +69,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     assert X.ndim == 1
 
     n_samples = X.shape[0]
-    Y = X ** 2 + self._std(X) * np.random.normal(size=n_samples)
+    Y = X ** 2 + self._std(X) * self.random_state.normal(size=n_samples)
     X = np.expand_dims(X, axis=1)
     Y = np.expand_dims(Y, axis=1)
     return X, Y
@@ -80,8 +83,8 @@ class EconDensity(BaseConditionalDensitySimulation):
       (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
     assert n_samples > 0
-    X = np.abs(np.random.standard_normal(size=[n_samples]))
-    Y = X ** 2 + self._std(X) * np.random.normal(size=n_samples)
+    X = np.abs(self.random_state.standard_normal(size=[n_samples]))
+    Y = X ** 2 + self._std(X) * self.random_state.normal(size=n_samples)
     return X, Y
 
   def mean_(self, x_cond):

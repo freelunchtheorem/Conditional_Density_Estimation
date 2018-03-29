@@ -23,7 +23,6 @@ class ConfigRunner():
                           {'center_sampling_method': ["k_means"],
                            'n_centers': [20],
                            ...
-                           'random_seed': [22]
                            }
                   'MixtureDensityNetwork':
                           {
@@ -50,13 +49,17 @@ class ConfigRunner():
     n_mc_samples: number of samples used for monte carlo sampling (a warning is printed if n_mc_samples is less than 10**5
 
     n_x_cond: (int) number of x conditionals to be sampled
+
+    n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 6, n_x_cond=5):
+  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5):
     assert est_params
     assert sim_params
     assert keys_of_interest
     assert observations.all()
+
+    sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
     est_configs = _create_configurations(est_params)
     sim_configs = _create_configurations(sim_params)
@@ -250,6 +253,14 @@ class ConfigRunner():
     if self.export_csv:
       self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
       self.file_handle_results_csv = open(self.results_csv_path, "a+")
+
+
+def _add_seeds_to_sim_params(n_seeds, sim_params):
+  seeds = [20 + i for i in range(n_seeds)]
+  for sim_instance in sim_params.keys():
+    sim_params[sim_instance]['random_seed'] = seeds
+  return sim_params
+
 
 def _create_configurations(params_dict):
   confs = {}

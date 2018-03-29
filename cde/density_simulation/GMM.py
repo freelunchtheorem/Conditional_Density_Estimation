@@ -13,11 +13,13 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     ndim_x: dimensionality of X / number of random variables in X
     ndim_y: dimensionality of Y / number of random variables in Y
     means_std: std. dev. when sampling the kernel means
+    random_seed: seed for the random_number generator
   """
 
   def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5, random_seed=None):
 
-    np.random.seed(random_seed)
+    self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     self.has_pdf = True
     self.has_cdf = True
@@ -30,12 +32,12 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     self.ndim_y = ndim_y
     self.means_std = means_std
     self.weights = self._sample_weights(n_kernels) #shape(n_kernels,), sums to one
-    self.means = np.random.normal(loc=np.zeros([self.ndim]), scale=self.means_std, size=[n_kernels, self.ndim]) #shape(n_kernels, n_dims)
+    self.means = self.random_state.normal(loc=np.zeros([self.ndim]), scale=self.means_std, size=[n_kernels, self.ndim]) #shape(n_kernels, n_dims)
 
 
     """ Sample cov matrixes and assure that cov matrix is pos definite"""
-    self.covariances_x = project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_x, self.ndim_x)))) #shape(n_kernels, ndim_x, ndim_y)
-    self.covariances_y = project_to_pos_semi_def(np.abs(np.random.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_y, self.ndim_y))))  # shape(n_kernels, ndim_x, ndim_y)
+    self.covariances_x = project_to_pos_semi_def(np.abs(self.random_state.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_x, self.ndim_x)))) #shape(n_kernels, ndim_x, ndim_y)
+    self.covariances_y = project_to_pos_semi_def(np.abs(self.random_state.normal(loc=1, scale=0.5, size=(n_kernels, self.ndim_y, self.ndim_y))))  # shape(n_kernels, ndim_x, ndim_y)
 
     """ some eigenvalues of the sampled covariance matrices can be exactly zero -> map to positive
     semi-definite subspace  """
@@ -214,7 +216,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     Returns:
       ndarray of weights with shape (n_weights,)
     """
-    weights = np.random.uniform(0, 1, size=[n_weights])
+    weights = self.random_state.uniform(0, 1, size=[n_weights])
     return weights / np.sum(weights)
 
   def _W_x(self, X):
