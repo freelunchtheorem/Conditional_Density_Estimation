@@ -13,7 +13,7 @@ In case of Gaussian Kernels, the estimated density can be expressed as
 
 .. math:: p(y|x) = \sum_{j \in \mathcal{I}_{x, \epsilon}} w_j ~ N(y~| y_j, \sigma^2 I)
 
-where :math:`w_j` is the weighting of te j-th kernel and :math:`N(y~|\mu,\Sigma)` the probability function of a multivariate Gaussian.
+where :math:`w_j` is the weighting of the j-th kernel and :math:`N(y~|\mu,\Sigma)` the probability function of a multivariate Gaussian.
 This implementation currently supports two types of weighting:
 
 - equal weights: :math:`w_j = \frac{1}{|\mathcal{I}_{x, \epsilon}|}`
