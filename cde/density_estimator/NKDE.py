@@ -35,7 +35,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.has_pdf = True
     self.has_cdf = False
 
-  def fit(self, X, Y):
+  def fit(self, X, Y, **kwargs):
     """ Since NKDE is a lazy learner, fit just stores the provided training data (X,Y)
 
       Args:

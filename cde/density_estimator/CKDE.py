@@ -18,7 +18,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.has_pdf = True
     self.has_cdf = True
 
-  def fit(self, X, Y):
+  def fit(self, X, Y, **kwargs):
     """ Since CKDE is a lazy learner, fit just stores the provided training data (X,Y)
 
       Args:

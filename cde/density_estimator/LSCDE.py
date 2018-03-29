@@ -62,8 +62,6 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       Args:
         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        n_folds: number of cross-validation folds (positive integer)
-
     """
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
