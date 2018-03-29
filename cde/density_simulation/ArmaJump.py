@@ -11,10 +11,12 @@ class ArmaJump(BaseConditionalDensitySimulation):
     arma_a1: AR(1) factor
     std: standard deviation of the Gaussian Noise
     jump_prob: probability of a negative jump
+    random_seed: seed for the random_number generator
   """
 
-  def __init__(self, c=0.1, arma_a1=0.9, std=0.05, jump_prob=0.05):
+  def __init__(self, c=0.1, arma_a1=0.9, std=0.05, jump_prob=0.05, random_seed=None):
     self.std = std
+    self.random_state = np.random.RandomState(seed=random_seed)
 
     # AR(1) params
     self.arma_c = c
@@ -71,12 +73,12 @@ class ArmaJump(BaseConditionalDensitySimulation):
       Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
-    y_ar = np.random.normal(loc=mean, scale=self.std, size=X.shape[0])
+    y_ar = self.random_state.normal(loc=mean, scale=self.std, size=X.shape[0])
 
     mean_jump = mean + self.jump_mean
-    y_jump = np.random.normal(loc=mean_jump, scale=self.jump_std, size=X.shape[0])
+    y_jump = self.random_state.normal(loc=mean_jump, scale=self.jump_std, size=X.shape[0])
 
-    jump_bernoulli = np.random.uniform(size=X.shape[0]) < self.jump_prob
+    jump_bernoulli = self.random_state.uniform(size=X.shape[0]) < self.jump_prob
 
     return np.select([jump_bernoulli, np.bitwise_not(jump_bernoulli)], [y_jump, y_ar])
 
@@ -89,15 +91,15 @@ class ArmaJump(BaseConditionalDensitySimulation):
        Returns:
          (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
-    self.eps = np.random.normal(scale=self.std, size=n_samples + burn_in)
+    self.eps = self.random_state.normal(scale=self.std, size=n_samples + burn_in)
 
     x = np.zeros(n_samples + burn_in)
     x[0] = x_0
     for i in range(1, n_samples + burn_in):
-      if np.random.uniform() > self.jump_prob: # AR(1)
+      if self.random_state.uniform() > self.jump_prob: # AR(1)
         x[i] = self.arma_c * (1-self.arma_a1) + self.arma_a1 * x[i-1] + self.eps[i]
       else: # Jump
-        jump = np.random.normal(loc=self.jump_mean, scale=self.jump_std)
+        jump = self.random_state.normal(loc=self.jump_mean, scale=self.jump_std)
         x[i] = self.arma_c * (1-self.arma_a1) + self.arma_a1 * x[i-1] + jump
 
     return x[burn_in:n_samples + burn_in]
@@ -148,8 +150,8 @@ class ArmaJump(BaseConditionalDensitySimulation):
 
     for t in range(1, T):
       # Draw the next x_t
-      self.eps[t - 1] = self.sigma[t - 1] * np.random.normal(0, 1)
+      self.eps[t - 1] = self.sigma[t - 1] * self.random_state.normal(0, 1)
       # Draw the next sigma_t
       self.sigma[t] = np.sqrt(self.garch_a0 + self.garch_b1 * self.sigma[t - 1] ** 2 + self.garch_a1 * self.eps[t - 1] ** 2)
 
-    self.eps[T - 1] = self.sigma[T - 1] * np.random.normal(0, 1)
+    self.eps[T - 1] = self.sigma[T - 1] * self.random_state.normal(0, 1)

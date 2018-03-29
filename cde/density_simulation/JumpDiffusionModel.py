@@ -6,9 +6,14 @@ from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 class JumpDiffusionModel(BaseConditionalDensitySimulation):
   """
   Jump-Diffustion continous time model by Christoffersen et al. (2016), "Time-varying Crash Risk: The Role of Market Liquiditiy"
+
+  Args:
+    random_seed: seed for the random_number generator
   """
 
-  def __init__(self, std=1):
+  def __init__(self, random_seed=None):
+    self.random_state = np.random.RandomState(seed=random_seed)
+
     # Parameters based on the paper with slight modifications
     self.r = 0.0
     self.kappa_V = 3.011
@@ -119,17 +124,17 @@ class JumpDiffusionModel(BaseConditionalDensitySimulation):
     lambda_t = Psi_sim + self.gamma_V * V_sim + self.gamma_L * L_sim
 
     Psi_sim = np.maximum(0, Psi_sim + self.kappa_psi * (self.theta_psi - Psi_sim) * dt + self.xi_psi * (
-              (Psi_sim * dt) ** 0.5) * np.random.normal(size=(N,)))
-    L_shocks = np.random.normal(size=(N,))
+              (Psi_sim * dt) ** 0.5) * self.random_state.normal(size=(N,)))
+    L_shocks = self.random_state.normal(size=(N,))
     L_sim = np.maximum(0, L_sim + self.kappa_L * (self.theta_L - L_sim) * dt + self.xi_L * ((L_sim * dt) ** 0.5) * L_shocks)
-    V_shocks = np.random.normal(size=(N,))
+    V_shocks = self.random_state.normal(size=(N,))
     V_sim = np.maximum(0,
                        V_sim + self.kappa_V * (self.theta_V - V_sim) * dt + self.gamma * self.kappa_L * (self.theta_L - L_sim) * dt + self.xi_V * (
                                  (V_sim * dt) ** 0.5) * V_shocks + self.gamma * self.xi_L * ((L_sim * dt) ** 0.5) * L_shocks)
 
-    q = np.random.normal(loc=self.theta, scale=self.delta, size=(N,))
-    jumps = np.random.poisson(lam=lambda_t * dt, size=(1, N)).T[:, 0]
-    y_shocks = np.random.normal(size=(N,))
+    q = self.random_state.normal(loc=self.theta, scale=self.delta, size=(N,))
+    jumps = self.random_state.poisson(lam=lambda_t * dt, size=(1, N)).T[:, 0]
+    y_shocks = self.random_state.normal(size=(N,))
     y_sim = y_sim + (self.r - 0.5 * V_sim - xi * lambda_t + 1.554 * (V_sim ** 0.5)) * dt + ((V_sim * dt) ** 0.5) * (
               ((1 - self.rho ** 2) ** 0.5) * y_shocks + self.rho * V_shocks) + q * jumps
 

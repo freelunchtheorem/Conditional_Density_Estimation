@@ -1,6 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
+#import matplotlib.pyplot as plt
+#from matplotlib import cm
 from sklearn.base import BaseEstimator
 from cde import ConditionalDensity
 
@@ -54,43 +54,43 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     """
     raise NotImplementedError
 
-  def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100, mode="pdf"):
-    """ Plots the distribution specified in mode if x and y are 1-dimensional each
-
-    Args:
-      xlim: 2-tuple specifying the x axis limits
-      ylim: 2-tuple specifying the y axis limits
-      resolution: integer specifying the resolution of plot
-      mode: spefify which dist to plot ["pdf", "cdf", "joint_pdf"]
-
-    """
-    modes = ["pdf", "cdf", "joint_pdf"]
-    assert mode in modes, "mode must be on of the following: " + modes
-    assert self.ndim == 2, "Can only plot two dimensional distributions"
-
-    # prepare mesh
-    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
-    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
-    X, Y = np.meshgrid(linspace_x, linspace_y)
-    X, Y = X.flatten(), Y.flatten()
-
-    # calculate values of distribution
-    if mode == "pdf":
-      Z = self.pdf(X, Y)
-    elif mode == "cdf":
-      Z = self.cdf(X, Y)
-    elif mode == "joint_pdf":
-      Z = self.joint_pdf(X, Y)
-
-    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
-      [resolution, resolution])
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
-                           linewidth=100, antialiased=True)
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.show()
+  # def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100, mode="pdf"):
+  #   """ Plots the distribution specified in mode if x and y are 1-dimensional each
+  #
+  #   Args:
+  #     xlim: 2-tuple specifying the x axis limits
+  #     ylim: 2-tuple specifying the y axis limits
+  #     resolution: integer specifying the resolution of plot
+  #     mode: spefify which dist to plot ["pdf", "cdf", "joint_pdf"]
+  #
+  #   """
+  #   modes = ["pdf", "cdf", "joint_pdf"]
+  #   assert mode in modes, "mode must be on of the following: " + modes
+  #   assert self.ndim == 2, "Can only plot two dimensional distributions"
+  #
+  #   # prepare mesh
+  #   linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+  #   linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+  #   X, Y = np.meshgrid(linspace_x, linspace_y)
+  #   X, Y = X.flatten(), Y.flatten()
+  #
+  #   # calculate values of distribution
+  #   if mode == "pdf":
+  #     Z = self.pdf(X, Y)
+  #   elif mode == "cdf":
+  #     Z = self.cdf(X, Y)
+  #   elif mode == "joint_pdf":
+  #     Z = self.joint_pdf(X, Y)
+  #
+  #   X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+  #     [resolution, resolution])
+  #   fig = plt.figure()
+  #   ax = fig.gca(projection='3d')
+  #   surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+  #                          linewidth=100, antialiased=True)
+  #   plt.xlabel("x")
+  #   plt.ylabel("y")
+  #   plt.show()
 
   def mean_(self, x_cond):
     """ Mean of the fitted distribution conditioned on x_cond
