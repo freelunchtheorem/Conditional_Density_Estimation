@@ -1,10 +1,9 @@
-import itertools
 import pickle
 import numpy as np
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 
-def issue2():
+def question2():
   estimator_params = {
   'KernelMixtureNetwork':
 
@@ -52,7 +51,7 @@ if __name__ == '__main__':
   if run:
     observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
 
-    conf_est, conf_sim = issue2()
+    conf_est, conf_sim = question2()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                n_mc_samples=10**7, n_x_cond=5)
 
