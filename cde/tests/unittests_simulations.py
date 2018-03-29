@@ -7,8 +7,7 @@ from scipy.stats import norm
 class TestArmaJump(unittest.TestCase):
 
   def test_cdf_sample_consistency(self):
-    np.random.seed(8787)
-    arj = ArmaJump()
+    arj = ArmaJump(random_seed=8787)
 
     x_cond = np.asarray([0.1 for _ in range(200000)])
     y_sample = arj.simulate_conditional(x_cond)
