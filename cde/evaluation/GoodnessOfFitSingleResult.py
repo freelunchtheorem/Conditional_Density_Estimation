@@ -1,3 +1,4 @@
+from collections import OrderedDict
 
 class GoodnessOfFitSingleResult:
   def __init__(self, x_cond, estimator_params, probabilistic_model_params):
@@ -32,7 +33,7 @@ class GoodnessOfFitSingleResult:
     full_dict = self.__dict__
 
     if keys_of_interest is not None:
-      report_dict = dict()
+      report_dict = OrderedDict()
       for key in keys_of_interest:
         if key in full_dict:
           report_dict[key] = full_dict[key]

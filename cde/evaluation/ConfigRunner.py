@@ -1,5 +1,4 @@
 import itertools
-import multiprocessing
 import pandas as pd
 import numpy as np
 import gc
@@ -7,27 +6,37 @@ import copy
 import traceback
 import logging
 
-from contextlib import contextmanager
 """ do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork
 from cde.density_simulation import EconDensity, GaussianMixture
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
-from multiprocessing import Pool
+
 
 
 
 
 class ConfigRunner():
-  def __init__(self, est_params, sim_params, n_observations, keys_of_interest, n_mc_samples=10**6, n_x_cond=5):
+  """
+  Args:
+    est_params: a list of estimator objects with length n (the number of configured estimators)
+    sim_params: a list of instantiated simulator objects with length n (the number of configured simulators)
+    n_observations: n_observations: either a list or a scalar value that defines the number of observations from the
+    simulation model that are used to train the estimators
+    keys_of_interest: list of strings, each representing a column in the dataframe / csv export
+    n_mc_samples: number of samples used for monte carlo sampling (a warning is printed if n_mc_samples is less than 10**5
+    n_x_cond: number of x conditionals to be sampled
+  """
+
+  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 6, n_x_cond=5):
     assert est_params
     assert sim_params
     assert keys_of_interest
-    assert n_observations.all()
+    assert observations.all()
 
     logging.log(logging.INFO, "creating configurations...")
-    self.n_observations = n_observations
+    self.observations = observations
     self.configured_estimators = [globals()[estimator_name](*config) for estimator_name, estimator_params in est_params.items() for config in estimator_params]
     self.configured_simulators = [globals()[simulator_name](*sim_params) for simulator_name, sim_params in sim_params.items()]
 
@@ -41,28 +50,46 @@ class ConfigRunner():
 
   def _create_configurations(self):
     """
-    creates all possible combinations from the (configured) estimators and simulators.
-      Args:
-        configured_estimators: a list instantiated estimator objects with length n while n being the number of configured estimators
-        configured_simulators: a list instantiated simulator objects with length n while m being the number of configured simulators
-        n_observations: either a list or a scalar value that defines the number of observations from the simulation model that are used to train the estimators
+    Creates all possible combinations from the (configured) estimators and simulators.
+    Requires configured estimators and simulators in the constructor:
 
-      Returns:
+    Returns:
         if n_observations is not a list, a list containing n*m=k tuples while k being the number of the cartesian product of estimators and simulators is
         returned --> shape of tuples: (estimator object, simulator object)
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
     print("total number of configurations to be generated: " +
-          str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.n_observations)))
-    if not np.isscalar(self.n_observations):
-      return [copy.deepcopy((dict({"estimator": estimator, "simulator": simulator, "n_obs": n_obs, "n_mc_samples": self.n_mc_samples,
-                                   "n_x_cond": self.n_x_cond}))) for estimator, simulator, n_obs in itertools.product(self.configured_estimators,
-                                                                                                            self.configured_simulators, self.n_observations)]
-    else:
-      return [copy.deepcopy((dict({"estimator": estimator, "simulator": simulator, "n_obs": self.n_observations, "n_mc_samples": self.n_mc_samples,
-                                                      "n_x_cond": self.n_x_cond})) for estimator, simulator in itertools.product(self.configured_estimators,
-                                                                                             self.configured_simulators))]
-    # x_cond = sample_x_cond(self.X, n_x_cond=self.x_cond)
+          str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.observations)))
+
+
+    if np.isscalar(self.observations):
+      self.observations = [self.observations]
+
+    configs = []
+    configured_sims = []
+
+    """ since simulator configurations of the same kind require the same X,Y and x_cond, 
+    they have to be generated separately from the estimators"""
+    for sim in self.configured_simulators:
+      n_obs_max = max(self.observations)
+      X_max, Y_max = sim.simulate(n_obs_max)
+      X_max, Y_max = sim._handle_input_dimensionality(X_max, Y_max)
+
+      for obs in self.observations:
+        X, Y = X_max[:obs], Y_max[:obs]
+        x_cond = sample_x_cond(X=X, n_x_cond=self.n_x_cond)
+        configured_sims.append(dict({"simulator": sim, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
+
+
+    for estimator, simulator in itertools.product(self.configured_estimators, configured_sims):
+      simulator["estimator"] = estimator
+      simulator["n_mc_samples"] = self.n_mc_samples
+      configs.append(copy.deepcopy(simulator))
+
+
+    return configs
+
+
 
 
   def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None, limit=None, export_pickle=True):
@@ -127,8 +154,6 @@ class ConfigRunner():
 
         gof_single_res_collection.append(gof_single_result)
 
-        gc.collect()
-
       except Exception as e:
         print("error in task: ", i+1, " configuration: ", task)
         print(str(e))
@@ -146,9 +171,9 @@ class ConfigRunner():
     file_handle_results_csv.close()
     return gof_single_res_collection, full_df
 
-  def _run_single_configuration(self, estimator, simulator, n_obs, n_mc_samples, n_x_cond):
-    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, n_observations=n_obs,
-                        n_mc_samples=n_mc_samples, x_cond=n_x_cond)
+  def _run_single_configuration(self, estimator, simulator, X, Y, x_cond, n_obs, n_mc_samples):
+    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=X, Y=Y, n_observations=n_obs,
+                        n_mc_samples=n_mc_samples, x_cond=x_cond)
     return gof, gof.compute_results()
 
 
@@ -163,9 +188,10 @@ class ConfigRunner():
     n_results = len(results)
     assert n_results > 0, "no results given"
 
-    result_dicts = results.report_dict(keys_of_interest=self.keys_of_interest)
+    results_dict = results.report_dict(keys_of_interest=self.keys_of_interest)
 
-    return pd.DataFrame(result_dicts, columns=self.keys_of_interest)
+
+    return pd.DataFrame.from_dict(data=results_dict)
 
 
   def _export_results(self, task, gof_result, file_handle_results):

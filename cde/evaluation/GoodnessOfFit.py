@@ -28,7 +28,7 @@ class GoodnessOfFit:
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, n_observations, x_cond, n_mc_samples, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, print_fit_result=False, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
@@ -45,8 +45,8 @@ class GoodnessOfFit:
 
     self.seed = seed
     np.random.seed(seed)
-    self.X, self.Y = probabilistic_model.simulate(self.n_observations)
-    self.X, self.Y = probabilistic_model._handle_input_dimensionality(self.X, self.Y)
+    self.X = X
+    self.Y = Y
 
     self.time_to_fit = None
     if not estimator.fitted: # fit estimator if necessary
@@ -264,6 +264,9 @@ class GoodnessOfFit:
       Returns:
         GoodnessOfFitResult object that holds the computed statistics
     """
+    assert self.x_cond.all()
+    assert self.estimator is not None
+    assert self.probabilistic_model is not None
 
     gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
@@ -271,33 +274,45 @@ class GoodnessOfFit:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
 
     # KL - divergence
-    gof_result.kl_divergence = self.kl_divergence_mc(n_samples=self.n_mc_samples)
+    gof_result.kl_divergence = [np.mean(self.kl_divergence_mc(n_samples=self.n_mc_samples))]
+
+    gof_result.kl_divergence_ = self.kl_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
 
     # Hellinger distance
-    gof_result.hellinger_distance = self.hellinger_distance_mc(n_samples=self.n_mc_samples)
+    gof_result.hellinger_distance = [np.mean(self.hellinger_distance_mc(n_samples=self.n_mc_samples))]
+
+    gof_result.hellinger_distance_ = self.hellinger_distance_mc(n_samples=self.n_mc_samples) # original data preserved
 
     # Jason Shannon - divergence
-    gof_result.js_divergence = self.js_divergence_mc(n_samples=self.n_mc_samples)
+    gof_result.js_divergence = [np.mean(self.js_divergence_mc(n_samples=self.n_mc_samples))]
+
+    gof_result.js_divergence_ = self.js_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
 
     # Add number of observations
-    gof_result.n_observations = self.n_observations
+    gof_result.n_observations = [self.n_observations]
 
-    gof_result.x_cond = str(self.x_cond.flatten())
+    gof_result.x_cond = [str(self.x_cond.flatten())]
 
+    gof_result.x_cond_ = self.x_cond # original data preserved
 
-    gof_result.n_mc_samples = self.n_mc_samples
+    gof_result.n_mc_samples = [self.n_mc_samples]
 
-    # todo
-    """ estimator mean and cov """
-    gof_result.mean_est = str(self.estimator.mean_(self.x_cond).flatten())
+    """ create strings since pandas requires lists to be all of the same length if numerical """
+    gof_result.mean_est = [str(self.estimator.mean_(self.x_cond).flatten())]
 
-    gof_result.cov_est = str(self.estimator.covariance(self.x_cond).flatten())
+    gof_result.mean_est_ = self.estimator.mean_(self.x_cond) # original data preserved
 
-    """ simulator mean and cov """
-    gof_result.mean_sim = str(self.probabilistic_model.mean_(self.x_cond).flatten())
+    gof_result.cov_est = [str(self.estimator.covariance(self.x_cond).flatten())]
 
-    gof_result.cov_sim = str(self.probabilistic_model.covariance(self.x_cond).flatten())
+    gof_result.cov_est_ = self.estimator.covariance(self.x_cond) # original data preserved
 
+    gof_result.mean_sim = [str(self.probabilistic_model.mean_(self.x_cond).flatten())]
+
+    gof_result.mean_sim_ = self.probabilistic_model.mean_(self.x_cond) # original data preserved
+
+    gof_result.cov_sim = [str(self.probabilistic_model.covariance(self.x_cond).flatten())]
+
+    gof_result.cov_sim_ = self.probabilistic_model.covariance(self.x_cond) # original data preserved
 
     return gof_result
 
