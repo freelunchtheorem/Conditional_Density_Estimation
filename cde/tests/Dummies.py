@@ -6,7 +6,7 @@ import numpy as np
 
 class GaussianDummy(BaseDensityEstimator):
 
-  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, can_sample=True):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, has_pdf=True, can_sample=True):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
@@ -25,6 +25,7 @@ class GaussianDummy(BaseDensityEstimator):
     self.fitted = False
 
     self.can_sample = can_sample
+    self.has_pdf = has_pdf
     self.has_cdf = has_cdf
 
   def fit(self, X, Y):
@@ -47,7 +48,7 @@ class GaussianDummy(BaseDensityEstimator):
     return str('\nEstimator type: {}\n n_dim_x: {}\n n_dim_y: {}\n mean: {}\n' .format(self.__class__.__name__, self.ndim_x, self.ndim_y, self.mean))
 
 class SimulationDummy(BaseConditionalDensitySimulation):
-  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, can_sample=True):
+  def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, has_pdf=True, can_sample=True):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.ndim = self.ndim_x + self.ndim_y
@@ -65,6 +66,7 @@ class SimulationDummy(BaseConditionalDensitySimulation):
     self.fitted = False
 
     self.can_sample = can_sample
+    self.has_pdf = has_pdf
     self.has_cdf = has_cdf
 
   def pdf(self, X, Y):
