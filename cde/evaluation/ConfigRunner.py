@@ -105,8 +105,6 @@ class ConfigRunner():
     return configs
 
 
-
-
   def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None,
                          limit=None, export_pickle=True):
     """
@@ -133,75 +131,67 @@ class ConfigRunner():
           Additionally, if export_pickle is True, the path to the pickle file will be returned, i.e. return values are (results_list, full_df, path_to_pickle)
 
     """
+    # Asserts and Setup
     assert len(self.configs) > 0
-    if estimator_filter is not None:
-      self.configs = [tupl for tupl in self.configs if estimator_filter in tupl["estimator"].__class__.__name__]
-    if len(self.configs) == 0:
-      print("no tasks to execute after filtering for the estimator")
-      return
-    print("Running configurations. Number of total tasks after filtering: ", len(self.configs))
+    self._apply_filters(estimator_filter)
 
     if limit is not None:
       assert limit > 0, "limit must not be negative"
       print("Limit enabled. Running only the first {} configurations".format(limit))
 
-    config_file_name = "configurations"
-    result_file_name = "result"
-    if prefix_filename is not None:
-      config_file_name = prefix_filename + "_" + config_file_name + "_"
-      result_file_name = prefix_filename + "_" + result_file_name + "_"
+    # Setup file names
+    self.result_file_name = "result"
+
+    self.export_pickle = export_pickle
+    self.export_csv = export_csv
+    self.output_dir = output_dir
+    self.prefix_filename = prefix_filename
+
+    self._setup_file_names()
 
 
-    if export_pickle:
-      results_pickle = io.get_full_path(output_dir=output_dir, suffix=".pickle", file_name=config_file_name)
-
-    if export_csv:
-      file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name=result_file_name)
-      file_handle_results_csv = open(file_results, "a+")
-
-    gof_single_res_collection = []
+    # Run the configurations
+    self.gof_single_res_collection = []
 
     for i, task in enumerate(self.configs[:limit]):
       try:
         print("Task:", i+1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
-        _, gof_single_result = self._run_single_configuration(**task)
 
-        if export_csv:
-          self._export_results(task=task, gof_result=gof_single_result, file_handle_results=file_handle_results_csv)
+        gof_single_result = self._run_single_configuration(**task)
 
-        gof_single_res_collection.append(gof_single_result)
+        self.gof_single_res_collection.append(gof_single_result)
 
-        if export_pickle and i:
-          with open(results_pickle, "a+b") as f:
-            intermediate_gof_results = GoodnessOfFitResults(single_results_list=gof_single_res_collection)
-            io.dump_as_pickle(f, intermediate_gof_results)
+        self._dump_current_state(task, gof_single_result)
 
       except Exception as e:
         print("error in task: ", i+1, " configuration: ", task)
         print(str(e))
         traceback.print_exc()
 
-    gof_results = GoodnessOfFitResults(single_results_list=gof_single_res_collection)
+    gof_results = GoodnessOfFitResults(single_results_list=self.gof_single_res_collection)
     full_df = gof_results.generate_results_dataframe(keys_of_interest=self.keys_of_interest)
 
-    if export_pickle:
-      with open(results_pickle, "a+b") as f:
-        io.dump_as_pickle(f, gof_results)
-        pickle_path = f.name
-      return gof_single_res_collection, full_df, pickle_path
+    if self.export_csv:
+      self.file_handle_results_csv.close()
 
-    file_handle_results_csv.close()
-    return gof_single_res_collection, full_df
+    return self.gof_single_res_collection, full_df
+
+  def _dump_current_state(self, task, gof_single_result):
+    if self.export_csv:
+      self._export_results(task=task, gof_result=gof_single_result, file_handle_results=self.file_handle_results_csv)
+    if self.export_pickle:
+      with open(self.results_pickle_path, "wb") as f:
+        intermediate_gof_results = GoodnessOfFitResults(single_results_list=self.gof_single_res_collection)
+        io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
   def _run_single_configuration(self, estimator, simulator, X, Y, x_cond, n_obs, n_mc_samples):
     gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=X, Y=Y, n_observations=n_obs,
                         n_mc_samples=n_mc_samples, x_cond=x_cond)
-    return gof, gof.compute_results()
-
+    return gof.compute_results()
 
   def _get_results_dataframe(self, results):
-    """
-    retrieves the dataframe for one or more GoodnessOfFitResults result objects.
+    """ retrieves the dataframe for one or more GoodnessOfFitResults result objects.
+
       Args:
           results: a list or single object of type GoodnessOfFitResults
       Returns:
@@ -214,7 +204,6 @@ class ConfigRunner():
 
 
     return pd.DataFrame.from_dict(data=results_dict)
-
 
   def _export_results(self, task, gof_result, file_handle_results):
     assert len(gof_result) > 0, "no results given"
@@ -229,5 +218,24 @@ class ConfigRunner():
       print(str(e))
       traceback.print_exc()
 
+  def _apply_filters(self, estimator_filter):
 
+    if estimator_filter is not None:
+      self.configs = [tupl for tupl in self.configs if estimator_filter in tupl["estimator"].__class__.__name__]
 
+    if len(self.configs) == 0:
+      print("no tasks to execute after filtering for the estimator")
+      return None
+
+    print("Running configurations. Number of total tasks after filtering: ", len(self.configs))
+
+  def _setup_file_names(self):
+    if self.prefix_filename is not None:
+      self.result_file_name = self.prefix_filename + "_" + self.result_file_name + "_"
+
+    if self.export_pickle:
+      self.results_pickle_path = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name=self.result_file_name)
+
+    if self.export_csv:
+      self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
+      self.file_handle_results_csv = open(self.results_csv_path, "a+")

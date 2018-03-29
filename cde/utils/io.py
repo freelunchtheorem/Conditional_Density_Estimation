@@ -28,10 +28,11 @@ def store_objects(objs, output_dir, file_name=None):
   print("Dumped pickle to", full_path)
 
 
-def dump_as_pickle(file_handle, obj):
+def dump_as_pickle(file_handle, obj, verbose=False):
   try:
     pickle.dump(obj=obj, file=file_handle)
-    print("successfully dumped pickle file to {}".format(os.path.abspath(file_handle.name)))
+    if verbose:
+      print("successfully dumped pickle file to {}".format(os.path.abspath(file_handle.name)))
   except Exception as e:
     print("dumping pickle object not successful")
     print(str(e))
