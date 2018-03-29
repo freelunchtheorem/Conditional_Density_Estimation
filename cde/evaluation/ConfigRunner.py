@@ -13,20 +13,35 @@ from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
 
-
-
-
-
 class ConfigRunner():
   """
   Args:
-    est_params: a list of estimator objects with length n (the number of configured estimators)
-    sim_params: a list of instantiated simulator objects with length n (the number of configured simulators)
-    n_observations: n_observations: either a list or a scalar value that defines the number of observations from the
-    simulation model that are used to train the estimators
+    est_params: dict containing estimator parametrization
+                example:
+
+                {'KernelMixtureNetwork': (  ('k_means', 5, True, [0.1, 0.5, 1.0], None, None, True, 1000, 0.01, 0.01, 22),
+                                             ....
+                                            ('k_means', 5, True, [0.1, 0.5, 1.0], None, None, True, 1000, 0.01, 0.1, 22),
+                                         )
+                 'MixtureDensityNetwork': ( (5, None, None, 1000, 0.01, 0.01, 22),
+                                            ....
+                                          )
+                }
+
+
+    sim_params: diction containing simulator parametrization
+                example:
+
+                {'EconDensity': (1,), 'GaussianMixture': (30, 2, 2, 4.5, 22)}
+
+    n_observations: either a array-like or a scalar value that defines the number of observations from the
+                    simulation model that are used to train the estimators
+
     keys_of_interest: list of strings, each representing a column in the dataframe / csv export
+
     n_mc_samples: number of samples used for monte carlo sampling (a warning is printed if n_mc_samples is less than 10**5
-    n_x_cond: number of x conditionals to be sampled
+
+    n_x_cond: (int) number of x conditionals to be sampled
   """
 
   def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 6, n_x_cond=5):
@@ -92,12 +107,15 @@ class ConfigRunner():
 
 
 
-  def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None, limit=None, export_pickle=True):
+  def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None,
+                         limit=None, export_pickle=True):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
     2) executes goodness-of-fit (currently: e.g. kl-divergence, wasserstein-distance etc.) tests
-    Every successful run yields a result object of type GoodnessOfFitResult which contains information on both estimator, simulator and chosen hyperparameters
+    Every successful run yields a result object of type GoodnessOfFitResult which contains
+    information on both estimator, simulator and chosen hyperparameters
+
     such as n_samples, see GoodnessOfFitResult documentation for more information.
 
       Args:
@@ -136,7 +154,6 @@ class ConfigRunner():
 
     if export_pickle:
       results_pickle = io.get_full_path(output_dir=output_dir, suffix=".pickle", file_name=config_file_name)
-      file_handle_results_pickle = open(results_pickle, "a+b")
 
     if export_csv:
       file_results = io.get_full_path(output_dir=output_dir, suffix=".csv", file_name=result_file_name)
@@ -154,6 +171,11 @@ class ConfigRunner():
 
         gof_single_res_collection.append(gof_single_result)
 
+        if export_pickle and i:
+          with open(results_pickle, "a+b") as f:
+            intermediate_gof_results = GoodnessOfFitResults(single_results_list=gof_single_res_collection)
+            io.dump_as_pickle(f, intermediate_gof_results)
+
       except Exception as e:
         print("error in task: ", i+1, " configuration: ", task)
         print(str(e))
@@ -163,9 +185,9 @@ class ConfigRunner():
     full_df = gof_results.generate_results_dataframe(keys_of_interest=self.keys_of_interest)
 
     if export_pickle:
-      io.dump_as_pickle(file_handle_results_pickle, gof_results)
-      pickle_path = file_handle_results_pickle.name
-      file_handle_results_pickle.close()
+      with open(results_pickle, "a+b") as f:
+        io.dump_as_pickle(f, gof_results)
+        pickle_path = f.name
       return gof_single_res_collection, full_df, pickle_path
 
     file_handle_results_csv.close()

@@ -1,6 +1,6 @@
 import pandas as pd
 import traceback
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from cde.utils import io
 
 class GoodnessOfFitResults:
@@ -10,8 +10,6 @@ class GoodnessOfFitResults:
     self.single_results = single_results_list
     self.results_df = None
 
-
-
   def __len__(self):
     return 1
 
@@ -20,8 +18,7 @@ class GoodnessOfFitResults:
     for single_result in self.single_results:
       dfs.append(pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest)))
 
-    self.results_df = pd.concat(dfs, axis=0).reindex_axis(keys_of_interest, axis=1)
-    #self.results_df = self.results_df.reindex(columns=keys_of_interest)
+    self.results_df = pd.concat(dfs, axis=0)
     return self.results_df
 
 
@@ -58,7 +55,7 @@ class GoodnessOfFitResults:
       metric = sub_df[metric]
       n_obs = sub_df.loc[:, "n_observations"]
 
-      plt.plot(n_obs, metric)
+      #plt.plot(n_obs, metric)
 
 
 
