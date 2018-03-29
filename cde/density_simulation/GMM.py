@@ -19,6 +19,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
   def __init__(self, n_kernels=5, ndim_x=1, ndim_y=1, means_std=1.5, random_seed=None):
 
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     self.has_pdf = True
     self.has_cdf = True

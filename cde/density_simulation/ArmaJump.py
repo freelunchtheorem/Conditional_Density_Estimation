@@ -17,6 +17,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
   def __init__(self, c=0.1, arma_a1=0.9, std=0.05, jump_prob=0.05, random_seed=None):
     self.std = std
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     # AR(1) params
     self.arma_c = c

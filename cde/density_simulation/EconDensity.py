@@ -18,6 +18,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     assert std > 0
     self.heteroscedastic = heteroscedastic
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     self.std = std
     self.ndim_x = 1

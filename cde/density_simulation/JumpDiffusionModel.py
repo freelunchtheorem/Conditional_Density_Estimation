@@ -13,6 +13,7 @@ class JumpDiffusionModel(BaseConditionalDensitySimulation):
 
   def __init__(self, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     # Parameters based on the paper with slight modifications
     self.r = 0.0
