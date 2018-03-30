@@ -12,8 +12,6 @@ from cde.evaluation.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
 from scipy import stats
 
 
-
-
 class GoodnessOfFit:
   """ Class that takes an estimator a probabilistic simulation model. The estimator is fitted on n_obervation samples.
   Then the goodness of fit w.r.t to the true probability distribution is evaluated
@@ -318,7 +316,8 @@ class GoodnessOfFit:
     gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
     gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
 
-
+    """ time to fit """
+    gof_result.time_to_fit = self.time_to_fit
 
     return gof_result
 

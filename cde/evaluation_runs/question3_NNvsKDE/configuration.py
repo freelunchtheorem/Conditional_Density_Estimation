@@ -32,13 +32,13 @@ def question2():
 
 if __name__ == '__main__':
 
-  run = False
+  run = True
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff"
+                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit"
                       ]
 
   if run:
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_NNvsKDE")
 
   if load:
-    path_pickle = "question2_NNvsKDE_result_03-30-18_14-17-03.pickle"
+    path_pickle = "/home/jonasrothfuss/Desktop/question2_NNvsKDE/question2_NNvsKDE_result_03-30-18_14-17-03.pickle"
     with open(path_pickle, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
