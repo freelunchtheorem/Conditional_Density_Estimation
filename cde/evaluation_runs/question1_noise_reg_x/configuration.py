@@ -9,20 +9,20 @@ def question1(): #noise
   'KernelMixtureNetwork':
 
     {'center_sampling_method': ["k_means"],
-     'n_centers': [5, 10, 50],
+     'n_centers': [20, 50],
      'keep_edges': [True],
      'init_scales': [[0.1, 0.5, 1.]],
      'estimator': [None],
      'X_ph': [None],
      'train_scales': [True],
-     'n_training_epochs': [1000],
+     'n_training_epochs': [300],
      'x_noise_std': [0.01, 0.05, 0.1, None],
      'y_noise_std': [None],
      'random_seed': [22]
      },
   'MixtureDensityNetwork':
     {
-      'n_centers': [5, 10, 20],
+      'n_centers': [10, 20],
       'estimator': [None],
       'X_ph': [None],
       'n_training_epochs': [1000],
