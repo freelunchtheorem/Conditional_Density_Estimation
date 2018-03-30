@@ -28,8 +28,6 @@ class GoodnessOfFitSingleResult:
     self.n_x_cond = len(x_cond)
     self.result_df = None
     self.random_seed = probabilistic_model_params['random_seed']
-    print(probabilistic_model_params)
-    print('seed', self.random_seed)
 
 
   def report_dict(self, keys_of_interest=None):

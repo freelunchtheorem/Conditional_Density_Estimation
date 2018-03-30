@@ -4,7 +4,7 @@ import numpy as np
 from cde.evaluation.ConfigRunner import ConfigRunner
 
 
-def question1():
+def question1(): #noise
   estimator_params = {
   'KernelMixtureNetwork':
 
@@ -16,7 +16,7 @@ def question1():
      'X_ph': [None],
      'train_scales': [True],
      'n_training_epochs': [1000],
-     'x_noise_std': [0.01, 0.05, 0.1, None],
+     'x_noise_std': [None],
      'y_noise_std': [0.01, 0.05, 0.1, None],
      'random_seed': [22]
      },
@@ -26,7 +26,7 @@ def question1():
       'estimator': [None],
       'X_ph': [None],
       'n_training_epochs': [1000],
-      'x_noise_std': [0.01, 0.05, 0.1, None],
+      'x_noise_std': [None],
       'y_noise_std': [0.01, 0.05, 0.1, None],
       'random_seed': [22]
     }
@@ -34,14 +34,13 @@ def question1():
 
   simulators_params = {
   'EconDensity': {'std': [1],
-                  'heteroscedastic': [True]
+                  'heteroscedastic': [True],
                   },
 
   'GaussianMixture': {'n_kernels' : [20],
                       'ndim_x': [2],
                       'ndim_y': [2],
-                      'means_std': [1.5],
-                      'random_seed': [24]
+                      'means_std': [1.5]
                       }
   }
 
@@ -51,13 +50,13 @@ def question1():
 
 if __name__ == '__main__':
 
-  run = False
+  run = True
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim"
+                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff"
                       ]
 
   if run:
@@ -65,7 +64,7 @@ if __name__ == '__main__':
 
     conf_est, conf_sim = question1()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=10**3, n_x_cond=5)
+                               n_mc_samples=10**6, n_x_cond=5, n_seeds=5)
 
     results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg")
 

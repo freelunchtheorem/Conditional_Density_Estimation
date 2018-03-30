@@ -314,6 +314,12 @@ class GoodnessOfFit:
 
     gof_result.cov_sim_ = self.probabilistic_model.covariance(self.x_cond) # original data preserved
 
+    """ absolute mean, cov difference """
+    gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
+    gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
+
+
+
     return gof_result
 
   def __str__(self):

@@ -1,9 +1,10 @@
 import pandas as pd
 import traceback
-import matplotlib.pyplot as plt
 import numpy as np
 
+import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+
 from cde.utils import io
 
 
@@ -24,7 +25,6 @@ class GoodnessOfFitResults:
 
     self.results_df = pd.concat(dfs, axis=0)
     return self.results_df
-
 
   def export_results_as_csv(self, keys_of_interest, output_dir, file_name):
     if self.results_df is None:
@@ -79,13 +79,15 @@ class GoodnessOfFitResults:
 
       sub_df = self.results_df.loc[(self.results_df[list(graph_dict)] == pd.Series(graph_dict)).all(axis=1)]
 
-      metric_values = sub_df[metric]
-      n_obs = sub_df.loc[:, "n_observations"]
+      metric_values_mean = sub_df.groupby(by='n_observations').mean()[metric]
+      metric_values_std = sub_df.groupby(by='n_observations').std()[metric]
+      n_obs = metric_values_mean.index
 
       " visual settings "
       c = next(color)
       label = graph_dict["estimator"] + "_x_noise_" + str(graph_dict["x_noise_std"]) + "_y_noise_" + str(graph_dict["y_noise_std"])
-      plt.plot(n_obs, metric_values, color=c, label=label)
+      plt.plot(n_obs, metric_values_mean, color=c, label=label)
+      plt.fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
 
     plt.xscale('log')
     plt.xlabel('n_observations')
