@@ -15,7 +15,7 @@ def question2():
      'X_ph': [None],
      'train_scales': [True],
      'n_training_epochs': [300],
-     'x_noise_std': [0.01, None],
+     'x_noise_std': [None],
      'y_noise_std': [0.01, None],
      'random_seed': [22],
      },
@@ -26,7 +26,7 @@ def question2():
         'estimator': [None],
         'X_ph': [None],
         'n_training_epochs': [1000],
-        'x_noise_std': [0.01, None],
+        'x_noise_std': [None],
         'y_noise_std': [0.01, None],
         'random_seed': [22]
       },
