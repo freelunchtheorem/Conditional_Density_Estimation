@@ -8,23 +8,50 @@ def question2():
   'KernelMixtureNetwork':
 
     {'center_sampling_method': ["k_means"],
-     'n_centers': [20],
+     'n_centers': [10, 50],
      'keep_edges': [True],
      'init_scales': [[0.1, 0.5, 1.]],
      'estimator': [None],
      'X_ph': [None],
      'train_scales': [True],
-     'n_training_epochs': [100],
+     'n_training_epochs': [300],
      'x_noise_std': [0.01, None],
      'y_noise_std': [0.01, None],
      'random_seed': [22],
-     }
+     },
+
+  'MixtureDensityNetwork':
+      {
+        'n_centers': [10, 50],
+        'estimator': [None],
+        'X_ph': [None],
+        'n_training_epochs': [1000],
+        'x_noise_std': [0.01, None],
+        'y_noise_std': [0.01, None],
+        'random_seed': [22]
+      },
+
+    'ConditionalKernelDensityEstimation':
+    {
+      'bandwidth_selection': ['normal_reference', 'cv_ml'],
+      'random_seed': [22]
+    },
   }
 
   simulators_params = {
   'EconDensity': {'std': [1],
                   'heteroscedastic': [True]
                   },
+  'ArmaJump': {'c': [0.1],
+               'arma_a1': [0.9],
+               'std': [0.05],
+               'jump_prob': [0.05]
+               },
+  'GaussianMixture': {'n_kernels': [20],
+                      'ndim_x': [2],
+                      'ndim_y': [2],
+                      'means_std': [1.5]
+                },
   }
 
   return estimator_params, simulators_params
