@@ -7,8 +7,8 @@ import traceback
 import logging
 
 """ do not remove, imports required for globals() call """
-from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork
-from cde.density_simulation import EconDensity, GaussianMixture
+from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation
+from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io

@@ -166,5 +166,3 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     param_dict['simulator'] = self.__class__.__name__
     return param_dict
 
-  def __str__(self):
-    raise NotImplementedError

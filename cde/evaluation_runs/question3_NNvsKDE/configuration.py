@@ -42,11 +42,13 @@ def question2():
   'EconDensity': {'std': [1],
                   'heteroscedastic': [True]
                   },
+
   'ArmaJump': {'c': [0.1],
                'arma_a1': [0.9],
                'std': [0.05],
                'jump_prob': [0.05]
                },
+
   'GaussianMixture': {'n_kernels': [20],
                       'ndim_x': [2],
                       'ndim_y': [2],

@@ -81,7 +81,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
 
     jump_bernoulli = self.random_state.uniform(size=X.shape[0]) < self.jump_prob
 
-    return np.select([jump_bernoulli, np.bitwise_not(jump_bernoulli)], [y_jump, y_ar])
+    return X, np.select([jump_bernoulli, np.bitwise_not(jump_bernoulli)], [y_jump, y_ar])
 
   def simulate(self, x_0=0, n_samples=1000, burn_in=100):
     """ Draws random samples from the unconditional distribution p(x,y)
@@ -92,18 +92,18 @@ class ArmaJump(BaseConditionalDensitySimulation):
        Returns:
          (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
-    self.eps = self.random_state.normal(scale=self.std, size=n_samples + burn_in)
+    self.eps = self.random_state.normal(scale=self.std, size=n_samples + burn_in + 1)
 
-    x = np.zeros(n_samples + burn_in)
+    x = np.zeros(n_samples + burn_in + 1)
     x[0] = x_0
-    for i in range(1, n_samples + burn_in):
+    for i in range(1, n_samples + burn_in + 1):
       if self.random_state.uniform() > self.jump_prob: # AR(1)
         x[i] = self.arma_c * (1-self.arma_a1) + self.arma_a1 * x[i-1] + self.eps[i]
       else: # Jump
         jump = self.random_state.normal(loc=self.jump_mean, scale=self.jump_std)
         x[i] = self.arma_c * (1-self.arma_a1) + self.arma_a1 * x[i-1] + jump
 
-    return x[burn_in:n_samples + burn_in]
+    return x[burn_in:n_samples + burn_in], x[burn_in+1:n_samples + burn_in + 1]
 
   def mean_(self, x_cond):
     """ Conditional mean of the distribution
