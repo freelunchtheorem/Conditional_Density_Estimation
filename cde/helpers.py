@@ -29,7 +29,7 @@ def norm_along_axis_1(A, B, squared=False):
       result[:, i] = np.linalg.norm(A - B[i, :], axis=1)
   return result
 
-def sample_center_points(Y, method='all', k=100, keep_edges=False):
+def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=False):
   """ function to define kernel centers with various downsampling alternatives
 
   Args:
@@ -40,6 +40,10 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
   Returns: selected center points - numpy array of shape (k, n_dim). In case method is 'all' k is equal to n_samples
   """
   assert k <= Y.shape[0], "k must not exceed the number of samples in Y"
+
+  n_jobs = 1
+  if parallelize:
+    n_jobs = -2 # use all cpu's but one
 
   # make sure Y is 2d array of shape (
   if Y.ndim == 1:
@@ -75,7 +79,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False):
 
   # use 1-D k-means clustering
   elif method == 'k_means':
-    model = KMeans(n_clusters=k, n_jobs=-2)
+    model = KMeans(n_clusters=k, n_jobs=n_jobs)
     model.fit(Y)
     cluster_centers = model.cluster_centers_
 
