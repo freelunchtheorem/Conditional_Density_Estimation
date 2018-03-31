@@ -7,7 +7,7 @@
 If you use NPDE in your research, you can cite it as follows:
 
 ```
-@misc{plappert2016kerasrl,
+@misc{npde2018,
     author = {Jonas Rothfuss, Fabio Ferreira},
     title = {Non-parametric Density Estimation},
     year = {2018},
