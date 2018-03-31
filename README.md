@@ -3,10 +3,18 @@
 ## to-do's:
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 
+# Citing
+If you use NPDE in your research, you can cite it as follows:
 
-## edward issues
-- https://github.com/blei-lab/edward/issues/874
-- https://stackoverflow.com/questions/49435335/check-if-noise-is-really-used-during-training-with-keras-edward-and-tensorflow
+@misc{plappert2016kerasrl,
+    author = {Jonas Rothfuss, Fabio Ferreira},
+    title = {Non-parametric Density Estimation},
+    year = {2018},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://github.com/jonasrothfuss/Nonparametric_Density_Estimation}},
+}
+
 
 ## tensorflow issues
 - on workstations with ferreira account execute ```source activate p3.6```
