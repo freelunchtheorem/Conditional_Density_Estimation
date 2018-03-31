@@ -1,5 +1,7 @@
 # Nonparametric_Density_Estimation
-todo
+
+## to-do's:
+- helpery.py, row 78, set n_jobs to 1 due to parallel error
 
 
 ## edward issues
