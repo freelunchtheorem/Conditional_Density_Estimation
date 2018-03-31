@@ -6,6 +6,7 @@
 # Citing
 If you use NPDE in your research, you can cite it as follows:
 
+```
 @misc{plappert2016kerasrl,
     author = {Jonas Rothfuss, Fabio Ferreira},
     title = {Non-parametric Density Estimation},
@@ -14,6 +15,7 @@ If you use NPDE in your research, you can cite it as follows:
     journal = {GitHub repository},
     howpublished = {\url{https://github.com/jonasrothfuss/Nonparametric_Density_Estimation}},
 }
+```
 
 
 ## tensorflow issues
