@@ -12,6 +12,9 @@ from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpD
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
+import hashlib
+import base64
+import pickle
 
 class ConfigRunner():
   """
@@ -53,7 +56,8 @@ class ConfigRunner():
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5):
+  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5,
+               results_pickle_file=None):
     assert est_params
     assert sim_params
     assert keys_of_interest
@@ -74,6 +78,16 @@ class ConfigRunner():
 
     self.configs = self._merge_configurations()
     self.keys_of_interest = keys_of_interest
+
+    self.results_pickle_file = results_pickle_file
+    if self.results_pickle_file:
+      print("Continue with:", self.results_pickle_file)
+      with open(results_pickle_file, 'rb') as f: # load pickled gof object to continue with previous calculations
+        self.gof_results = pickle.load(f)
+        self.gof_single_res_collection = self.gof_results.single_results_dict
+    else: # start from scratch
+      self.gof_single_res_collection = {}
+      self.gof_results = GoodnessOfFitResults({})
 
 
 
@@ -106,7 +120,7 @@ class ConfigRunner():
 
       for obs in self.observations:
         X, Y = X_max[:obs], Y_max[:obs]
-        x_cond = sample_x_cond(X=X, n_x_cond=self.n_x_cond)
+        x_cond = sample_x_cond(X=X_max, n_x_cond=self.n_x_cond)
         configured_sims.append(dict({"simulator": sim, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
 
 
@@ -136,6 +150,7 @@ class ConfigRunner():
                           must be one of the density estimator class types
         limit: limit the number of (potentially filtered) tasks
         export_pickle: determines if all results should be exported to output dir as pickle in addition to the csv
+        results_pickle: path to GoodnessOfFitResults pickle file that shall be loaded an continued
 
       Returns:
          returns two objects: (result_list, full_df)
@@ -165,24 +180,30 @@ class ConfigRunner():
 
 
     # Run the configurations
-    self.gof_single_res_collection = []
+    gof_results = self.gof_results
 
     for i, task in enumerate(self.configs[:limit]):
       try:
-        print("Task:", i+1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+        task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
-        gof_single_result = self._run_single_configuration(**task)
+        if task_hash in gof_results.single_results_dict.keys():
+          print("Task:", i+1, "has already been completed ---- Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+        else:
+          print("Task:", i + 1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+          gof_single_result = self._run_single_configuration(**task)
 
-        self.gof_single_res_collection.append(gof_single_result)
+          self.gof_single_res_collection[task_hash] = gof_single_result
 
-        self._dump_current_state(task, gof_single_result)
+          gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
+
+          self._dump_current_state(task, gof_single_result)
 
       except Exception as e:
         print("error in task: ", i+1, " configuration: ", task)
         print(str(e))
         traceback.print_exc()
 
-    gof_results = GoodnessOfFitResults(single_results_list=self.gof_single_res_collection)
+    gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
     full_df = gof_results.generate_results_dataframe(keys_of_interest=self.keys_of_interest)
 
     if self.export_csv:
@@ -195,7 +216,7 @@ class ConfigRunner():
       self._export_results(task=task, gof_result=gof_single_result, file_handle_results=self.file_handle_results_csv)
     if self.export_pickle:
       with open(self.results_pickle_path, "wb") as f:
-        intermediate_gof_results = GoodnessOfFitResults(single_results_list=self.gof_single_res_collection)
+        intermediate_gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
         io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
   def _run_single_configuration(self, estimator, simulator, X, Y, x_cond, n_obs, n_mc_samples):
@@ -248,10 +269,16 @@ class ConfigRunner():
       self.result_file_name = self.prefix_filename + "_" + self.result_file_name + "_"
 
     if self.export_pickle:
-      self.results_pickle_path = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name=self.result_file_name)
+      if self.results_pickle_file: # continue with old file
+        self.results_pickle_path = self.results_pickle_file
+      else: # new file name
+        self.results_pickle_path = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name=self.result_file_name)
 
     if self.export_csv:
-      self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
+      if self.results_pickle_file:
+        self.results_csv_path = self.results_pickle_file.replace("pickle", "csv")
+      else:
+        self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
       self.file_handle_results_csv = open(self.results_csv_path, "a+")
 
 
@@ -270,3 +297,26 @@ def _create_configurations(params_dict):
     confs[conf_instance] = conf_product_dicts
 
   return confs
+
+def _hash_task_dict(task_dict):
+  assert set(['simulator', 'estimator', 'x_cond', 'n_mc_samples', 'n_obs']) < set(task_dict.keys())
+  task_dict = task_dict.copy()
+  del task_dict['X']
+  del task_dict['Y']
+  a = _make_hashable(task_dict)
+  return make_hash_sha256(a)
+
+def _make_hashable(o):
+    if isinstance(o, (tuple, list)):
+        return tuple((_make_hashable(e) for e in o))
+    if isinstance(o, dict):
+        return tuple(sorted((k,_make_hashable(v)) for k,v in o.items()))
+
+    if isinstance(o, (set, frozenset)):
+        return tuple(sorted(_make_hashable(e) for e in o))
+    return o
+
+def make_hash_sha256(o):
+    hasher = hashlib.sha256()
+    hasher.update(repr(_make_hashable(o)).encode())
+    return base64.b64encode(hasher.digest()).decode()

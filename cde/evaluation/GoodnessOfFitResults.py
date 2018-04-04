@@ -9,10 +9,10 @@ from cde.utils import io
 
 
 class GoodnessOfFitResults:
-  def __init__(self, single_results_list):
-    assert len(single_results_list) > 0, "given single results list is empty"
+  def __init__(self, single_results_dict):
+    #assert len(single_results_list) > 0, "given single results list is empty"
 
-    self.single_results = single_results_list
+    self.single_results_dict = single_results_dict
     self.results_df = None
 
   def __len__(self):
@@ -20,7 +20,7 @@ class GoodnessOfFitResults:
 
   def generate_results_dataframe(self, keys_of_interest):
     dfs = []
-    for single_result in self.single_results:
+    for single_result in self.single_results_dict.values():
       dfs.append(pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest)))
 
     self.results_df = pd.concat(dfs, axis=0)
