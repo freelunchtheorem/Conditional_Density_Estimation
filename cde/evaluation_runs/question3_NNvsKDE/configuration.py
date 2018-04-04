@@ -5,6 +5,12 @@ from cde.evaluation.ConfigRunner import ConfigRunner
 
 def question3():
   estimator_params = {
+
+    'ConditionalKernelDensityEstimation':
+      {
+          'bandwidth_selection': ['normal_reference', 'cv_ml'],
+          'random_seed': [22]
+      },
   'KernelMixtureNetwork':
 
     {'center_sampling_method': ["k_means"],
@@ -30,12 +36,6 @@ def question3():
         'y_noise_std': [0.01, None],
         'random_seed': [22]
       },
-
-    'ConditionalKernelDensityEstimation':
-    {
-      'bandwidth_selection': ['normal_reference', 'cv_ml'],
-      'random_seed': [22]
-    },
   }
 
   simulators_params = {
