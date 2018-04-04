@@ -5,6 +5,7 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+from sklearn.mixture import GaussianMixture
 
 from cde import ConditionalDensity
 
@@ -313,6 +314,26 @@ class BaseMixtureEstimator(BaseDensityEstimator):
 
     X = self._handle_input_dimensionality(X)
 
+    if np.all(np.all(X == X[0, :], axis=1)):
+      return self._sample_rows_same(X)
+    else:
+      return self._sample_rows_individually(X)
+
+  def _sample_rows_same(self, X):
+    """ uses efficient sklearn implementation to sample from gaussian mixture -> only works if all rows of X are the same"""
+    weights, locs, scales = self._get_mixture_components(np.expand_dims(X[0], axis=0))
+    gmm = GaussianMixture(n_components=self.n_centers, covariance_type='diag', max_iter=5, tol=1e-1)
+    gmm.fit(np.random.normal(size=(100,self.ndim_y))) # just pretending a fit
+    # overriding the GMM parameters with own params
+    gmm.converged_ = True
+    gmm.weights_ = weights[0]
+    gmm.means_ = locs[0]
+    gmm.covariances_ = scales[0]
+    y_sample, _ = gmm.sample(X.shape[0])
+    assert y_sample.shape == (X.shape[0], self.ndim_y)
+    return X, y_sample
+
+  def _sample_rows_individually(self, X):
     weights, locs, scales = self._get_mixture_components(X)
 
     Y = np.zeros(shape=(X.shape[0], self.ndim_y))
@@ -321,7 +342,6 @@ class BaseMixtureEstimator(BaseDensityEstimator):
       Y[i, :] = np.random.normal(loc=locs[i, idx, :], scale=scales[i, idx, :])
     assert X.shape[0] == Y.shape[0]
     return X, Y
-
 
   def cdf(self, X, Y):
     """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.

@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as stats
 from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 from .helpers import project_to_pos_semi_def
+from sklearn.mixture import GaussianMixture as GMM
 
 class GaussianMixture(BaseConditionalDensitySimulation):
   """
@@ -128,19 +129,12 @@ class GaussianMixture(BaseConditionalDensitySimulation):
       Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
 
-    W_x = self._W_x(X)
-    Y = np.zeros(shape=(X.shape[0], self.ndim_y))
-    for i in range(X.shape[0]):
-      discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), W_x[i,:]))
-      idx = discrete_dist.rvs()
-      Y[i, :] = self.gaussians_y[idx].rvs()
-    assert X.shape[0] == Y.shape[0]
-    return X, Y
+    X = self._handle_input_dimensionality(X)
 
-  def _draw_from_discrete(self, w_x):
-    discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), w_x))
-    idx = discrete_dist.rvs()
-    return self.gaussians_y[idx].rvs()
+    if np.all(np.all(X == X[0, :], axis=1)):
+      return self._simulate_rows_same(X)
+    else:
+      return self._simulate_rows_individually(X)
 
 
   def simulate(self, n_samples=1000):
@@ -154,15 +148,12 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     """
 
     assert n_samples > 0
-    discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), self.weights))
-    indices = discrete_dist.rvs(size=n_samples)
 
-    draw_sample = lambda i: self.gaussians[i].rvs()
+    scales = np.diagonal(self.covariances, axis1=1, axis2=2)
+    samples = self._sample(self.weights, self.means, scales, n_samples)
+    x_samples = samples[:, :self.ndim_x]
+    y_samples = samples[:, :self.ndim_y]
 
-    samples_joint = np.stack(list(map(draw_sample, indices)), axis=0)
-
-    x_samples = samples_joint[:, :self.ndim_x]
-    y_samples = samples_joint[:, self.ndim_x:]
     assert x_samples.shape == (n_samples, self.ndim_x)
     assert y_samples.shape == (n_samples, self.ndim_y)
     return x_samples, y_samples
@@ -208,6 +199,39 @@ class GaussianMixture(BaseConditionalDensitySimulation):
         c2 += d
       covs[i] = c1 + c2
     return covs
+
+  def _simulate_rows_individually(self, X):
+    W_x = self._W_x(X)
+    Y = np.zeros(shape=(X.shape[0], self.ndim_y))
+    for i in range(X.shape[0]):
+      discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), W_x[i, :]))
+      idx = discrete_dist.rvs()
+      Y[i, :] = self.gaussians_y[idx].rvs()
+    assert X.shape[0] == Y.shape[0]
+    return X, Y
+
+  def _draw_from_discrete(self, w_x):
+    discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), w_x))
+    idx = discrete_dist.rvs()
+    return self.gaussians_y[idx].rvs()
+
+  def _simulate_rows_same(self, X):
+    n_samples = X.shape[0]
+    weights = self._W_x(X)[0]
+    scales = np.diagonal(self.covariances_y, axis1=1, axis2=2)
+    y_sample = self._sample(weights, self.means_y, scales, n_samples)
+    return X, y_sample
+
+  def _sample(self, weights, locs, scales, n_samples):
+    gmm = GMM(n_components=self.n_kernels, covariance_type='diag', max_iter=5, tol=1e-1)
+    gmm.fit(np.random.normal(size=(100,self.ndim_y)))
+    gmm.converged_ = True
+    gmm.weights_ = weights
+    gmm.means_ = locs
+    gmm.covariances_ = scales
+    samples, _ = gmm.sample(n_samples)
+    return samples
+
 
   def _sample_weights(self, n_weights):
     """ samples density weights -> sum up to one

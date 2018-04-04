@@ -10,7 +10,7 @@ class TestArmaJump(unittest.TestCase):
     arj = ArmaJump(random_seed=8787)
 
     x_cond = np.asarray([0.1 for _ in range(200000)])
-    y_sample = arj.simulate_conditional(x_cond)
+    _, y_sample = arj.simulate_conditional(x_cond)
 
 
     cdf_callable = lambda y: arj.cdf(x_cond, y)
@@ -23,15 +23,16 @@ class TestArmaJump(unittest.TestCase):
     np.random.seed(22)
     arj = ArmaJump(jump_prob=0.01)
     x_cond = np.asarray([0.1 for _ in range(200000)])
-    y_sample = arj.simulate_conditional(x_cond)
+    _, y_sample = arj.simulate_conditional(x_cond)
 
     skew1 = stats.skew(y_sample)
 
     arj = ArmaJump(jump_prob=0.1)
-    y_sample = arj.simulate_conditional(x_cond)
+    _, y_sample = arj.simulate_conditional(x_cond)
 
     skew2 = stats.skew(y_sample)
 
+    print(skew1, skew2)
     self.assertLessEqual(skew2, skew1)
 
   def test_mean(self):
@@ -82,6 +83,19 @@ class TestGaussianMixture(unittest.TestCase):
     print(cov[0])
     print(cov_mc[0])
     self.assertLessEqual(np.sum((cov_mc - cov) ** 2), 0.1)
+
+  def test_sampling(self):
+    gmm = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+
+    ## simulate unconditionally
+    x, y = gmm.simulate(n_samples=10 ** 6)
+
+    # simulte conditionally
+    x_cond = 2 * np.ones(shape=(10 ** 6, 2))
+    _,  y_sample = gmm.simulate_conditional(x_cond)
+    self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
+
+
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):

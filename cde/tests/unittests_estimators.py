@@ -244,6 +244,12 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=1)
     self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=1)
 
+    x_cond = np.ones(shape=(200000, 1))
+    x_cond[0,0] = 5.0
+    _, y_sample = model.sample(x_cond)
+    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=1)
+    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=1)
+
   def test_MDN_with_2d_gaussian_sampling(self):
     X, Y = self.get_samples()
 
