@@ -199,7 +199,7 @@ class ConfigRunner():
           self._dump_current_state(task, gof_single_result)
 
       except Exception as e:
-        print("error in task: ", i+1, " configuration: ", task)
+        print("error in task: ", i+1)
         print(str(e))
         traceback.print_exc()
 
