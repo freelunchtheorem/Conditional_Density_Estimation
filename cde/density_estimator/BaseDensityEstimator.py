@@ -259,7 +259,7 @@ class BaseMixtureEstimator(BaseDensityEstimator):
     """
     assert hasattr(self, '_get_mixture_components')
     assert self.fitted, "model must be fitted"
-
+    x_cond = self._handle_input_dimensionality(x_cond)
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     weights, locs, _ = self._get_mixture_components(x_cond)
     assert weights.ndim == 2 and locs.ndim == 3
@@ -278,6 +278,7 @@ class BaseMixtureEstimator(BaseDensityEstimator):
         Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
     assert self.fitted, "model must be fitted"
+    x_cond = self._handle_input_dimensionality(x_cond)
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
 
     # compute global mean_of mixture model
@@ -297,6 +298,29 @@ class BaseMixtureEstimator(BaseDensityEstimator):
 
     return covs
 
+  def sample(self, X):
+    """ sample from the conditional mixture distributions - requires the model to be fitted
+
+      Args:
+        X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
+
+      Returns: tuple (X, Y)
+        - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
+        - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
+    """
+    assert self.fitted, "model must be fitted to compute likelihood score"
+    assert self.can_sample
+
+    X = self._handle_input_dimensionality(X)
+
+    weights, locs, scales = self._get_mixture_components(X)
+
+    Y = np.zeros(shape=(X.shape[0], self.ndim_y))
+    for i in range(X.shape[0]):
+      idx = np.random.choice(range(self.n_centers), p=weights[i, :])
+      Y[i, :] = np.random.normal(loc=locs[i, idx, :], scale=scales[i, idx, :])
+    assert X.shape[0] == Y.shape[0]
+    return X, Y
 
 
   def cdf(self, X, Y):

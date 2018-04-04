@@ -128,8 +128,6 @@ class ConditionalDensity(BaseEstimator):
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
-    if np.size(X) == 1 and Y is None:
-      return X
 
     if X.ndim == 1:
       X = np.expand_dims(X, axis=1)

@@ -233,6 +233,28 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.cdf(y, loc=2, scale=1)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+  def test_KMN_with_2d_gaussian_sampling(self):
+    X, Y = self.get_samples()
+
+    model = KernelMixtureNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    x_cond = np.ones(shape=(200000,1))
+    _, y_sample = model.sample(x_cond)
+    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=1)
+    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=1)
+
+  def test_MDN_with_2d_gaussian_sampling(self):
+    X, Y = self.get_samples()
+
+    model = MixtureDensityNetwork(n_centers=5)
+    model.fit(X, Y)
+
+    x_cond = np.ones(shape=(10**6,1))
+    _, y_sample = model.sample(x_cond)
+    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=0)
+    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=0)
+
   def test_KMN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 

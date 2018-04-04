@@ -124,20 +124,6 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     X = self._handle_input_dimensionality(X)
     return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
 
-  def sample(self, X):
-    """ sample from the conditional mixture distributions - requires the model to be fitted
-
-    Args:
-      X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)
-
-    Returns: tuple (X, Y)
-      - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)
-      - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)
-    """
-    assert self.fitted, "model must be fitted to compute likelihood score"
-    X = self._handle_input_dimensionality(X)
-    return X, self.sess.run(self.samples, feed_dict={self.X_ph: X})
-
   def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
