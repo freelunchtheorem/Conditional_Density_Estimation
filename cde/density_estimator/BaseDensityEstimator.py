@@ -324,9 +324,8 @@ class BaseMixtureEstimator(BaseDensityEstimator):
     weights, locs, scales = self._get_mixture_components(np.expand_dims(X[0], axis=0))
 
     # make sure that sum of weights < 1
+    weights = weights.astype(np.float64)
     weights = weights / np.sum(weights)
-    while np.sum(weights) > 1:
-      weights -= 10**-10 * weights
 
     gmm = GaussianMixture(n_components=self.n_centers, covariance_type='diag', max_iter=5, tol=1e-1)
     gmm.fit(np.random.normal(size=(100,self.ndim_y))) # just pretending a fit
