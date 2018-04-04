@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-
+import glob
 from cde.evaluation.ConfigRunner import ConfigRunner
 
 
@@ -15,7 +15,7 @@ def question1(): #noise
      'estimator': [None],
      'X_ph': [None],
      'train_scales': [True],
-     'n_training_epochs': [400],
+     'n_training_epochs': [100],
      'x_noise_std': [None],
      'y_noise_std': [0.01, 0.05, 0.1, None],
      'random_seed': [24]
@@ -45,18 +45,25 @@ if __name__ == '__main__':
                       "time_to_fit"
                       ]
 
+  # Search for pickle file in directory
+  pickle_files = glob.glob("*.pickle")
+  if pickle_files:
+    results_pickle = pickle_files[0]
+  else:
+    results_pickle = None
+
   if run:
     observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
 
     conf_est, conf_sim = question1()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=10**6, n_x_cond=5, n_seeds=5)
+                               n_mc_samples=10**7, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle)
 
-    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg")
+    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg")
 
   if load:
-    path_pickle = "."
-    with open(path_pickle, 'rb') as pickle_file:
+
+    with open(results_pickle, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 
