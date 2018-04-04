@@ -112,7 +112,7 @@ class GoodnessOfFit:
     else:
       return np.nan_to_num(scipy.stats.entropy(pk=Z_P, qk=Z_Q))
 
-  def kl_divergence_mc(self, n_samples=10**6, batch_size=None):
+  def kl_divergence_mc(self, n_samples=10**7, batch_size=None):
     """ Computes the Kullback–Leibler divergence via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -143,7 +143,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
-  def js_divergence_mc(self, n_samples=10**6, batch_size=None):
+  def js_divergence_mc(self, n_samples=10**7, batch_size=None):
     """ Computes the Jason Shannon divergence via monte carlo integration using importance sampling with a cauchy distribution
     Args:
      x_cond: x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -174,7 +174,7 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
-  def hellinger_distance_mc(self, n_samples=10**6, batch_size=None):
+  def hellinger_distance_mc(self, n_samples=10**7, batch_size=None):
     """ Computes the hellinger distance via monte carlo integration using importance sampling with a cauchy distribution
 
     Args:
@@ -272,19 +272,16 @@ class GoodnessOfFit:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
 
     # KL - divergence
-    gof_result.kl_divergence = [np.mean(self.kl_divergence_mc(n_samples=self.n_mc_samples))]
-
     gof_result.kl_divergence_ = self.kl_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
+    gof_result.kl_divergence = [np.mean(gof_result.kl_divergence_ )]
 
     # Hellinger distance
-    gof_result.hellinger_distance = [np.mean(self.hellinger_distance_mc(n_samples=self.n_mc_samples))]
-
     gof_result.hellinger_distance_ = self.hellinger_distance_mc(n_samples=self.n_mc_samples) # original data preserved
+    gof_result.hellinger_distance = [np.mean(gof_result.hellinger_distance_)]
 
     # Jason Shannon - divergence
-    gof_result.js_divergence = [np.mean(self.js_divergence_mc(n_samples=self.n_mc_samples))]
-
     gof_result.js_divergence_ = self.js_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
+    gof_result.js_divergence = [np.mean(gof_result.js_divergence_)]
 
     # Add number of observations
     gof_result.n_observations = [self.n_observations]
@@ -296,37 +293,46 @@ class GoodnessOfFit:
     gof_result.n_mc_samples = [self.n_mc_samples]
 
     """ create strings since pandas requires lists to be all of the same length if numerical """
-    gof_result.mean_est = [str(self.estimator.mean_(self.x_cond).flatten())]
-
     gof_result.mean_est_ = self.estimator.mean_(self.x_cond) # original data preserved
-
-    gof_result.cov_est = [str(self.estimator.covariance(self.x_cond).flatten())]
+    gof_result.mean_est = [str(gof_result.mean_est_.flatten())]
 
     gof_result.cov_est_ = self.estimator.covariance(self.x_cond) # original data preserved
-
-    gof_result.mean_sim = [str(self.probabilistic_model.mean_(self.x_cond).flatten())]
+    gof_result.cov_est = [str(gof_result.cov_est_.flatten())]
 
     gof_result.mean_sim_ = self.probabilistic_model.mean_(self.x_cond) # original data preserved
+    gof_result.mean_sim = [str(gof_result.mean_sim_ .flatten())]
 
-    gof_result.cov_sim = [str(self.probabilistic_model.covariance(self.x_cond).flatten())]
 
     gof_result.cov_sim_ = self.probabilistic_model.covariance(self.x_cond) # original data preserved
+    gof_result.cov_sim = [str(gof_result.cov_sim_.flatten())]
 
     """ absolute mean, cov difference """
     gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
     gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
 
+    """ tail risk """
+    gof_result.VaR_sim_ = self.probabilistic_model.value_at_risk(self.x_cond)
+    gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
+    gof_result.VaR_est_ = self.estimator.value_at_risk(self.x_cond)
+    gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
+    gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
+
+    gof_result.CVaR_sim_ = self.probabilistic_model.conditional_value_at_risk(self.x_cond)
+    gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
+    gof_result.CVaR_est_ = self.estimator.conditional_value_at_risk(self.x_cond)
+    gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
+    gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
+
     """ time to fit """
     gof_result.time_to_fit = self.time_to_fit
 
     return gof_result
-
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
       self.estimator, self.probabilistic_model, self.n_observations, self.x_cond))
 
 
-def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
+def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90, random_seed=92):
   """
   uniformly samples n_xcond points within the specified percentiles in X
 
@@ -340,6 +346,7 @@ def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
     sampled x_cond points - ndarray of shape (n_xcond, ndim_x)
   """
   assert 0 <= low_percentile < high_percentile <= 100
+  rand = np.random.RandomState(random_seed)
 
   if X.ndim == 1:
     X = np.expand_dims(X, axis=1)
@@ -348,7 +355,7 @@ def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90):
   for i in range(X.shape[1]):
     low = np.percentile(X[:,i], low_percentile)
     high = np.percentile(X[:,i], high_percentile)
-    samples_per_dim.append(np.random.uniform(low, high, size=(n_x_cond, 1)))
+    samples_per_dim.append(rand.uniform(low, high, size=(n_x_cond, 1)))
 
   x_cond = np.hstack(samples_per_dim)
 
