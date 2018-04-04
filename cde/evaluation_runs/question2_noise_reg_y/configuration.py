@@ -43,10 +43,10 @@ def question1(): #noise
                       'means_std': [1.5]
                       },
 
-  'ArmaJump': {'c': 0.1,
-               'arma_a1': 0.9,
-               'std': 0.05,
-               'jump_prob': 0.05,
+    'ArmaJump': {'c': [0.1],
+               'arma_a1': [0.9],
+               'std': [0.05],
+               'jump_prob': [0.05],
               }
   }
 
