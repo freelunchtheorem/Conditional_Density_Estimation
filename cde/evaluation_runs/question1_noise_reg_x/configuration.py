@@ -42,7 +42,12 @@ def question1(): #noise
                       'ndim_x': [2],
                       'ndim_y': [2],
                       'means_std': [1.5]
-                      }
+                      },
+  'ArmaJump': {'c': 0.1,
+               'arma_a1': 0.9,
+               'std': 0.05,
+               'jump_prob': 0.05,
+              }
   }
 
 
@@ -86,11 +91,10 @@ if __name__ == '__main__':
 
 
       graph_dicts = [
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": 0.01},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.05, "y_noise_std": 0.01},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": 0.01},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": 0.01},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": 0.001}
+        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None},
+        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.05, "y_noise_std": None},
+        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None},
+        { "estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None},
       ]
 
       gof_result.plot_metric(graph_dicts)
