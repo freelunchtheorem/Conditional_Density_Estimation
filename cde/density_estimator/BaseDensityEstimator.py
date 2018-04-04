@@ -2,9 +2,9 @@ from sklearn.model_selection import GridSearchCV
 import warnings
 from scipy.stats import multivariate_normal
 #matplotlib.use("PS") #handles X11 server detection (required to run on console)
-#import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib import cm
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 
 from cde import ConditionalDensity
 
@@ -211,36 +211,36 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return param_dict
 
-  # def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
-  #   """ Plots the fitted conditional distribution if x and y are 1-dimensional each
-  #
-  #   Args:
-  #     xlim: 2-tuple specifying the x axis limits
-  #     ylim: 2-tuple specifying the y axis limits
-  #     resolution: integer specifying the resolution of plot
-  #   """
-  #   assert self.fitted, "model must be fitted to plot"
-  #   assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
-  #
-  #   # prepare mesh
-  #   linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
-  #   linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
-  #   X, Y = np.meshgrid(linspace_x, linspace_y)
-  #   X, Y = X.flatten(), Y.flatten()
-  #
-  #   # calculate values of distribution
-  #   Z = self.pdf(X, Y)
-  #
-  #   X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
-  #     [resolution, resolution])
-  #   fig = plt.figure()
-  #   ax = fig.gca(projection='3d')
-  #   surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
-  #                          linewidth=100, antialiased=True)
-  #   plt.xlabel("x")
-  #   plt.ylabel("y")
-  #   plt.show()
-  #
+  def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
+    """ Plots the fitted conditional distribution if x and y are 1-dimensional each
+
+    Args:
+      xlim: 2-tuple specifying the x axis limits
+      ylim: 2-tuple specifying the y axis limits
+      resolution: integer specifying the resolution of plot
+    """
+    assert self.fitted, "model must be fitted to plot"
+    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+
+    # prepare mesh
+    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+    X, Y = np.meshgrid(linspace_x, linspace_y)
+    X, Y = X.flatten(), Y.flatten()
+
+    # calculate values of distribution
+    Z = self.pdf(X, Y)
+
+    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+      [resolution, resolution])
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+                           linewidth=100, antialiased=True)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.show()
+
 
 
   def __str__(self):
