@@ -158,7 +158,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     assert y_samples.shape == (n_samples, self.ndim_y)
     return x_samples, y_samples
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=None):
     """ Conditional mean of the distribution
      Args:
        x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -172,7 +172,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     means = W_x.dot(self.means_y)
     return means
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=None):
     """ Covariance of the distribution conditioned on x_cond
 
       Args:

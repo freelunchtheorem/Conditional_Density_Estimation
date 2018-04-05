@@ -87,7 +87,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     Y = X ** 2 + self._std(X) * self.random_state.normal(size=n_samples)
     return X, Y
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=None):
     """ Conditional mean of the distribution
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -99,7 +99,7 @@ class EconDensity(BaseConditionalDensitySimulation):
 
     return x_cond**2
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=None):
     """ Covariance of the distribution conditioned on x_cond
 
       Args:

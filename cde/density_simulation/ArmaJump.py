@@ -105,7 +105,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
 
     return x[burn_in:n_samples + burn_in], x[burn_in+1:n_samples + burn_in + 1]
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=None):
     """ Conditional mean of the distribution
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -120,7 +120,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
       means[i, :] = self.jump_prob * (mean + self.jump_mean) + (1-self.jump_prob) * mean
     return means
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=None):
     """ Covariance of the distribution conditioned on x_cond
 
       Args:

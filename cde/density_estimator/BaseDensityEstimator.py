@@ -77,7 +77,7 @@ class BaseDensityEstimator(ConditionalDensity):
         conditional_log_likelihoods = np.log(self.pdf(X, Y))
       return np.mean(conditional_log_likelihoods)
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=10**7):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -89,11 +89,11 @@ class BaseDensityEstimator(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.can_sample:
-      return self._mean_mc(x_cond)
+      return self._mean_mc(x_cond, n_samples=n_samples)
     else:
       return self._mean_pdf(x_cond)
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=10**7):
     """ Covariance of the fitted distribution conditioned on x_cond
 
     Args:
@@ -103,9 +103,9 @@ class BaseDensityEstimator(ConditionalDensity):
       Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
     assert self.fitted, "model must be fitted"
-    return self._covariance_pdf(x_cond)
+    return self._covariance_pdf(x_cond, n_samples=n_samples)
 
-  def value_at_risk(self, x_cond, alpha=0.01):
+  def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
@@ -122,11 +122,11 @@ class BaseDensityEstimator(ConditionalDensity):
     if self.has_cdf:
       return self._value_at_risk_cdf(x_cond, alpha=alpha)
     elif self.can_sample:
-      return self._value_at_risk_mc(x_cond, alpha=alpha)
+      return self._value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
-  def conditional_value_at_risk(self, x_cond, alpha=0.01):
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
 
        Args:
@@ -141,7 +141,7 @@ class BaseDensityEstimator(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.can_sample:
-      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
+      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
@@ -250,7 +250,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
 class BaseMixtureEstimator(BaseDensityEstimator):
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=10**7):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -269,7 +269,7 @@ class BaseMixtureEstimator(BaseDensityEstimator):
       means[i, :] = weights[i].dot(locs[i])
     return means
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=None):
     """ Covariance of the fitted distribution conditioned on x_cond
 
       Args:

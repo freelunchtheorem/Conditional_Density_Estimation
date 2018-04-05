@@ -92,7 +92,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     plt.ylabel("y")
     plt.show()
 
-  def mean_(self, x_cond):
+  def mean_(self, x_cond, n_samples=10**7):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -103,15 +103,16 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.can_sample:
-      return self._mean_mc(x_cond)
+      return self._mean_mc(x_cond, n_samples=n_samples)
     else:
       return self._mean_pdf(x_cond)
 
-  def covariance(self, x_cond):
+  def covariance(self, x_cond, n_samples=10**7):
     """ Covariance of the fitted distribution conditioned on x_cond
 
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+      n_samples: number of samples for monte carlo evaluation
 
     Returns:
       Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
@@ -119,16 +120,17 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     if self.has_pdf:
       return self._covariance_pdf(x_cond)
     elif self.can_sample:
-      return self._covariance_mc(x_cond)
+      return self._covariance_mc(x_cond, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
-  def value_at_risk(self, x_cond, alpha=0.01):
+  def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
       alpha: quantile percentage of the distribution
+      n_samples: number of samples for monte carlo evaluation
 
     Returns:
        VaR values for each x to condition on - numpy array of shape (n_values)
@@ -139,16 +141,17 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     if self.has_cdf:
       return self._value_at_risk_cdf(x_cond, alpha=alpha)
     elif self.can_sample:
-      return self._value_at_risk_mc(x_cond, alpha=alpha)
+      return self._value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
-  def conditional_value_at_risk(self, x_cond, alpha=0.01):
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
 
        Args:
          x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
          alpha: quantile percentage of the distribution
+         n_samples: number of samples for monte carlo evaluation
 
        Returns:
          CVaR values for each x to condition on - numpy array of shape (n_values)
@@ -157,7 +160,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.can_sample:
-      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha)
+      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
