@@ -271,24 +271,24 @@ class GoodnessOfFit:
     if self.n_mc_samples < 10**5:
       warnings.warn("using less than 10**5 samples for monte carlo not recommended")
 
-    print("Started to compute KL divergence")
+    #print("Started to compute KL divergence")
     t = time.time()
     # KL - divergence
     gof_result.kl_divergence_ = self.kl_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
     gof_result.kl_divergence = [np.mean(gof_result.kl_divergence_ )]
-    print("Finished KL: time to compute: ", time.time()-t)
+    #print("Finished KL: time to compute: ", time.time()-t)
     t = time.time()
 
     # Hellinger distance
     gof_result.hellinger_distance_ = self.hellinger_distance_mc(n_samples=self.n_mc_samples) # original data preserved
     gof_result.hellinger_distance = [np.mean(gof_result.hellinger_distance_)]
-    print("Finished Hallinger: time to compute: ", time.time() - t)
+    #print("Finished Hallinger: time to compute: ", time.time() - t)
     t = time.time()
 
     # Jason Shannon - divergence
     gof_result.js_divergence_ = self.js_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
     gof_result.js_divergence = [np.mean(gof_result.js_divergence_)]
-    print("Finished JS Divergenve: time to compute: ", time.time() - t)
+    #print("Finished JS Divergenve: time to compute: ", time.time() - t)
     t = time.time()
 
     # Add number of observations
@@ -318,27 +318,27 @@ class GoodnessOfFit:
     gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
     gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
 
-    print("Finished Mean and Cov: time to compute: ", time.time() - t)
+    #print("Finished Mean and Cov: time to compute: ", time.time() - t)
     t = time.time()
 
-    """ tail risk """
-    gof_result.VaR_sim_ = self.probabilistic_model.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
-    gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
-    gof_result.VaR_est_ = self.estimator.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
-    gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
-    gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
-
-    print("Finished VaR: time to compute: ", time.time() - t)
-    t = time.time()
-
-    gof_result.CVaR_sim_ = self.probabilistic_model.conditional_value_at_risk(self.x_cond)
-    gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
-    gof_result.CVaR_est_ = self.estimator.conditional_value_at_risk(self.x_cond)
-    gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
-    gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
-
-    print("Finished CVaR: time to compute: ", time.time() - t)
-    t = time.time()
+    # """ tail risk """
+    # gof_result.VaR_sim_ = self.probabilistic_model.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
+    # gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
+    # gof_result.VaR_est_ = self.estimator.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
+    # gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
+    # gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
+    #
+    # print("Finished VaR: time to compute: ", time.time() - t)
+    # t = time.time()
+    #
+    # gof_result.CVaR_sim_ = self.probabilistic_model.conditional_value_at_risk(self.x_cond)
+    # gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
+    # gof_result.CVaR_est_ = self.estimator.conditional_value_at_risk(self.x_cond)
+    # gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
+    # gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
+    #
+    # print("Finished CVaR: time to compute: ", time.time() - t)
+    # t = time.time()
 
     """ time to fit """
     gof_result.time_to_fit = self.time_to_fit
