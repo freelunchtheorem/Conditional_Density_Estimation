@@ -11,7 +11,7 @@ def question2(): #noise
       'n_centers': [10, 20],
       'estimator': [None],
       'X_ph': [None],
-      'n_training_epochs': [1000],
+      'n_training_epochs': [2000],
       'x_noise_std': [None],
       'y_noise_std': [0.01, 0.05, 0.1, None],
       'random_seed': [22]
@@ -65,8 +65,8 @@ if __name__ == '__main__':
 
 
       graph_dicts = [
-        # { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.01},
-        # { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.05},
+        { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.01},
+        { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.05},
         {"estimator": "MixtureDensityNetwork", "simulator": "GaussianMixture", "x_noise_std": None, "y_noise_std": 0.1},
         {"estimator": "MixtureDensityNetwork", "simulator": "GaussianMixture", "x_noise_std": None, "y_noise_std": None},
       #   { "estimator": "KernelMixtureNetwork", "y_noise_std": 0.01},
