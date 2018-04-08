@@ -13,7 +13,7 @@ from .BaseDensityEstimator import BaseMixtureEstimator
 class MixtureDensityNetwork(BaseMixtureEstimator):
   """ Mixture Density Network Estimator
 
-    See "Machine Learning and Pattern Recognition", Bishop 2008
+    See "Mixture Density networks", Bishop 1994
 
     Args:
         n_centers: Number of Gaussian mixture components
@@ -249,17 +249,14 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
 
     # locations and scales of the mixture components
     self.locs = Dense(self.n_centers * self.ndim_y)(net)
-    #self.locs = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=None)
     self.locs = locs = tf.reshape(self.locs, (-1, self.n_centers, self.ndim_y))
 
     self.scales = Dense(self.n_centers * self.ndim_y, activation='softplus')(net)
-    #self.scales = tf.layers.dense(net, self.n_centers * self.ndim_y, activation=tf.exp)
     self.scales = scales = tf.reshape(self.scales, (-1, self.n_centers, self.ndim_y))
 
     # put mixture components together
 
     self.logits = logits = Dense(self.n_centers)(net)
-    #self.logits = logits = tf.layers.dense(net, self.n_centers, activation=None)
     self.weights = tf.nn.softmax(logits)
     self.cat = cat = Categorical(logits=logits)
     self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
