@@ -21,26 +21,27 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 
 
 class KernelMixtureNetwork(BaseMixtureEstimator):
+  # noinspection PyPackageRequirements
   """ Kernel Mixture Network Estimator
 
-    https://arxiv.org/abs/1705.07111
+      https://arxiv.org/abs/1705.07111
 
-    Args:
-        center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
-                                [all, random, distance, k_means, agglomerative]
-        n_centers: Number of kernels to use in the output
-        keep_edges: Keep the extreme y values as center to keep expressiveness
-        init_scales: List or scalar that describes (initial) values of bandwidth parameter
-        estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
-                   if None use a standard 15 -> 15 Dense network
-        X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
-              but should be easy to extend to a list of placeholders
-        train_scales: Boolean that describes whether or not to make the scales trainable
-        x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise. Adding noise is
-        automatically deactivated during
-        y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
-        random_seed: (optional) seed (int) of the random number generators used
-    """
+      Args:
+          center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
+                                  [all, random, distance, k_means, agglomerative]
+          n_centers: Number of kernels to use in the output
+          keep_edges: Keep the extreme y values as center to keep expressiveness
+          init_scales: List or scalar that describes (initial) values of bandwidth parameter
+          estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
+                     if None use a standard 15 -> 15 Dense network
+          X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
+                but should be easy to extend to a list of placeholders
+          train_scales: Boolean that describes whether or not to make the scales trainable
+          x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise. Adding noise is
+          automatically deactivated during
+          y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+          random_seed: (optional) seed (int) of the random number generators used
+      """
 
   def __init__(self, center_sampling_method='k_means', n_centers=200, keep_edges=False,
                init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=1000,

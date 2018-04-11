@@ -304,10 +304,12 @@ def _hash_task_dict(task_dict):
   task_dict = copy.deepcopy(task_dict)
   del task_dict['X']
   del task_dict['Y']
+  del task_dict['x_cond']
 
   """ delete scipy.stats objects since cause hashing issues """
   if isinstance(task_dict['simulator'], GaussianMixture):
-    attributes_to_delete = ['x_cond']
+    attributes_to_delete = ['gaussians', 'gaussians_x', 'gaussians_y', 'covariances', 'covariances_x', 'covariances_y', 'means', 'means_x', 'means_y',
+                            'weights', 'random_state']
     [delattr(task_dict['simulator'], attr) for attr in attributes_to_delete if hasattr(task_dict['simulator'], attr)]
 
   tpls = _make_hashable(task_dict)
