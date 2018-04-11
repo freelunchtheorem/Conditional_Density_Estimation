@@ -181,6 +181,7 @@ class ConfigRunner():
 
     # Run the configurations
     gof_results = self.gof_results
+    print("number of finished tasks in the found pickle:", len(gof_results.single_results_dict))
 
     for i, task in enumerate(self.configs[:limit]):
       try:
@@ -300,17 +301,22 @@ def _create_configurations(params_dict):
 
 def _hash_task_dict(task_dict):
   assert set(['simulator', 'estimator', 'x_cond', 'n_mc_samples', 'n_obs']) < set(task_dict.keys())
-  task_dict = task_dict.copy()
+  task_dict = copy.deepcopy(task_dict)
   del task_dict['X']
   del task_dict['Y']
-  a = _make_hashable(task_dict)
-  return make_hash_sha256(a)
+
+  """ delete scipy.stats objects since cause hashing issues """
+  if isinstance(task_dict['simulator'], GaussianMixture):
+    [delattr(task_dict['simulator'], attr) for attr in ['gaussians', 'gaussians_x', 'gaussians_y'] if hasattr(task_dict['simulator'], attr)]
+
+  tpls = _make_hashable(task_dict)
+  return make_hash_sha256(tpls)
 
 def _make_hashable(o):
     if isinstance(o, (tuple, list)):
         return tuple((_make_hashable(e) for e in o))
     if isinstance(o, dict):
-        return tuple(sorted((k,_make_hashable(v)) for k,v in o.items()))
+        return tuple(sorted((k, _make_hashable(v)) for k, v in o.items()))
 
     if isinstance(o, (set, frozenset)):
         return tuple(sorted(_make_hashable(e) for e in o))
