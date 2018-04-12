@@ -2,6 +2,7 @@ import time
 import numpy as np
 import scipy
 import warnings
+import logging
 
 
 
@@ -269,7 +270,9 @@ class GoodnessOfFit:
     gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
 
     if self.n_mc_samples < 10**5:
-      warnings.warn("using less than 10**5 samples for monte carlo not recommended")
+      logging.warning("using less than 10**5 samples for monte carlo not recommended")
+      #warnings.showwarning("using less than 10**5 samples for monte carlo not recommended")
+      #warnings.warn()
 
     #print("Started to compute KL divergence")
     t = time.time()
@@ -320,7 +323,7 @@ class GoodnessOfFit:
 
     #print("Finished Mean and Cov: time to compute: ", time.time() - t)
     t = time.time()
-
+    #
     # """ tail risk """
     # gof_result.VaR_sim_ = self.probabilistic_model.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
     # gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]

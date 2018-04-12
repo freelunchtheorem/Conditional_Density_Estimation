@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+import glob
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 
@@ -70,14 +71,30 @@ if __name__ == '__main__':
                       'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit"
                       ]
 
+
+  # Search for pickle file in directory
+  results_pickle_file = glob.glob("*noise*.pickle")
+  config_pickle_file = glob.glob("config*.pickle")
+
+  if results_pickle_file:
+    results_pickle = results_pickle_file[0]
+  else:
+    results_pickle = None
+
+  if config_pickle_file:
+    config_pickle_file = config_pickle_file[0]
+  else:
+    config_pickle_file = None
+
+
   if run:
     observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
 
     conf_est, conf_sim = question3()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
+                               n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
 
-    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_NNvsKDE")
+    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question3_NNvsKDE")
 
   if load:
     path_pickle = "/home/jonasrothfuss/Desktop/question2_NNvsKDE/question2_NNvsKDE_result_03-30-18_14-17-03.pickle"

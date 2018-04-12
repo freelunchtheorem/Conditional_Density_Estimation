@@ -68,11 +68,20 @@ if __name__ == '__main__':
                       ]
 
   # Search for pickle file in directory
-  pickle_files = glob.glob("*.pickle")
-  if pickle_files:
-      results_pickle = pickle_files[0]
+  results_pickle_file = glob.glob("*noise*.pickle")
+  config_pickle_file = glob.glob("config*.pickle")
+
+
+  if results_pickle_file:
+      results_pickle = results_pickle_file[0]
   else:
       results_pickle = None
+
+  if config_pickle_file:
+    config_pickle_file = config_pickle_file[0]
+  else:
+    config_pickle_file = None
+
 
   if run:
       observations = 100 * np.logspace(0, 4, num=5, base=2.0,
@@ -80,12 +89,12 @@ if __name__ == '__main__':
 
       conf_est, conf_sim = question1()
       conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle)
+                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle_file, config_pickle_file=config_pickle_file)
 
       results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg_x")
 
   if load:
-    with open(results_pickle, 'rb') as pickle_file:
+    with open(results_pickle_file, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 

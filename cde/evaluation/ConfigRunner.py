@@ -57,7 +57,7 @@ class ConfigRunner():
   """
 
   def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5,
-               results_pickle_file=None):
+               results_pickle_file=None, config_pickle_file=None):
     assert est_params
     assert sim_params
     assert keys_of_interest
@@ -68,20 +68,28 @@ class ConfigRunner():
     est_configs = _create_configurations(est_params)
     sim_configs = _create_configurations(sim_params)
 
-    logging.log(logging.INFO, "creating configurations...")
     self.observations = observations
-    self.configured_estimators = [globals()[estimator_name](**config) for estimator_name, estimator_params in est_configs.items() for config in estimator_params]
-    self.configured_simulators = [globals()[simulator_name](**config) for simulator_name, sim_params in sim_configs.items() for config in sim_params]
-
     self.n_mc_samples = n_mc_samples
     self.n_x_cond = n_x_cond
-
-    self.configs = self._merge_configurations()
     self.keys_of_interest = keys_of_interest
+
+    if config_pickle_file:
+      self.configs_loaded = True
+      self.config_pickle_file = config_pickle_file
+      print("{:<70s} {:<30s}".format("Loading previous configs from file: ", self.config_pickle_file))
+      with open(config_pickle_file, 'rb') as f:  # load pickled configs to continue from previous
+        self.configs = pickle.load(f)
+    else:
+      self.configs_loaded = False
+      conf_est = [globals()[estimator_name](**config) for estimator_name, estimator_params in est_configs.items() for config in estimator_params]
+      conf_sim = [globals()[simulator_name](**config) for simulator_name, sim_params in sim_configs.items() for config in sim_params]
+
+      self.configs = self._merge_configurations(conf_est, conf_sim)
+      self.config_pickle_file = None
 
     self.results_pickle_file = results_pickle_file
     if self.results_pickle_file:
-      print("Continue with:", self.results_pickle_file)
+      print("{:<70s} {:<30s}".format("Continue with: ", results_pickle_file))
       with open(results_pickle_file, 'rb') as f: # load pickled gof object to continue with previous calculations
         self.gof_results = pickle.load(f)
         self.gof_single_res_collection = self.gof_results.single_results_dict
@@ -91,7 +99,7 @@ class ConfigRunner():
 
 
 
-  def _merge_configurations(self):
+  def _merge_configurations(self, conf_est, conf_sim):
     """
     Creates all possible combinations from the (configured) estimators and simulators.
     Requires configured estimators and simulators in the constructor:
@@ -101,10 +109,6 @@ class ConfigRunner():
         returned --> shape of tuples: (estimator object, simulator object)
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
-    print("total number of configurations to be generated: " +
-          str(len(self.configured_estimators) * len(self.configured_simulators) * len(self.observations)))
-
-
     if np.isscalar(self.observations):
       self.observations = [self.observations]
 
@@ -113,7 +117,7 @@ class ConfigRunner():
 
     """ since simulator configurations of the same kind require the same X,Y and x_cond, 
     they have to be generated separately from the estimators"""
-    for sim in self.configured_simulators:
+    for sim in conf_sim:
       n_obs_max = max(self.observations)
       X_max, Y_max = sim.simulate(n_obs_max)
       X_max, Y_max = sim._handle_input_dimensionality(X_max, Y_max)
@@ -124,7 +128,7 @@ class ConfigRunner():
         configured_sims.append(dict({"simulator": sim, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
 
 
-    for estimator, simulator in itertools.product(self.configured_estimators, configured_sims):
+    for estimator, simulator in itertools.product(conf_est, configured_sims):
       simulator["estimator"] = estimator
       simulator["n_mc_samples"] = self.n_mc_samples
       configs.append(copy.deepcopy(simulator))
@@ -178,19 +182,26 @@ class ConfigRunner():
 
     self._setup_file_names()
 
+    if not self.configs_loaded:
+      self._export_configs()
 
     # Run the configurations
     gof_results = self.gof_results
-    print("number of finished tasks in the found pickle:", len(gof_results.single_results_dict))
+
+    print("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(gof_results.single_results_dict))))
 
     for i, task in enumerate(self.configs[:limit]):
       try:
         task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
         if task_hash in gof_results.single_results_dict.keys():
-          print("Task:", i+1, "has already been completed ---- Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task["estimator"].__class__.__name__,
+                                                                         " Simulator: ", task["simulator"].__class__.__name__))
+
         else:
-          print("Task:", i + 1, "Estimator:", task["estimator"].__class__.__name__, " Simulator: ", task["simulator"].__class__.__name__)
+          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task["estimator"].__class__.__name__,
+                                                                    " Simulator: ", task["simulator"].__class__.__name__))
+
           gof_single_result = self._run_single_configuration(**task)
 
           self.gof_single_res_collection[task_hash] = gof_single_result
@@ -238,7 +249,6 @@ class ConfigRunner():
 
     results_dict = results.report_dict(keys_of_interest=self.keys_of_interest)
 
-
     return pd.DataFrame.from_dict(data=results_dict)
 
   def _export_results(self, task, gof_result, file_handle_results):
@@ -254,6 +264,14 @@ class ConfigRunner():
       print(str(e))
       traceback.print_exc()
 
+  def _export_configs(self):
+    assert self.config_pickle_file is not None
+    assert len(self.configs) > 0
+
+    print("{:<70s} {:<s}".format("Storing tasks/configs under: ", self.config_pickle_file))
+    with open(self.config_pickle_file, "wb") as f:
+      io.dump_as_pickle(f, self.configs, verbose=False)
+
   def _apply_filters(self, estimator_filter):
 
     if estimator_filter is not None:
@@ -263,7 +281,7 @@ class ConfigRunner():
       print("no tasks to execute after filtering for the estimator")
       return None
 
-    print("Running configurations. Number of total tasks after filtering: ", len(self.configs))
+    print("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
 
   def _setup_file_names(self):
     if self.prefix_filename is not None:
@@ -281,6 +299,9 @@ class ConfigRunner():
       else:
         self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
       self.file_handle_results_csv = open(self.results_csv_path, "a+")
+
+    if not self.configs_loaded:
+      self.config_pickle_file = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name="configs_")
 
 
 def _add_seeds_to_sim_params(n_seeds, sim_params):
@@ -300,16 +321,15 @@ def _create_configurations(params_dict):
   return confs
 
 def _hash_task_dict(task_dict):
-  assert set(['simulator', 'estimator', 'x_cond', 'n_mc_samples', 'n_obs']) < set(task_dict.keys())
+  assert {'simulator', 'estimator', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
   task_dict = copy.deepcopy(task_dict)
   del task_dict['X']
   del task_dict['Y']
-  del task_dict['x_cond']
 
-  """ delete scipy.stats objects since cause hashing issues """
+  """ delete scipy.stats object since it causes hashing issues """
   if isinstance(task_dict['simulator'], GaussianMixture):
-    attributes_to_delete = ['gaussians', 'gaussians_x', 'gaussians_y', 'covariances', 'covariances_x', 'covariances_y', 'means', 'means_x', 'means_y',
-                            'weights']
+    attributes_to_delete = ['gaussians']
+
     [delattr(task_dict['simulator'], attr) for attr in attributes_to_delete if hasattr(task_dict['simulator'], attr)]
 
   tpls = _make_hashable(task_dict)
