@@ -303,24 +303,27 @@ class GoodnessOfFit:
 
     gof_result.n_mc_samples = [self.n_mc_samples]
 
-    """ create strings since pandas requires lists to be all of the same length if numerical """
-    gof_result.mean_est_ = self.estimator.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.mean_est = [str(gof_result.mean_est_.flatten())]
+    try:
+      """ create strings since pandas requires lists to be all of the same length if numerical """
+      gof_result.mean_est_ = self.estimator.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+      gof_result.mean_est = [str(gof_result.mean_est_.flatten())]
 
-    gof_result.cov_est_ = self.estimator.covariance(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.cov_est = [str(gof_result.cov_est_.flatten())]
+      gof_result.cov_est_ = self.estimator.covariance(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+      gof_result.cov_est = [str(gof_result.cov_est_.flatten())]
 
-    gof_result.mean_sim_ = self.probabilistic_model.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.mean_sim = [str(gof_result.mean_sim_ .flatten())]
+      gof_result.mean_sim_ = self.probabilistic_model.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+      gof_result.mean_sim = [str(gof_result.mean_sim_ .flatten())]
 
 
-    gof_result.cov_sim_ = self.probabilistic_model.covariance(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.cov_sim = [str(gof_result.cov_sim_.flatten())]
+      gof_result.cov_sim_ = self.probabilistic_model.covariance(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+      gof_result.cov_sim = [str(gof_result.cov_sim_.flatten())]
 
-    """ absolute mean, cov difference """
-    gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
-    gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
+      """ absolute mean, cov difference """
+      gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
+      gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
 
+    except:
+      pass
     #print("Finished Mean and Cov: time to compute: ", time.time() - t)
     t = time.time()
     #

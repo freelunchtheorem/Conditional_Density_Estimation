@@ -4,22 +4,18 @@ import glob
 from cde.evaluation.ConfigRunner import ConfigRunner
 
 
-def question1(): #noise
+def question2(): #noise
   estimator_params = {
-  'KernelMixtureNetwork':
-
-    {'center_sampling_method': ["k_means"],
-     'n_centers': [20, 50],
-     'keep_edges': [True],
-     'init_scales': [[0.1, 0.5, 1.]],
-     'estimator': [None],
-     'X_ph': [None],
-     'train_scales': [True],
-     'n_training_epochs': [400],
-     'x_noise_std': [None],
-     'y_noise_std': [0.01, 0.05, 0.1, None],
-     'random_seed': [24]
-     },
+  'MixtureDensityNetwork':
+    {
+      'n_centers': [10, 20],
+      'estimator': [None],
+      'X_ph': [None],
+      'n_training_epochs': [2000],
+      'x_noise_std': [None],
+      'y_noise_std': [0.1, 0.2, 0.5, None],
+      'random_seed': [22]
+    }
   }
 
   simulators_params = {
@@ -62,7 +58,7 @@ if __name__ == '__main__':
   if run:
     observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
 
-    conf_est, conf_sim = question1()
+    conf_est, conf_sim = question2()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
 
@@ -76,14 +72,11 @@ if __name__ == '__main__':
 
 
       graph_dicts = [
-        # { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.01},
-        # { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": 0.05},
-        {"estimator": "MixtureDensityNetwork", "simulator": "GaussianMixture", "x_noise_std": None, "y_noise_std": 0.1},
-        {"estimator": "MixtureDensityNetwork", "simulator": "GaussianMixture", "x_noise_std": None, "y_noise_std": None},
-      #   { "estimator": "KernelMixtureNetwork", "y_noise_std": 0.01},
-      #   { "estimator": "KernelMixtureNetwork", "y_noise_std": 0.01},
-      #   { "estimator": "KernelMixtureNetwork", "y_noise_std": 0.001}
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.1},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.01},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.05},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": None},
       ]
 
-      gof_result.plot_metric(graph_dicts)
+      gof_result.plot_metric(graph_dicts, metric="js_divergence")
       print(gof_result)

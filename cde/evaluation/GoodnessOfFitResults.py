@@ -71,7 +71,7 @@ class GoodnessOfFitResults:
 
 
     d_keys = list(graph_dicts[0].keys())
-    d_keys = " ".join(str(x) if x != 'estimator' else "" for x in d_keys)
+    d_keys = " ".join(str(x) if x != 'estimator' and x != 'simulator' else "" for x in d_keys)
 
     for graph_dict in graph_dicts:
       """ data """
