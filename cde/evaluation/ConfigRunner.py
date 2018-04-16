@@ -328,7 +328,7 @@ def _hash_task_dict(task_dict):
 
   """ delete scipy.stats object since it causes hashing issues """
   if isinstance(task_dict['simulator'], GaussianMixture):
-    attributes_to_delete = ['gaussians']
+    attributes_to_delete = ['gaussians', 'gaussians_x', 'gaussians_y']
 
     [delattr(task_dict['simulator'], attr) for attr in attributes_to_delete if hasattr(task_dict['simulator'], attr)]
 
