@@ -27,7 +27,9 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type='c', indep_type='c', bw=self.bandwidth_selection)
+    dep_type = 'c' * self.ndim_y
+    indep_type = 'c' * self.ndim_x
+    self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type=dep_type, indep_type=indep_type, bw=self.bandwidth_selection)
 
     self.fitted = True
     self.can_sample = True
