@@ -46,7 +46,7 @@ if __name__ == '__main__':
                       ]
 
   # Search for pickle file in directory
-  results_pickle_file = glob.glob("*noise*.pickle")
+  results_pickle_file = glob.glob("*question2_noise_reg*.pickle")
   config_pickle_file = glob.glob("config*.pickle")
 
   if results_pickle_file:

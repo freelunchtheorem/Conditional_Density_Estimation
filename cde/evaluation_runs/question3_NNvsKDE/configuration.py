@@ -12,31 +12,31 @@ def question3():
           'bandwidth_selection': ['normal_reference', 'cv_ml'],
           'random_seed': [22]
       },
-  'KernelMixtureNetwork':
+  # 'KernelMixtureNetwork':
+  #
+  #   {'center_sampling_method': ["k_means"],
+  #    'n_centers': [20, 50],
+  #    'keep_edges': [True],
+  #    'init_scales': [[0.1, 0.5, 1.]],
+  #    'estimator': [None],
+  #    'X_ph': [None],
+  #    'train_scales': [True],
+  #    'n_training_epochs': [300],
+  #    'x_noise_std': [None],
+  #    'y_noise_std': [0.01, None],
+  #    'random_seed': [22],
+  #    },
 
-    {'center_sampling_method': ["k_means"],
-     'n_centers': [20, 50],
-     'keep_edges': [True],
-     'init_scales': [[0.1, 0.5, 1.]],
-     'estimator': [None],
-     'X_ph': [None],
-     'train_scales': [True],
-     'n_training_epochs': [300],
-     'x_noise_std': [None],
-     'y_noise_std': [0.01, None],
-     'random_seed': [22],
-     },
-
-  'MixtureDensityNetwork':
-      {
-        'n_centers': [10, 50],
-        'estimator': [None],
-        'X_ph': [None],
-        'n_training_epochs': [800],
-        'x_noise_std': [None],
-        'y_noise_std': [0.01, None],
-        'random_seed': [22]
-      },
+  # 'MixtureDensityNetwork':
+  #     {
+  #       'n_centers': [10, 50],
+  #       'estimator': [None],
+  #       'X_ph': [None],
+  #       'n_training_epochs': [800],
+  #       'x_noise_std': [None],
+  #       'y_noise_std': [0.01, None],
+  #       'random_seed': [22]
+  #     },
   }
 
   simulators_params = {
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
 
   # Search for pickle file in directory
-  results_pickle_file = glob.glob("*noise*.pickle")
+  results_pickle_file = glob.glob("*question3_NNvsKDE*.pickle")
   config_pickle_file = glob.glob("config*.pickle")
 
   if results_pickle_file:
