@@ -32,7 +32,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type=dep_type, indep_type=indep_type, bw=self.bandwidth_selection)
 
     self.fitted = True
-    self.can_sample = True
+    self.can_sample = False
     self.has_cdf = True
 
   def pdf(self, X, Y):
