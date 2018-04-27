@@ -30,7 +30,7 @@ def question2(): #noise
 
 if __name__ == '__main__':
 
-  run = True
+  run = False
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
@@ -66,17 +66,17 @@ if __name__ == '__main__':
 
   if load:
 
-    with open(results_pickle, 'rb') as pickle_file:
+    with open("/Users/fabioferreira/Dropbox/Nonparametric_Density_Estimation/results/question2_noise_reg_y_econ_mdn/dumps/configuration2/question2_noise_reg_result_04-14-18_16-59-49.pickle", 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 
 
       graph_dicts = [
         {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.1},
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.01},
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.05},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.2},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.5},
         {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": None},
       ]
 
-      gof_result.plot_metric(graph_dicts, metric="js_divergence")
+      gof_result.plot_metric(graph_dicts)
       print(gof_result)

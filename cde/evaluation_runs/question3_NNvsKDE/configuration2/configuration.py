@@ -16,7 +16,7 @@ def question3():
    'KernelMixtureNetwork':
   
      {'center_sampling_method': ["k_means"],
-      'n_centers': [20, 50],
+      'n_centers': [50],
       'keep_edges': [True],
       'init_scales': [[0.1, 0.5, 1.]],
       'estimator': [None],
@@ -24,18 +24,18 @@ def question3():
       'train_scales': [True],
       'n_training_epochs': [800],
       'x_noise_std': [None],
-      'y_noise_std': [0.01, None],
+      'y_noise_std': [0.01, 0.1],
       'random_seed': [22],
       },
 
    'MixtureDensityNetwork':
        {
-         'n_centers': [10, 50],
+         'n_centers': [50],
          'estimator': [None],
          'X_ph': [None],
          'n_training_epochs': [800],
          'x_noise_std': [None],
-         'y_noise_std': [0.01, None],
+         'y_noise_std': [0.01, 0.1],
          'random_seed': [22]
        },
   }
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
 
   if run:
-    observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
+    observations = 100 * np.logspace(0, 6, num=5, base=2.0, dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600
 
     conf_est, conf_sim = question3()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,

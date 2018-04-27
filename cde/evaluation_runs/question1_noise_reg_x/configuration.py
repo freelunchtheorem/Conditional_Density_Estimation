@@ -56,7 +56,7 @@ def question1(): #noise
 
 if __name__ == '__main__':
 
-  run = True
+  run = False
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
@@ -94,17 +94,18 @@ if __name__ == '__main__':
       results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg_x")
 
   if load:
-    with open(results_pickle_file, 'rb') as pickle_file:
+    with open("/Users/fabioferreira/Dropbox/Nonparametric_Density_Estimation/results/question1_noise_reg_x/0_dumps/question1_noise_reg_x_result_04-13-18_01-34"
+              "-38.pickle", 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 
 
       graph_dicts = [
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.05, "y_noise_std": None},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None},
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None},
+        #{ "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None},
+        #{ "estimator": "MixtureDensityNetwork", "x_noise_std": 0.05, "y_noise_std": None},
+        {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None},
+        { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None},
       ]
 
-      gof_result.plot_metric(graph_dicts)
+      gof_result.plot_metric(graph_dicts, metric="js_divergence")
       print(gof_result)

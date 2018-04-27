@@ -2,9 +2,10 @@ import pandas as pd
 import traceback
 import numpy as np
 
+
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
-
+from collections import OrderedDict
 from cde.utils import io
 
 
@@ -43,7 +44,7 @@ class GoodnessOfFitResults:
     finally:
       file_handle_results_csv.close()
 
-  def plot_metric(self, graph_dicts, metric='hellinger_distance', simulator='EconDensity'):
+  def plot_metric(self, graph_dicts, metric='hellinger_distance', simulator='EconDensity', title="", keys_of_interest=None):
     """
     Generates a plot for a metric with axis x representing the n_observations and y representing the metric.
     Args:
@@ -64,7 +65,8 @@ class GoodnessOfFitResults:
     assert metric in self.results_df
     assert graph_dicts is not None
     assert 'estimator' in self.results_df
-    # todo check if estimator and simulator are one of the available
+    if keys_of_interest is not None:
+      assert all(key in self.results_df for key in keys_of_interest), "at least one key of interest not in the results data frame"
 
     n_curves_to_plot = len(graph_dicts)
     color = iter(cm.rainbow(np.linspace(0, 1, n_curves_to_plot)))
@@ -83,16 +85,28 @@ class GoodnessOfFitResults:
       metric_values_std = sub_df.groupby(by='n_observations').std()[metric]
       n_obs = metric_values_mean.index
 
+
+      if keys_of_interest is not None:
+        intersect = graph_dict.keys() & keys_of_interest
+        intersect.add("estimator")
+        intersect.add("simulator")
+        sub_dict = OrderedDict((k, graph_dict[k]) for k in intersect)
+      else:
+        sub_dict = OrderedDict(sorted(graph_dict.items()))
+
+      label = ', '.join("{}={}".format(k, v) for k, v in sub_dict.items())
+
       " visual settings "
       c = next(color)
-      label = graph_dict["estimator"] + "_x_noise_" + str(graph_dict["x_noise_std"]) + "_y_noise_" + str(graph_dict["y_noise_std"])
+
       plt.plot(n_obs, metric_values_mean, color=c, label=label)
       plt.fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
 
     plt.xscale('log')
     plt.xlabel('n_observations')
     plt.ylabel(metric)
-    plt.title('Effect of ' + d_keys + " on " + metric)
+    plt.title(title)
+    plt.plot([], [], ' ', label="no noise specified means no noise was used")
 
     plt.legend()
     plt.show()
