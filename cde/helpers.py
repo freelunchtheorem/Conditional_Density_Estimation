@@ -117,7 +117,7 @@ def check_for_noise(x_after, x_before, name='array'):
   return all_close
 
 def mc_integration_cauchy(func, ndim, n_samples=10**7, batch_size=None):
-  """ Monta carlo integration using importance sampling with a cauchy distribution
+  """ Monte carlo integration using importance sampling with a cauchy distribution
 
   Args:
     func: function to integrate over - must take numpy arrays of shape (n_samples, ndim) as first argument

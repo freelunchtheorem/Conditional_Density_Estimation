@@ -139,9 +139,9 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.has_cdf:
-      return self._value_at_risk_cdf(x_cond, alpha=alpha)
+      return self._quantile_cdf(x_cond, alpha=alpha)
     elif self.can_sample:
-      return self._value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
+      return self._quantile_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
 
@@ -159,10 +159,14 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
     assert x_cond.ndim == 2
 
-    if self.can_sample:
-      return self._conditional_value_at_risk_mc(x_cond, alpha=alpha, n_samples=n_samples)
+    VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
+
+    if self.has_pdf:
+      return self._conditional_value_at_risk_mc_pdf(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
+    elif self.can_sample:
+      return self._conditional_value_at_risk_sampling(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
     else:
-      raise NotImplementedError()
+      raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
 
   def get_params(self, deep=True):
     param_dict = super(BaseConditionalDensitySimulation, self).get_params(deep=deep)
