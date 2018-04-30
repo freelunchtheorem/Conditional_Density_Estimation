@@ -28,7 +28,7 @@ class GaussianDummy(BaseDensityEstimator):
     self.has_pdf = has_pdf
     self.has_cdf = has_cdf
 
-  def fit(self, X, Y):
+  def fit(self, X, Y, verbose=False):
     self.fitted = True
 
   def pdf(self, X, Y):

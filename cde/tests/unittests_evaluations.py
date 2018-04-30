@@ -74,9 +74,9 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
-    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc(x_cond=x)[0], places=2)
-    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc(x_cond=x)[1], places=2)
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10**7)
+    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc()[0], places=2)
+    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc()[1], places=2)
 
   def test_gaussian_dummy_kl_divergence_mc(self):
     mu1 = np.array([0, 0])
@@ -92,9 +92,9 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
-    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc(x_cond=x)[0], places=2)
-    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc(x_cond=x)[1], places=2)
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
+    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc()[0], places=2)
+    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc()[1], places=2)
 
   def test_gaussian_dummy_js_divergence_mc(self):
     mu1 = np.array([0, 0])
@@ -107,9 +107,35 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
-    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-    self.assertGreaterEqual(1, gof1.js_divergence_mc(x_cond=x)[0])
-    self.assertLessEqual(0, gof1.js_divergence_mc(x_cond=x)[0])
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
+    self.assertGreaterEqual(1, gof1.js_divergence_mc()[0])
+    self.assertLessEqual(0, gof1.js_divergence_mc()[0])
+
+  def test_gaussian_dummy_divergence_measures_pdf(self):
+    mu1 = np.array([0, 0])
+    mu2 = np.array([0, 0])
+    sigma1 = np.identity(n=2)*2
+    sigma2 = np.identity(n=2)*1
+
+    # Analytical form Hellinger Distance
+    hd_squared_analytic_result = np.sqrt(1 - (2**0.5 / 1.5))
+
+    # Analytical form Hellinger Distance
+    kl_divergence_analytical = 0.5 * (1 - 2 + np.log(4))
+
+    x = np.asarray([[0, 0], [1,1]])
+
+    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
+    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
+
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
+
+    hell_dist_mc, kl_div_mc, js_div_mc = gof1.divergence_measures_pdf()
+
+    self.assertAlmostEqual(hd_squared_analytic_result, hell_dist_mc[0], places=2)
+    self.assertAlmostEqual(kl_divergence_analytical, kl_div_mc[0], places=2)
+    self.assertGreaterEqual(1, js_div_mc[0])
+    self.assertLessEqual(0, js_div_mc[0])
 
   def test_gaussian_dummy_wasserstein_distance_mc(self):
     mu1 = np.array([0, 0])
@@ -147,11 +173,12 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=1, ndim_y=1)
 
-    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+    x_cond = np.asarray([[0]])
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x_cond, n_mc_samples=10 ** 7)
 
     func = lambda y, x: stats.uniform.pdf(y, loc=-1, scale=2)
-    x_cond = np.asarray([[0]])
-    integral = gof1._mc_integration_cauchy(func, x_cond, n_samples=10 ** 5, batch_size=10 ** 4)
+
+    integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
   def test_mc_intrgration_chauchy_2(self):
@@ -163,11 +190,11 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
     prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
 
-    gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
+    x_cond = np.asarray([[0,0]])
+    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x_cond, n_mc_samples=10 ** 7)
 
     func = lambda y, x: stats.multivariate_normal.pdf(y, mean=[0,0], cov=np.diag([2,2]))
-    x_cond = np.asarray([[0,0]])
-    integral = gof1._mc_integration_cauchy(func, x_cond, n_samples=10 ** 5, batch_size=10 ** 4)
+    integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
 

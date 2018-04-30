@@ -59,7 +59,6 @@ class GoodnessOfFit:
 
     self.estimator = estimator
 
-
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
 
@@ -203,6 +202,50 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
+  def divergence_measures_pdf(self, n_samples=10**7, batch_size=None):
+    """ Computes kl-divergence, js-divergence and hellinger distance
+
+      Args:
+       n_samples: number of samples for monte carlo integration over the y space
+       batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
+
+      Returns:
+        - hellinger distance of each x value to condition on - numpy array of shape (n_values,)
+        - KL divergence of each x value to condition on - numpy array of shape (n_values,)
+        - jason-shannon divergence of each x value to condition on - numpy array of shape (n_values,)
+      """
+    assert self.x_cond.ndim == 2 and self.x_cond.shape[1] == self.estimator.ndim_x
+
+    P = self.probabilistic_model.pdf
+    Q = self.estimator.pdf
+
+    hell_distances = np.zeros(self.x_cond.shape[0])
+    kl_divs = np.zeros(self.x_cond.shape[0])
+    js_divs = np.zeros(self.x_cond.shape[0])
+
+    batch_size = n_samples
+
+    for i in range(self.x_cond.shape[0]):
+      samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size, self.estimator.ndim_x))
+      f = _multidim_cauchy_pdf(samples, loc=0, scale=2).flatten()
+      x = np.tile(self.x_cond[i].reshape((1, self.x_cond[i].shape[0])), (samples.shape[0], 1))
+
+      p = P(x, samples)
+      q = Q(x, samples)
+
+      hell_distances[i] = np.mean(_hellinger_dist(p, q).flatten() / f)
+      kl_divs[i] = np.mean(_kl_divergence(p, q).flatten() / f)
+      js_divs[i] = np.mean(_js_divergence(p, q).flatten() / f)
+
+    # extra treatment for hellinger
+    hell_distances = np.sqrt(hell_distances / 2)
+
+    assert hell_distances.ndim == 1 and hell_distances.shape[0] == self.x_cond.shape[0]
+    assert kl_divs.ndim == 1 and kl_divs.shape[0] == self.x_cond.shape[0]
+    assert js_divs.ndim == 1 and js_divs.shape[0] == self.x_cond.shape[0]
+
+    return hell_distances, kl_divs, js_divs
+
   def wasserstein_distance_mc(self, x_cond, n_samples=10**7, batch_size=None):
     """ Computes the Wasserstein distance via monte carlo integration using importance sampling with a cauchy distribution
 
@@ -274,25 +317,12 @@ class GoodnessOfFit:
       #warnings.showwarning("using less than 10**5 samples for monte carlo not recommended")
       #warnings.warn()
 
-    #print("Started to compute KL divergence")
-    t = time.time()
-    # KL - divergence
-    gof_result.kl_divergence_ = self.kl_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
-    gof_result.kl_divergence = [np.mean(gof_result.kl_divergence_ )]
-    #print("Finished KL: time to compute: ", time.time()-t)
-    t = time.time()
+    # Divergence Measures
+    gof_result.hellinger_distance_, gof_result.kl_divergence_, gof_result.js_divergence_ = self.divergence_measures_pdf(n_samples=self.n_mc_samples)
 
-    # Hellinger distance
-    gof_result.hellinger_distance_ = self.hellinger_distance_mc(n_samples=self.n_mc_samples) # original data preserved
     gof_result.hellinger_distance = [np.mean(gof_result.hellinger_distance_)]
-    #print("Finished Hallinger: time to compute: ", time.time() - t)
-    t = time.time()
-
-    # Jason Shannon - divergence
-    gof_result.js_divergence_ = self.js_divergence_mc(n_samples=self.n_mc_samples) # original data preserved
+    gof_result.kl_divergence = [np.mean(gof_result.kl_divergence_)]
     gof_result.js_divergence = [np.mean(gof_result.js_divergence_)]
-    #print("Finished JS Divergenve: time to compute: ", time.time() - t)
-    t = time.time()
 
     # Add number of observations
     gof_result.n_observations = [self.n_observations]
@@ -351,6 +381,26 @@ class GoodnessOfFit:
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
       self.estimator, self.probabilistic_model, self.n_observations, self.x_cond))
+
+
+def _hellinger_dist(p, q):
+  assert p.shape == q.shape
+  return (np.sqrt(p) - np.sqrt(q)) ** 2
+
+def _kl_divergence(p, q):
+  assert p.shape == q.shape
+  q = np.ma.masked_where(q < 10 ** -64, q).flatten()
+  p = np.ma.masked_where(p < 10 ** -64, p).flatten()
+  kl = p * np.log(p / q)
+  return kl.filled(0)
+
+def _js_divergence(p, q):
+  assert p.shape == q.shape
+  q = np.ma.masked_where(q < 10 ** -64, q).flatten()
+  p = np.ma.masked_where(p < 10 ** -64, p).flatten()
+  m = 0.5 * (p + q)
+  r = 0.5 * ((p * np.log(p / m)) + (q * np.log(q / m)))
+  return r.filled(0)
 
 
 def sample_x_cond(X, n_x_cond=20, low_percentile = 10, high_percentile=90, random_seed=92):
