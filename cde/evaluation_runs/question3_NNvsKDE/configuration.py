@@ -69,7 +69,8 @@ if __name__ == '__main__':
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "bandwidth_selection", "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit"
+                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit",
+                      "CVaR_sim", "VaR_sim", "VaR_abs_diff", "CVaR_abs_diff"
                       ]
 
 

@@ -354,25 +354,21 @@ class GoodnessOfFit:
 
     #print("Finished Mean and Cov: time to compute: ", time.time() - t)
     t = time.time()
-    #
-    # """ tail risk """
-    # gof_result.VaR_sim_ = self.probabilistic_model.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
-    # gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
-    # gof_result.VaR_est_ = self.estimator.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
-    # gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
-    # gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
-    #
-    # print("Finished VaR: time to compute: ", time.time() - t)
-    # t = time.time()
-    #
-    # gof_result.CVaR_sim_ = self.probabilistic_model.conditional_value_at_risk(self.x_cond)
-    # gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
-    # gof_result.CVaR_est_ = self.estimator.conditional_value_at_risk(self.x_cond)
-    # gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
-    # gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
-    #
-    # print("Finished CVaR: time to compute: ", time.time() - t)
-    # t = time.time()
+
+    """ tail risk """
+    gof_result.VaR_sim_, gof_result.CVaR_sim_ = self.probabilistic_model.tail_risk_measures(self.x_cond, n_samples=self.n_mc_samples)
+    gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
+    gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
+
+    gof_result.VaR_est_, gof_result.CVaR_est_ = self.estimator.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
+    gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
+    gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
+
+    gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
+    gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
+
+    #print("Finished CVaR: time to compute: ", time.time() - t)
+    t = time.time()
 
     """ time to fit """
     gof_result.time_to_fit = self.time_to_fit
