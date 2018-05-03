@@ -16,7 +16,7 @@ def question3():
    'KernelMixtureNetwork':
   
      {'center_sampling_method': ["k_means"],
-      'n_centers': [50],
+      'n_centers': [20, 50],
       'keep_edges': [True],
       'init_scales': [[0.1, 0.5, 1.]],
       'estimator': [None],
@@ -24,18 +24,18 @@ def question3():
       'train_scales': [True],
       'n_training_epochs': [800],
       'x_noise_std': [None],
-      'y_noise_std': [0.01, 0.1],
+      'y_noise_std': [0.01, None],
       'random_seed': [22],
       },
 
    'MixtureDensityNetwork':
        {
-         'n_centers': [50],
+         'n_centers': [20, 50],
          'estimator': [None],
          'X_ph': [None],
          'n_training_epochs': [800],
          'x_noise_std': [None],
-         'y_noise_std': [0.01, 0.1],
+         'y_noise_std': [0.01, None],
          'random_seed': [22]
        },
   }
@@ -52,8 +52,8 @@ def question3():
                },
 
   'GaussianMixture': {'n_kernels': [20],
-                      'ndim_x': [2],
-                      'ndim_y': [2],
+                      'ndim_x': [1],
+                      'ndim_y': [1],
                       'means_std': [1.5]
                 },
   }
@@ -69,7 +69,8 @@ if __name__ == '__main__':
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "bandwidth_selection", "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit"
+                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit",
+                      "CVaR_sim", "VaR_sim", "VaR_abs_diff", "CVaR_abs_diff"
                       ]
 
 

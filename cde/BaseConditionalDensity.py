@@ -142,12 +142,12 @@ class ConditionalDensity(BaseEstimator):
 
     for i in range(x_cond.shape[0]):
       # flip the normal exponential distribution by negating it & placing it's mode at the VaR value
-      y_samples = (VaRs[i] - exp_samples).flatten()
+      y_samples = VaRs[i] - exp_samples
 
-      x_cond_tiled = np.tile(np.expand_dims(x_cond[i], axis=0), (n_samples, 1))
+      x_cond_tiled = np.tile(np.expand_dims(x_cond[i], axis=0), (n_samples, self.ndim_x))
       assert x_cond_tiled.shape == (n_samples, self.ndim_x)
 
-      p = self.pdf(x_cond_tiled, y_samples).flatten()
+      p = self.pdf(x_cond_tiled.flatten(), y_samples.flatten())
       q = exp_f.flatten()
       importance_weights = p / q
       cvar = np.mean(y_samples * importance_weights, axis=0) / alpha
