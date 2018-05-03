@@ -60,7 +60,7 @@ if __name__ == '__main__':
     config_pickle_file = None
 
   if run:
-    observations = 100 * np.logspace(0, 4, num=5, base=2.0, dtype=np.int32) # creates a list with log scale: 100, 200, 400, 800, 1600
+    observations = 100 * np.logspace(0, 5, num=6, base=2.0, dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600, 3200
 
     conf_est, conf_sim = question1()
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
