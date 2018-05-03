@@ -230,8 +230,8 @@ class GoodnessOfFit:
       f = _multidim_cauchy_pdf(samples, loc=0, scale=2).flatten()
       x = np.tile(self.x_cond[i].reshape((1, self.x_cond[i].shape[0])), (samples.shape[0], 1))
 
-      p = P(x, samples)
-      q = Q(x, samples)
+      p = P(x, samples).flatten()
+      q = Q(x, samples).flatten()
 
       hell_distances[i] = np.mean(_hellinger_dist(p, q).flatten() / f)
       kl_divs[i] = np.mean(_kl_divergence(p, q).flatten() / f)
