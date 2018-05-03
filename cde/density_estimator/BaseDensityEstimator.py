@@ -246,7 +246,33 @@ class BaseDensityEstimator(ConditionalDensity):
     plt.ylabel("y")
     plt.show()
 
+  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
+    """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)
 
+        Args:
+          x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+          alpha: quantile percentage of the distribution
+          n_samples: number of samples for monte carlo evaluation
+
+        Returns:
+          - VaR values for each x to condition on - numpy array of shape (n_values)
+          - CVaR values for each x to condition on - numpy array of shape (n_values)
+        """
+    assert self.fitted, "model must be fitted"
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 2
+
+    VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
+
+    if self.has_pdf:
+      CVaRs = self._conditional_value_at_risk_mc_pdf(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
+    elif self.can_sample:
+      CVaRs = self._conditional_value_at_risk_sampling(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
+    else:
+      raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
+
+    assert VaRs.shape == CVaRs.shape == (len(x_cond),)
+    return VaRs, CVaRs
 
   def __str__(self):
     raise NotImplementedError

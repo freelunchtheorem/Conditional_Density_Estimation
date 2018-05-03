@@ -147,14 +147,13 @@ class ConditionalDensity(BaseEstimator):
       x_cond_tiled = np.tile(np.expand_dims(x_cond[i], axis=0), (n_samples, self.ndim_x))
       assert x_cond_tiled.shape == (n_samples, self.ndim_x)
 
-      p = self.pdf(x_cond_tiled.flatten(), y_samples.flatten())
+      p = self.pdf(x_cond_tiled, y_samples).flatten()
       q = exp_f.flatten()
       importance_weights = p / q
       cvar = np.mean(y_samples * importance_weights, axis=0) / alpha
       CVaRs[i] = cvar
 
     return CVaRs
-
 
   def _conditional_value_at_risk_sampling(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
@@ -198,3 +197,4 @@ class ConditionalDensity(BaseEstimator):
       return X
     else:
       return X, Y
+
