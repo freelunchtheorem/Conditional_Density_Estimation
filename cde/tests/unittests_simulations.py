@@ -150,7 +150,7 @@ class TestRiskMeasures(unittest.TestCase):
     alpha = 0.02
     # x_cond shape (2,2)
     CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha, n_samples=10**8)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)

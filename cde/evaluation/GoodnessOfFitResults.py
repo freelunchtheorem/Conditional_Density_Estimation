@@ -106,7 +106,7 @@ class GoodnessOfFitResults:
     plt.xlabel('n_observations')
     plt.ylabel(metric)
     plt.title(title)
-    plt.plot([], [], ' ', label="no noise specified means no noise was used")
+    #plt.plot([], [], ' ', label="no noise specified means no noise was used")
 
     plt.legend()
     plt.show()
