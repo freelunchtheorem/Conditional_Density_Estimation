@@ -17,7 +17,7 @@ def question1(): #noise
      'train_scales': [True],
      'n_training_epochs': [400],
      'x_noise_std': [None],
-     'y_noise_std': [0.01, 0.05, 0.1, None],
+     'y_noise_std': [0.01, 0.05, 0.1, 0.2, 0.5, None],
      'random_seed': [22]
      },
   'MixtureDensityNetwork':
@@ -27,22 +27,12 @@ def question1(): #noise
       'X_ph': [None],
       'n_training_epochs': [1000],
       'x_noise_std': [None],
-      'y_noise_std': [0.01, 0.05, 0.1, None],
+      'y_noise_std': [0.01, 0.05, 0.1, 0.2, 0.5, None],
       'random_seed': [22]
     }
   }
 
   simulators_params = {
-  'EconDensity': {'std': [1],
-                  'heteroscedastic': [True],
-                  },
-
-  'GaussianMixture': {'n_kernels' : [10],
-                      'ndim_x': [3],
-                      'ndim_y': [3],
-                      'means_std': [1.5]
-                      },
-
     'ArmaJump': {'c': [0.1],
                'arma_a1': [0.9],
                'std': [0.05],
@@ -69,7 +59,7 @@ if __name__ == '__main__':
 
 
   # Search for pickle file in directory
-  results_pickle_file = glob.glob("*question2_noise_reg_y*.pickle")
+  results_pickle_file = glob.glob("*question2_noise_reg_y_arma_arma*.pickle")
   config_pickle_file = glob.glob("config*.pickle")
 
   if results_pickle_file:
@@ -90,7 +80,7 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
 
-      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg_y")
+      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg_y_arma_arma")
 
   if load:
     with open(results_pickle, 'rb') as pickle_file:
