@@ -138,6 +138,7 @@ class BaseDensityEstimator(ConditionalDensity):
        """
     assert self.fitted, "model must be fitted"
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    x_cond = self._handle_input_dimensionality(x_cond)
     assert x_cond.ndim == 2
 
     VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)

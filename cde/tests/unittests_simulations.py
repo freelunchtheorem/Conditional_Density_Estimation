@@ -128,12 +128,12 @@ class TestRiskMeasures(unittest.TestCase):
     sigma = 1
     mu1 = np.array([mu])
     sigma1 = np.identity(n=1) * sigma
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
 
     alpha = 0.02
 
     CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=10**7)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
@@ -168,7 +168,7 @@ class TestRiskMeasures(unittest.TestCase):
 
     # x_cond shape (2,)
     CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha)
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha, n_samples=2*10**7)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)

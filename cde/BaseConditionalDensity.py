@@ -23,7 +23,7 @@ class ConditionalDensity(BaseEstimator):
   def _mean_pdf(self, x_cond, n_samples=10 ** 7):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
-      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
       func = lambda y: y * np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y))
       integral = mc_integration_cauchy(func, ndim=2, n_samples=n_samples)
       means[i] = integral
@@ -128,6 +128,7 @@ class ConditionalDensity(BaseEstimator):
 
   def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
+    assert x_cond.ndim == 2
 
     CVaRs = np.zeros(x_cond.shape[0])
 
@@ -144,7 +145,7 @@ class ConditionalDensity(BaseEstimator):
       # flip the normal exponential distribution by negating it & placing it's mode at the VaR value
       y_samples = VaRs[i] - exp_samples
 
-      x_cond_tiled = np.tile(np.expand_dims(x_cond[i], axis=0), (n_samples, self.ndim_x))
+      x_cond_tiled = np.tile(np.expand_dims(x_cond[i,:], axis=0), (n_samples, 1))
       assert x_cond_tiled.shape == (n_samples, self.ndim_x)
 
       p = self.pdf(x_cond_tiled, y_samples).flatten()

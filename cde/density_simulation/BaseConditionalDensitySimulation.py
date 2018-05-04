@@ -156,6 +156,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
          CVaR values for each x to condition on - numpy array of shape (n_values)
        """
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    x_cond = self._handle_input_dimensionality(x_cond)
     assert x_cond.ndim == 2
 
     VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
