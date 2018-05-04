@@ -156,3 +156,5 @@ def _multidim_cauchy_pdf(x, loc=0, scale=2):
   p = np.prod(p, axis=1).flatten()
   assert p.ndim == 1
   return p
+
+

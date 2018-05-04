@@ -133,9 +133,9 @@ class ConditionalDensity(BaseEstimator):
 
     # preparations for importance sampling from exponential distribtution
     scale = 0.4 # 1 \ lambda
-    samlping_dist = stats.expon(scale=scale)
-    exp_samples = samlping_dist.rvs(size=n_samples).flatten()
-    exp_f = samlping_dist.pdf(exp_samples)  #1 / scale * np.exp(-exp_samples/scale)
+    sampling_dist = stats.expon(scale=scale)
+    exp_samples = sampling_dist.rvs(size=n_samples).flatten()
+    exp_f = sampling_dist.pdf(exp_samples)  #1 / scale * np.exp(-exp_samples/scale)
 
     # check shapes
     assert exp_samples.shape[0] == exp_f.shape[0] == n_samples
@@ -155,7 +155,7 @@ class ConditionalDensity(BaseEstimator):
 
     return CVaRs
 
-  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
+  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):

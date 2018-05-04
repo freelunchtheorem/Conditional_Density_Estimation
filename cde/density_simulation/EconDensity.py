@@ -39,6 +39,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     Returns:
       p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )
     """
+    X, Y = self._handle_input_dimensionality(X, Y)
     mean = X**2
     return np.where(X<0, 0, stats.norm.pdf((Y-mean)/self._std(X)))
 
@@ -52,6 +53,7 @@ class EconDensity(BaseConditionalDensitySimulation):
        Returns:
         P(Y < y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )
     """
+    X, Y = self._handle_input_dimensionality(X, Y)
     mean = X ** 2
     return np.where(X<0, 0, stats.norm.cdf((Y-mean)/self._std(X)))
 

@@ -46,6 +46,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
     Returns:
       p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )
     """
+    X, Y = self._handle_input_dimensionality(X, Y)
     mean = self.arma_c * (1-self.arma_a1) + self.arma_a1 * X
     return (1-self.jump_prob) * stats.norm.pdf(Y - mean, scale=self.std).flatten() + \
                 self.jump_prob *  stats.norm.pdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()
@@ -60,6 +61,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
         Returns:
          P(Y < y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )
         """
+    X, Y = self._handle_input_dimensionality(X, Y)
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
     return (1-self.jump_prob) * stats.norm.cdf(Y - mean, scale=self.std).flatten() + \
                 self.jump_prob * stats.norm.cdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()

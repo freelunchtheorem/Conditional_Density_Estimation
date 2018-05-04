@@ -1,5 +1,6 @@
 import numpy as np
 from .BaseDensityEstimator import BaseDensityEstimator
+
 import statsmodels.api as sm
 
 
@@ -46,7 +47,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
           conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
 
      """
-
+    X,Y = self._handle_input_dimensionality(X, Y)
     return self.sm_kde.pdf(endog_predict=Y, exog_predict=X)
 
   def cdf(self, X, Y):
@@ -61,6 +62,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
+    X, Y = self._handle_input_dimensionality(X, Y)
     return self.sm_kde.cdf(endog_predict=Y, exog_predict=X)
 
   def sample(self, X):

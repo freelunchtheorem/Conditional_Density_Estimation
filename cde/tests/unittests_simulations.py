@@ -138,6 +138,43 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
+
+  def test_conditional_value_at_risk_mc_2dim_xcond(self):
+    # prepare estimator dummy
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+    # x_cond shape (2,2)
+    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+
+
+  def test_conditional_value_at_risk_mc_1dim_xcond_flattend(self):
+    # prepare estimator dummy
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+
+    # x_cond shape (2,)
+    CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+
+
+
   def test_mean_mc(self):
     # prepare estimator dummy
     mu = np.array([0,1])
