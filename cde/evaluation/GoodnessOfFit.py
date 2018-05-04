@@ -360,7 +360,7 @@ class GoodnessOfFit:
     gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
     gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
 
-    gof_result.VaR_est_, gof_result.CVaR_est_ = self.estimator.value_at_risk(self.x_cond, n_samples=self.n_mc_samples)
+    gof_result.VaR_est_, gof_result.CVaR_est_ = self.estimator.tail_risk_measures(self.x_cond, n_samples=self.n_mc_samples)
     gof_result.VaR_est = [str(gof_result.VaR_est_.flatten())]
     gof_result.CVaR_est = [str(gof_result.CVaR_est_.flatten())]
 

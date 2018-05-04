@@ -101,11 +101,13 @@ if __name__ == '__main__':
 
 
       graph_dicts = [
-        #{ "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None},
-        #{ "estimator": "MixtureDensityNetwork", "x_noise_std": 0.05, "y_noise_std": None},
-        {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None},
-        { "estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None},
+        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 20},
+        {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 20},
+        {"estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
+        {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 10},
+        { "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 10},
+        {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
       ]
 
-      gof_result.plot_metric(graph_dicts, metric="js_divergence")
+      gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="GaussianMixture")
       print(gof_result)
