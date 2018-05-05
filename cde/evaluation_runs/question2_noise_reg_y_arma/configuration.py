@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
 
   # Search for pickle file in directory
-  results_pickle_file = glob.glob("*question2_noise_reg_y_arma_arma*.pickle")
+  results_pickle_file = glob.glob("*question2_noise_reg_y_arma*.pickle")
   config_pickle_file = glob.glob("config*.pickle")
 
   if results_pickle_file:
@@ -80,7 +80,7 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
 
-      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg_y_arma_arma")
+      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg_y_arma")
 
   if load:
     with open(results_pickle, 'rb') as pickle_file:
