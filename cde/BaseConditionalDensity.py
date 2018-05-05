@@ -123,7 +123,7 @@ class ConditionalDensity(BaseEstimator):
         q = q - (F - alpha) / f
 
         approx_error = np.abs(F - alpha)
-        
+
       VaRs[j] = q
       approx_error = 10 ** 8
     return VaRs

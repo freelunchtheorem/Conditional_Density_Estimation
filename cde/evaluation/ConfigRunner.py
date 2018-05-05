@@ -204,6 +204,8 @@ class ConfigRunner():
 
           gof_single_result = self._run_single_configuration(**task)
 
+          gof_single_result.hash = task_hash
+
           self.gof_single_res_collection[task_hash] = gof_single_result
 
           gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
