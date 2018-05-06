@@ -690,12 +690,17 @@ class DropoutLayer(Layer):
         return input_shape
 
 class GaussianNoiseLayer(Layer):
-    def __init__(self, incoming, noise_std, **kwargs):
+    def __init__(self, incoming, noise_std, noise_on_ph=None, **kwargs):
         super(GaussianNoiseLayer, self).__init__(incoming, **kwargs)
         self.noise_std = noise_std
+        self.noise_on_ph = noise_on_ph # boolean placeholder that controlls whether noise shall be added or not (i.e. train vs. test time)
 
     def get_output_for(self, input, **kwargs):
-        return input + tf.random_normal(tf.shape(self.input), stddev=self.noise_std)
+        if self.noise_on_ph is not None:
+            noised_input = input + tf.random_normal(tf.shape(input), stddev=self.noise_std)
+            return tf.cond(self.noise_on_ph, lambda: noised_input, lambda: input)
+        else:
+            return input + tf.random_normal(tf.shape(input), stddev=self.noise_std)
 
     def get_output_shape_for(self, input_shape):
         return input_shape
