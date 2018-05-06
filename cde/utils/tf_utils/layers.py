@@ -689,6 +689,16 @@ class DropoutLayer(Layer):
     def get_output_shape_for(self, input_shape):
         return input_shape
 
+class GaussianNoiseLayer(Layer):
+    def __init__(self, incoming, noise_std, **kwargs):
+        super(GaussianNoiseLayer, self).__init__(incoming, **kwargs)
+        self.noise_std = noise_std
+
+    def get_output_for(self, input, **kwargs):
+        return input + tf.random_normal(tf.shape(self.input), stddev=self.noise_std)
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape
 
 # TODO: add Conv3DLayer
 
