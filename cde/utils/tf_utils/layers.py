@@ -337,6 +337,30 @@ class OrthogonalInitializer(object):
         return result
 
 
+class VariableLayer(Layer):
+    """ Layer to wrap tf.Variable objects -> ignores incoming layer shape"""
+    def __init__(self, incoming, shape, variable,
+                 trainable=True, **kwargs):
+        super(VariableLayer, self).__init__(incoming, **kwargs)
+        self.shape = shape
+        self.param = self.add_param(
+            variable,
+            shape,
+            name="variable",
+            trainable=trainable
+        )
+
+    @Layer.output_shape.getter
+    def output_shape(self):
+        return self.shape
+
+    def get_output_shape_for(self, input_shape):
+        return self.shape
+
+    def get_output_for(self, input, **kwargs):
+        return self.param
+
+
 class ParamLayer(Layer):
     def __init__(self, incoming, num_units, param=tf.zeros_initializer(),
                  trainable=True, **kwargs):
