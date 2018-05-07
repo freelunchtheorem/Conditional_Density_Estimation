@@ -4,13 +4,18 @@ import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, MultivariateNormalDiag
 from keras.layers import Dense
+from cde.utils.tf_utils.network import MLP
+import cde.utils.tf_utils.layers as L
+from cde.utils.tf_utils.layers_powered import LayersPowered
+from cde.utils.serializable import Serializable
+
 #import matplotlib.pyplot as plt
 
 from .BaseDensityEstimator import BaseMixtureEstimator
 
 
 
-class MixtureDensityNetwork(BaseMixtureEstimator):
+class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
   """ Mixture Density Network Estimator
 
     See "Mixture Density networks", Bishop 1994
@@ -28,16 +33,22 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     """
 
 
-  def __init__(self, n_centers=20, estimator=None, X_ph=None, n_training_epochs=1000,
+  def __init__(self, name, ndim_x, ndim_y, n_centers=20, hidden_sizes=(32, 32), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
                x_noise_std=None, y_noise_std=None, random_seed=None):
+
+    Serializable.quick_init(self, locals())
+
+    self.name = name
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
 
     self.random_state = np.random.RandomState(seed=random_seed)
     tf.set_random_seed(random_seed)
 
     self.n_centers = n_centers
 
-    self.estimator = estimator
-    self.X_ph = X_ph
+    self.hidden_sizes = hidden_sizes
+    self.hidden_nonlinearity = hidden_nonlinearity
 
     self.train_loss = np.empty(0)
     self.test_loss = np.empty(0)
@@ -53,6 +64,11 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
 
     self.fitted = False
 
+    # build tensorflow model
+    self._build_model()
+
+    # initialize LayersPowered --> provides functions for serializing tf models
+    LayersPowered.__init__(self, [self.softmax_layer_weights, self.softplus_layer_scales, self.reshape_layer_locs])
 
   def fit(self, X, Y, random_seed=None, verbose=True, eval_set=None, **kwargs):
     """ Fits the conditional density model with provided data
@@ -67,15 +83,12 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    # define the full model
-    self._build_model(X, Y)
-
     # setup inference procedure
     self.inference = ed.MAP(data={self.mixture: self.y_input})
     optimizer = tf.train.AdamOptimizer(5e-3)
     self.inference.initialize(var_list=tf.trainable_variables(), optimizer=optimizer, n_iter=self.n_training_epochs)
 
-    self.sess = ed.get_session()
+    self.sess = tf.get_default_session()
     tf.global_variables_initializer().run()
 
     self.can_sample = True
@@ -217,62 +230,75 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
       if eval_set is not None:
           print("mean log-loss test: {:.3f}".format(test_loss))
 
-  def _build_model(self, X, Y):
+  def _build_model(self):
     """
     implementation of the MDN
     """
-    # create a placeholders
-    self.Y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
-    self.n_sample_ph = tf.placeholder(tf.int32, None)
-    self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
 
-    # Gaussian noise over Y during training
-    if self.y_noise_std:
-      y_noised = self.Y_ph + tf.random_normal(tf.shape(self.Y_ph), stddev=self.y_noise_std)
-      self.y_input = tf.cond(self.train_phase, lambda: y_noised, lambda: self.Y_ph)
-    else:
-      self.y_input = self.Y_ph
+    with tf.variable_scope(self.name):
+      # Input_Layers & placeholders
+      self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
+      self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
+      self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
 
-    # if no external estimator is provided, create a default neural network
-    if self.estimator is None:
-      self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
-      # Gaussian noise over input X during training
-      if self.x_noise_std:
-        x_noised = self.X_ph + tf.random_normal(tf.shape(self.X_ph), stddev=self.x_noise_std)
-        x_input = tf.cond(self.train_phase, lambda: x_noised, lambda: self.X_ph)
-      else:
-        x_input = self.X_ph
-      # two dense hidden layers with 15 nodes each
-      net = Dense(15, activation='elu')(x_input)
-      net = Dense(15, activation='elu')(net)
-      self.estimator = net
+      layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
+      layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
 
-    # locations and scales of the mixture components
-    self.locs = Dense(self.n_centers * self.ndim_y)(net)
-    self.locs = locs = tf.reshape(self.locs, (-1, self.n_centers, self.ndim_y))
+      # add noise layer if desired
+      if self.x_noise_std is not None:
+          layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
+      if self.y_noise_std is not None:
+          layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
 
-    self.scales = Dense(self.n_centers * self.ndim_y, activation='softplus')(net)
-    self.scales = scales = tf.reshape(self.scales, (-1, self.n_centers, self.ndim_y))
+      # create core multi-layer perceptron
+      mlp_output_dim = 2 * self.ndim_y * self.n_centers + self.n_centers
+      core_network = MLP(
+              name="core_network",
+              input_layer=layer_in_x,
+              output_dim=mlp_output_dim,
+              hidden_sizes=self.hidden_sizes,
+              hidden_nonlinearity=self.hidden_nonlinearity,
+              output_nonlinearity=None,
+          )
 
-    # put mixture components together
+      core_output_layer = core_network.output_layer
 
-    self.logits = logits = Dense(self.n_centers)(net)
-    self.weights = tf.nn.softmax(logits)
-    self.cat = cat = Categorical(logits=logits)
-    self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
-                  in zip(tf.unstack(locs, axis=1), tf.unstack(scales, axis=1))]
-    self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_input))
+      # slice output of MLP into three equally sized parts for loc, scale and mixture weights
+      slice_layer_locs = L.SliceLayer(core_output_layer, indices=slice(0, self.ndim_y * self.n_centers), axis=-1)
+      slice_layer_scales = L.SliceLayer(core_output_layer, indices=slice(self.ndim_y * self.n_centers, 2 * self.ndim_y * self.n_centers), axis=-1)
+      slice_layer_weights = L.SliceLayer(core_output_layer, indices=slice(2 * self.ndim_y * self.n_centers, mlp_output_dim), axis=-1)
 
-    # tensor to store samples
-    self.samples = mixture.sample()
+      # locations mixture components
+      self.reshape_layer_locs = L.ReshapeLayer(slice_layer_locs, (-1, self.n_centers, self.ndim_y))
+      self.locs = L.get_output(self.reshape_layer_locs)
 
-    # placeholder for the grid
-    self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
-    # tensor to store grid point densities
-    self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
+      # scales of the mixture components
+      reshape_layer_scales = L.ReshapeLayer(slice_layer_scales, (-1, self.n_centers, self.ndim_y))
+      self.softplus_layer_scales = L.NonlinearityLayer(reshape_layer_scales, nonlinearity=tf.nn.softplus)
+      self.scales = L.get_output(self.softplus_layer_scales)
 
-    # tensor to compute probabilities
-    self.pdf_ = mixture.prob(self.y_input)
+      # weights of the mixture components
+      self.logits = L.get_output(slice_layer_weights)
+      self.softmax_layer_weights = L.NonlinearityLayer(slice_layer_weights, nonlinearity=tf.nn.softmax)
+      self.weights = L.get_output(self.softmax_layer_weights)
+
+      # # put mixture components together
+      self.y_input = L.get_output(layer_in_y)
+      self.cat = cat = Categorical(logits=self.logits)
+      self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
+                     in zip(tf.unstack(self.locs, axis=1), tf.unstack( self.scales, axis=1))]
+      self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_input))
+
+      # tensor to store samples
+      self.samples = mixture.sample()
+
+      # placeholder for the grid
+      self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
+      # tensor to store grid point densities
+      self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
+
+      # tensor to compute probabilities
+      self.pdf_ = mixture.prob(self.y_input)
 
   def _param_grid(self):
     n_centers = [1, 2, 4, 8, 16, 32]
@@ -287,6 +313,17 @@ class MixtureDensityNetwork(BaseMixtureEstimator):
     weights, locs, scales = self.sess.run([self.weights, self.locs, self.scales], feed_dict={self.X_ph: X})
     return weights, locs, scales
 
+  def _handle_input_dimensionality(self, X, Y=None, fitting=False):
+    assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
+    assert (Y is None) or (self.ndim_y == 1 and X.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
+    return BaseMixtureEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
 
+  def __getstate__(self):
+    state = LayersPowered.__getstate__(self)
+    state['fitted'] = self.fitted
+    return state
 
-
+  def __setstate__(self, state):
+    LayersPowered.__setstate__(self, state)
+    self.fitted = state['fitted']
+    self.sess = tf.get_default_session()
