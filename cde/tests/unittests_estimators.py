@@ -1,6 +1,8 @@
 import unittest
 from scipy.stats import norm
 import warnings
+import pickle
+import tensorflow as tf
 
 from cde.helpers import *
 from cde.density_estimator import *
@@ -165,7 +167,7 @@ class TestRiskMeasures(unittest.TestCase):
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
-    model = MixtureDensityNetwork(n_centers=5)
+    model = MixtureDensityNetwork("mdn_mean", 2, 2,n_centers=5)
     model.fit(X, Y)
 
     mean_est = model.mean_(x_cond=np.array([[1,2]]))
@@ -192,7 +194,7 @@ class TestRiskMeasures(unittest.TestCase):
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
-    model = MixtureDensityNetwork(n_centers=5)
+    model = MixtureDensityNetwork("mdn_cov", 2, 2, n_centers=5)
     model.fit(X, Y)
 
     cov_est = model.covariance(x_cond=np.array([[0, 1]]))
@@ -237,7 +239,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     X, Y = self.get_samples()
 
     for method in ["agglomerative"]:
-      model = KernelMixtureNetwork(center_sampling_method=method, n_centers=5)
+      model = KernelMixtureNetwork("kmn", 1, 1, center_sampling_method=method, n_centers=5)
       model.fit(X, Y)
 
       y = np.arange(-1, 5, 0.5)
@@ -251,9 +253,10 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_KMN_with_2d_gaussian_sampling(self):
+    np.random.seed(22)
     X, Y = self.get_samples()
 
-    model = KernelMixtureNetwork(n_centers=5)
+    model = KernelMixtureNetwork("kmn_sampling", 1, 1, n_centers=5)
     model.fit(X, Y)
 
     x_cond = np.ones(shape=(200000,1))
@@ -270,7 +273,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
   def test_MDN_with_2d_gaussian_sampling(self):
     X, Y = self.get_samples()
 
-    model = MixtureDensityNetwork(n_centers=5)
+    model = MixtureDensityNetwork("mdn_gaussian_sampling", 1, 1, n_centers=5)
     model.fit(X, Y)
 
     x_cond = np.ones(shape=(10**6,1))
@@ -281,11 +284,11 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
   def test_KMN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 
-    model_no_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=None)
+    model_no_noise = KernelMixtureNetwork("kmn_no_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
     model_no_noise.fit(X, Y)
     var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=1)
+    model_noise = KernelMixtureNetwork("kmn_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=1)
     model_noise.fit(X, Y)
     var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
@@ -303,11 +306,11 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     x_test_4 = np.ones(100) * 4
     y_test = np.linspace(1, 5, num=100)
 
-    model_no_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=None, y_noise_std=None)
+    model_no_noise = KernelMixtureNetwork("kmn_no_noise_x", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
     model_no_noise.fit(X, Y)
     pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
 
-    model_noise = KernelMixtureNetwork(n_centers=5, x_noise_std=2, y_noise_std=None)
+    model_noise = KernelMixtureNetwork("kmn_noise_x", 1, 1, n_centers=5, x_noise_std=2, y_noise_std=None)
     model_noise.fit(X, Y)
     pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
 
@@ -319,11 +322,11 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
   def test_MDN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 
-    model_no_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise = MixtureDensityNetwork("mdn_no_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
     model_no_noise.fit(X, Y)
     var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=1)
+    model_noise = MixtureDensityNetwork("mdn_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=1)
     model_noise.fit(X, Y)
     var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
@@ -341,11 +344,11 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     x_test_4 = np.ones(100) * 4
     y_test = np.linspace(1,5,num=100)
 
-    model_no_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise = MixtureDensityNetwork("mdn_no_noise", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
     model_no_noise.fit(X, Y)
     pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
 
-    model_noise = MixtureDensityNetwork(n_centers=1, x_noise_std=2, y_noise_std=None)
+    model_noise = MixtureDensityNetwork("mdn_noise", 1, 1, n_centers=1, x_noise_std=2, y_noise_std=None)
     model_noise.fit(X, Y)
     pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
 
@@ -357,7 +360,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
   def test_MDN_with_2d_gaussian(self):
     X, Y = self.get_samples()
 
-    model = MixtureDensityNetwork(n_centers=5)
+    model = MixtureDensityNetwork("mdn", 1, 1, n_centers=5)
     model.fit(X, Y)
 
     y = np.arange(-1, 5, 0.5)
@@ -385,6 +388,51 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     p_est = model.cdf(x, y)
     p_true = norm.cdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+class TestSerializationDensityEstimators(unittest.TestCase):
+
+  def get_samples(self, std=1.0):
+    np.random.seed(22)
+    data = np.random.normal([2, 2, 2, 2], std, size=(2000, 4))
+    X = data[:, 0:2]
+    Y = data[:, 2:4]
+    return X, Y
+
+  def testPickleUnpickleMDN(self):
+    X, Y = self.get_samples()
+    with tf.Session() as sess:
+      model = MixtureDensityNetwork("mdn_pickle", 2, 2, n_training_epochs=10)
+      model.fit(X, Y)
+      pdf_before = model.pdf(X, Y)
+
+      # pickle and unpickle model
+      dump_string = pickle.dumps(model)
+    tf.reset_default_graph()
+    with tf.Session() as sess:
+      model_loaded = pickle.loads(dump_string)
+      pdf_after = model_loaded.pdf(X, Y)
+
+    diff = np.sum(np.abs(pdf_after - pdf_before))
+    self.assertAlmostEqual(diff, 0, places=2)
+
+  def testPickleUnpickleKDN(self):
+    X, Y = self.get_samples()
+    with tf.Session() as sess:
+      model = KernelMixtureNetwork("kde", 2, 2, n_centers=10, n_training_epochs=10)
+      model.fit(X, Y)
+      pdf_before = model.pdf(X, Y)
+
+      # pickle and unpickle model
+      dump_string = pickle.dumps(model)
+    tf.reset_default_graph()
+    with tf.Session() as sess:
+      model_loaded = pickle.loads(dump_string)
+      pdf_after = model_loaded.pdf(X, Y)
+
+    diff = np.sum(np.abs(pdf_after - pdf_before))
+    self.assertAlmostEqual(diff, 0, places=2)
+
+
 
 #
 # class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
