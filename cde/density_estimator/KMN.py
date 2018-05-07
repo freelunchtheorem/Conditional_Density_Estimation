@@ -8,7 +8,10 @@ import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, MultivariateNormalDiag
-from keras.layers import Dense
+from cde.utils.tf_utils.network import MLP
+import cde.utils.tf_utils.layers as L
+from cde.utils.tf_utils.layers_powered import LayersPowered
+from cde.utils.serializable import Serializable
 #import matplotlib.pyplot as plt
 
 
@@ -20,22 +23,21 @@ logging.getLogger("tensorflow").setLevel(logging.ERROR)
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
-class KernelMixtureNetwork(BaseMixtureEstimator):
+class KernelMixtureNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
   # noinspection PyPackageRequirements
   """ Kernel Mixture Network Estimator
 
       https://arxiv.org/abs/1705.07111
 
       Args:
+          name: (str) name space of MDN (should be unique in code, otherwise tensorflow namespace collitions may arise)
+          ndim_x: (int) dimensionality of x variable
+          ndim_y: (int) dimensionality of y variable
           center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
                                   [all, random, distance, k_means, agglomerative]
           n_centers: Number of kernels to use in the output
           keep_edges: Keep the extreme y values as center to keep expressiveness
           init_scales: List or scalar that describes (initial) values of bandwidth parameter
-          estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
-                     if None use a standard 15 -> 15 Dense network
-          X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
-                but should be easy to extend to a list of placeholders
           train_scales: Boolean that describes whether or not to make the scales trainable
           x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise. Adding noise is
           automatically deactivated during
@@ -43,27 +45,33 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
           random_seed: (optional) seed (int) of the random number generators used
       """
 
-  def __init__(self, center_sampling_method='k_means', n_centers=200, keep_edges=False,
-               init_scales='default', estimator=None, X_ph=None, train_scales=True, n_training_epochs=1000,
-               x_noise_std=None, y_noise_std=None, random_seed=None):
+  def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=200, keep_edges=False,
+               init_scales='default', hidden_sizes=(32, 32), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
+               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, random_seed=None):
+
+    Serializable.quick_init(self, locals())
+
+    self.name = name
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
 
     self.random_state = np.random.RandomState(seed=random_seed)
     tf.set_random_seed(random_seed)
 
-    self.sess = None
-    self.inference = None
-
-    self.estimator = estimator
-    self.X_ph = X_ph
-
-    self.n_training_epochs = n_training_epochs
-
-    self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
-    self.keep_edges = keep_edges
+
+    self.hidden_sizes = hidden_sizes
+    self.hidden_nonlinearity = hidden_nonlinearity
 
     self.train_loss = np.empty(0)
     self.test_loss = np.empty(0)
+
+    self.n_training_epochs = n_training_epochs
+    self.center_sampling_method = center_sampling_method
+    self.keep_edges = keep_edges
+
+    self.x_noise_std = x_noise_std
+    self.y_noise_std = y_noise_std
 
     if init_scales == 'default':
         init_scales = np.array([1])
@@ -73,15 +81,17 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     self.init_scales = [math.log(math.exp(s) - 1) for s in init_scales]
     self.train_scales = train_scales
 
-    self.fitted = False
     self.can_sample = True
-    self.has_cdf = True
     self.has_pdf = True
+    self.has_cdf = True
 
-    self.x_noise_std = x_noise_std
-    self.y_noise_std = y_noise_std
+    self.fitted = False
 
+    # build tensorflow model
+    self._build_model()
 
+    # initialize LayersPowered --> provides functions for serializing tf models
+    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer])
 
   def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
     """ Fits the conditional density model with provided data
@@ -95,14 +105,18 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    # define the full model
-    self._build_model(X, Y)
+    # sample locations
+    sampled_locs = sample_center_points(Y, method=self.center_sampling_method, k=self.n_centers,
+                                     keep_edges=self.keep_edges)
+
+
 
     # setup inference procedure
     self.inference = ed.MAP(data={self.mixtures: self.y_input})
     self.inference.initialize(var_list=tf.trainable_variables(), n_iter=self.n_training_epochs)
     tf.global_variables_initializer().run()
-    self.sess = ed.get_session()
+    self.sess = tf.get_default_session()
+    self.sess.run(tf.assign(self.locs, sampled_locs))
 
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
@@ -179,75 +193,78 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
 
     return densities
 
-  def _build_model(self, X, Y):
+  def _build_model(self):
     """
     implementation of the KMN
     """
-    # create a placeholder for the target
-    self.Y_ph = tf.placeholder(tf.float32, [None, self.ndim_y])
-    self.n_sample_ph = tf.placeholder(tf.int32, None)
-    self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
+    with tf.variable_scope(self.name):
+      # Input_Layers & placeholders
+      self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
+      self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
+      self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
 
-    # Gaussian noise over Y during training
-    if self.y_noise_std:
-      y_noised = self.Y_ph + tf.random_normal(tf.shape(self.Y_ph), stddev=self.y_noise_std)
-      self.y_input = tf.cond(self.train_phase, lambda: y_noised, lambda: self.Y_ph)
-    else:
-      self.y_input = self.Y_ph
+      layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
+      layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
 
-    # if no external estimator is provided, create a default neural network
-    if self.estimator is None:
-        self.X_ph = tf.placeholder(tf.float32, [None, self.ndim_x])
+      # add noise layer if desired
+      if self.x_noise_std is not None:
+        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
+      if self.y_noise_std is not None:
+        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
 
-        # Gaussian noise over input X during training
-        if self.x_noise_std:
-          x_noised = self.X_ph + tf.random_normal(tf.shape(self.X_ph), stddev=self.x_noise_std)
-          x_input = tf.cond(self.train_phase, lambda: x_noised, lambda: self.X_ph)
-        else:
-          x_input = self.X_ph
+      # get batch size
+      self.batch_size = tf.shape(self.X_ph)[0]
 
-        # two dense hidden layers with 15 nodes each
-        x = Dense(15, activation='elu')(x_input)
-        x = Dense(15, activation='elu')(x)
-        self.estimator = x
+      # create core multi-layer perceptron
+      core_network = MLP(
+        name="core_network",
+        input_layer=layer_in_x,
+        output_dim=self.n_centers*self.n_scales,
+        hidden_sizes=self.hidden_sizes,
+        hidden_nonlinearity=self.hidden_nonlinearity,
+        output_nonlinearity=None,
+      )
 
-    # get batch size
-    self.batch_size = tf.shape(self.X_ph)[0]
+      self.core_output_layer = core_network.output_layer
 
-    # locations of the gaussian kernel centers
-    if self.center_sampling_method == 'all':
-        self.n_centers = X.shape[0]
+      # weights of the mixture components
+      self.logits = L.get_output(self.core_output_layer)
+      self.softmax_layer_weights = L.NonlinearityLayer(self.core_output_layer, nonlinearity=tf.nn.softmax)
+      self.weights = L.get_output(self.softmax_layer_weights)
 
-    n_locs = self.n_centers
-    self.locs = locs = sample_center_points(Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
-    self.locs_array = locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, n_locs, self.ndim_y)), locs), perm=[1,0,2]))
+      # locations of the kernelfunctions
+      self.locs = tf.Variable(np.zeros((self.n_centers, self.ndim_y)), name="locs", trainable=False, dtype=tf.float32) # assign sampled locs when fitting
+      self.locs_layer = L.VariableLayer(core_network.input_layer, (self.n_centers, self.ndim_y), variable=self.locs, name="locs", trainable=False)
 
-    # scales of the gaussian kernels
-    self.scales = scales = tf.nn.softplus(tf.Variable(self.init_scales, dtype=tf.float32, trainable=self.train_scales))
-    self.scales_array = scales_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.ndim_y, self.n_scales)), scales), perm=[2,0,1]))
+      self.locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.n_centers, self.ndim_y)), self.locs), perm=[1, 0, 2]))
+      assert len(self.locs_array) == self.n_centers
 
-    # kernel weights, as output by the neural network
-    self.logits = logits = Dense(n_locs * self.n_scales, activation='softplus')(self.estimator)
-    self.weights = tf.nn.softmax(logits)
+      # scales of the gaussian kernels
+      log_scales_layer = L.VariableLayer(core_network.input_layer, (self.n_scales,),
+                                      variable=tf.Variable(self.init_scales, dtype=tf.float32, trainable=self.train_scales),
+                                      name="log_scales", trainable=self.train_scales)
 
-    # mixture distributions
-    self.cat = cat = Categorical(logits=logits)
-    self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in locs_array for scale in scales_array]
-    self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(self.Y_ph))
+      self.scales_layer = L.NonlinearityLayer(log_scales_layer, nonlinearity=tf.nn.softplus)
+      self.scales = L.get_output(self.scales_layer)
+      self.scales_array = scales_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.ndim_y, self.n_scales)), self.scales), perm=[2,0,1]))
+      assert len(self.scales_array) == self.n_scales
 
-    # tensor to store samples
-    self.samples = mixtures.sample()
+      # put mixture components together
+      self.y_input = L.get_output(layer_in_y)
+      self.cat = cat = Categorical(logits=self.logits)
+      self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in self.locs_array for scale in scales_array]
+      self.mixtures = mixtures = Mixture(cat=cat, components=components, value=tf.zeros_like(self.Y_ph))
 
-    self.y_min = Y.min()
-    self.y_max = Y.max()
+      # tensor to store samples
+      self.samples = mixtures.sample()
 
-    # placeholder for the grid
-    self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
-    # tensor to store grid point densities
-    self.densities = tf.transpose(mixtures.prob(tf.reshape(y_grid_ph, (-1, 1))))
+      # placeholder for the grid
+      self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
+      # tensor to store grid point densities
+      self.densities = tf.transpose(mixtures.prob(tf.reshape(y_grid_ph, (-1, 1))))
 
-    # tensor to compute likelihoods
-    self.likelihoods = mixtures.prob(self.Y_ph)
+      # tensor to compute likelihoods
+      self.likelihoods = mixtures.prob(self.Y_ph)
 
   def _param_grid(self):
     n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]
@@ -324,9 +341,9 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
   def _get_mixture_components(self, X):
     assert self.fitted
 
-    weights, scales = self.sess.run([self.weights, self.scales], feed_dict={self.X_ph: X})
+    locs, weights, scales = self.sess.run([self.locs, self.weights, self.scales], feed_dict={self.X_ph: X})
 
-    locs = np.tile(self.locs.reshape([1] + list(self.locs.shape)), (X.shape[0], scales.shape[0],1))
+    locs = np.tile(locs.reshape([1] + list(locs.shape)), (X.shape[0], scales.shape[0],1))
 
     scale_diags = np.tile(scales.reshape((scales.shape[0],1)), (1, self.ndim_y))
     cov = np.concatenate([scale_diags[i,:].reshape((1,1,self.ndim_y)) for i in range(scales.shape[0]) for j in range(self.n_centers)], axis=1)
@@ -340,6 +357,18 @@ class KernelMixtureNetwork(BaseMixtureEstimator):
                                                   self.keep_edges, self.init_scales, self.train_scales, self.n_training_epochs, self.x_noise_std,
                                                                                   self.y_noise_std)
 
-  def __unicode__(self):
-    return self.__str__()
 
+  def _handle_input_dimensionality(self, X, Y=None, fitting=False):
+    assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
+    assert (Y is None) or (self.ndim_y == 1 and X.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
+    return BaseMixtureEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
+
+  def __getstate__(self):
+    state = LayersPowered.__getstate__(self)
+    state['fitted'] = self.fitted
+    return state
+
+  def __setstate__(self, state):
+    LayersPowered.__setstate__(self, state)
+    self.fitted = state['fitted']
+    self.sess = tf.get_default_session()
