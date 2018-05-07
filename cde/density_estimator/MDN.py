@@ -3,7 +3,6 @@ import sklearn
 import tensorflow as tf
 import edward as ed
 from edward.models import Categorical, Mixture, MultivariateNormalDiag
-from keras.layers import Dense
 from cde.utils.tf_utils.network import MLP
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
@@ -21,11 +20,12 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
     See "Mixture Density networks", Bishop 1994
 
     Args:
+        name: (str) name space of MDN (should be unique in code, otherwise tensorflow namespace collitions may arise)
+        ndim_x: (int) dimensionality of x variable
+        ndim_y: (int) dimensionality of y variable
         n_centers: Number of Gaussian mixture components
-        estimator: Keras or tensorflow network that ends with a dense layer to place kernel mixture output on top off,
-                   if None use a standard 15 -> 15 Dense network
-        X_ph: Placeholder for input to your custom estimator, currently only supporting one input placeholder,
-              but should be easy to extend to a list of placeholders
+        hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network
+        hidden_nonlinearity: (tf function) nonlinearity of the hidden layers
         n_training_epochs: Number of epochs for training
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
