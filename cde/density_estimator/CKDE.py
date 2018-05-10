@@ -7,7 +7,7 @@ import statsmodels.api as sm
 class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
 
-  def __init__(self, bandwidth_selection='cv_ml', random_seed=None):
+  def __init__(self, name, ndim_x, ndim_y, bandwidth_selection='cv_ml', random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
 
     assert bandwidth_selection in ['normal_reference', 'cv_ml', 'cv_ls']
@@ -17,6 +17,10 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.can_sample = False
     self.has_pdf = True
     self.has_cdf = True
+
+    self.name = name
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
 
   def fit(self, X, Y, **kwargs):
     """ Since CKDE is a lazy learner, fit just stores the provided training data (X,Y)
