@@ -16,17 +16,17 @@ def question1(): #noise
      'train_scales': [True],
      'hidden_sizes': [(16, 16)],
      'n_training_epochs': [500],
-     'x_noise_std': [0.01, 0.05, 0.1, None],
-     'y_noise_std': [None],
+     'x_noise_std': [None],
+     'y_noise_std': [0.01, 0.05, 0.1, None],
      'random_seed': [22]
      },
   'MixtureDensityNetwork':
     {
       'n_centers': [10, 20],
       'n_training_epochs': [1000],
-      'hidden_sizes': [(16, 16)],
-      'x_noise_std': [0.01, 0.05, 0.1, None],
-      'y_noise_std': [None],
+      'hidden_sizes': [(32, 32)],
+      'x_noise_std': [None],
+      'y_noise_std': [0.01, 0.05, 0.1, None],
       'random_seed': [22]
     }
   }
