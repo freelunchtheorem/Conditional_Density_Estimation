@@ -12,13 +12,12 @@ def question1(): #noise
      'n_centers': [20, 50],
      'keep_edges': [True],
      'init_scales': [[0.1, 0.5, 1.]],
-     'estimator': [None],
-     'X_ph': [None],
      'train_scales': [True],
+     'hidden_sizes': [(32, 32)],
      'n_training_epochs': [400],
-     'x_noise_std': [None],
-     'y_noise_std': [0.01, 0.05, 0.1, None],
-     'random_seed': [24]
+     'x_noise_std': [0.01, 0.05, 0.1, None],
+     'y_noise_std': [None],
+     'random_seed': [22]
      },
   }
 
@@ -41,7 +40,7 @@ if __name__ == '__main__':
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
                       'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff",
-                      #"VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVaR_est", "CVaR_abs_diff",
+                      "VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVaR_est", "CVaR_abs_diff",
                       "time_to_fit"
                       ]
 
