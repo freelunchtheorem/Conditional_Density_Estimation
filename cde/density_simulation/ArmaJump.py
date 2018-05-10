@@ -24,6 +24,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
     self.arma_a1 = arma_a1
 
     # Jump component
+    assert jump_prob >= 0 and jump_prob <= 1
     self.jump_prob = jump_prob
     self.jump_mean = -3*c
     self.jump_std = 2*std
