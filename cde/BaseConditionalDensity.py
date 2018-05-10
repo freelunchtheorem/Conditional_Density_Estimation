@@ -114,14 +114,14 @@ class ConditionalDensity(BaseEstimator):
   def _quantile_cdf(self, x_cond, alpha=0.01, eps=10 ** -8, start_value=-0.1, max_iter=10**6):
     # Newton Method for finding the alpha quantile of a conditional distribution
     approx_error = 10 ** 8
-    q = start_value
+    q = [start_value]
 
     VaRs = np.zeros(x_cond.shape[0])
     for j in range(x_cond.shape[0]):
       n_iter = 0
       while approx_error > eps:
-        F = self.cdf(x_cond[j, :], np.array([q]))
-        f = self.pdf(x_cond[j, :], np.array([q]))
+        F = self.cdf(x_cond[j, :], np.array(q))
+        f = self.pdf(x_cond[j, :], np.array(q))
         q = q - (F - alpha) / f
 
         approx_error = np.abs(F - alpha)
