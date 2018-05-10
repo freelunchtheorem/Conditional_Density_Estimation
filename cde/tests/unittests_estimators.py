@@ -77,64 +77,66 @@ class TestHelpers(unittest.TestCase):
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):
-    # prepare estimator dummy
-    mu1 = np.array([0])
-    sigma1 = np.identity(n=1)*1
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
-    est.fit(None, None)
+    for mu, sigma in [(-2, 0.5), (0.4, 0.01), (9, 3)]:
+      # prepare estimator dummy
+      mu1 = np.array([mu])
+      sigma1 = np.identity(n=1)*sigma
+      est = GaussianDummy(mean=mu1, cov=sigma1**2, ndim_x=1, ndim_y=1, has_cdf=False)
+      est.fit(None, None)
 
-    alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
-    VaR_true = norm.ppf(alpha, loc=0, scale=1)
-    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
-    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+      alpha = 0.05
+      VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
+      VaR_true = norm.ppf(alpha, loc=mu, scale=sigma)
+      self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+      self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
 
   def test_value_at_risk_cdf(self):
-    # prepare estimator dummy
-    mu1 = np.array([0])
-    sigma1 = np.identity(n=1)*1
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
-    est.fit(None, None)
+    for mu, sigma in [(-2, 0.5), (0.4, 0.01), (22, 3)]:
+      # prepare estimator dummy
+      mu1 = np.array([mu])
+      sigma1 = np.identity(n=1)*sigma
+      est = GaussianDummy(mean=mu1, cov=sigma1**2, ndim_x=1, ndim_y=1, has_cdf=True)
+      est.fit(None, None)
 
-    alpha = 0.05
-    VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
-    VaR_true = norm.ppf(alpha, loc=0, scale=1)
-    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
-    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+      alpha = 0.05
+      VaR_est = est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
+      VaR_true = norm.ppf(alpha, loc=mu, scale=sigma)
+      self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+      self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
 
   def test_conditional_value_at_risk_mc(self):
-    # prepare estimator dummy
-    mu = 0
-    sigma = 1
-    mu1 = np.array([mu])
-    sigma1 = np.identity(n=1) * sigma
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_pdf=True)
-    est.fit(None, None)
+    for mu, sigma, alpha in [(1, 1, 0.05), (0.4, 0.1, 0.02), (0.1, 2, 0.01)]:
+      # prepare estimator dummy
+      mu1 = np.array([mu])
+      sigma1 = np.identity(n=1) * sigma
+      est = GaussianDummy(mean=mu1, cov=sigma1**2, ndim_x=1, ndim_y=1, has_pdf=True)
+      est.fit(None, None)
 
-    alpha = 0.01
+      CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha))
+      CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
 
-    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha)
+      print("CVaR True (%.2f, %.2f):"%(mu, sigma), CVaR_true)
+      print("CVaR_est (%.2f, %.2f):"%(mu, sigma), CVaR_est)
+      print("VaR (%.2f, %.2f):"%(mu, sigma), est.value_at_risk(x_cond=np.array([[0],[1]]), alpha=alpha))
 
-    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
-    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+      self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+      self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
   def test_conditional_value_at_risk_sample(self):
     # prepare estimator dummy
-    mu = 0
-    sigma = 1
-    mu1 = np.array([mu])
-    sigma1 = np.identity(n=1) * sigma
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_pdf=False)
-    est.fit(None, None)
+    for mu, sigma in [(-6, 0.25), (0.4, 0.1), (22, 3)]:
+      mu1 = np.array([mu])
+      sigma1 = np.identity(n=1) * sigma
+      est = GaussianDummy(mean=mu1, cov=sigma1**2, ndim_x=1, ndim_y=1, has_pdf=False)
+      est.fit(None, None)
 
-    alpha = 0.02
+      alpha = 0.02
 
-    CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+      CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha))
+      CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
 
-    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
-    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+      self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+      self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
   def test_mean_mc(self):
     # prepare estimator dummy
