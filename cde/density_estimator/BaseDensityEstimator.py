@@ -268,7 +268,7 @@ class BaseDensityEstimator(ConditionalDensity):
     if self.has_pdf:
       CVaRs = self._conditional_value_at_risk_mc_pdf(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
     elif self.can_sample:
-      CVaRs = self._conditional_value_at_risk_sampling(VaRs, x_cond, alpha=alpha, n_samples=n_samples)
+      CVaRs = self._conditional_value_at_risk_sampling(VaRs, x_cond, n_samples=n_samples)
     else:
       raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
 
