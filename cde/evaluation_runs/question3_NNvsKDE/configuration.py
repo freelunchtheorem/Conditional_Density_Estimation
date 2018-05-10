@@ -13,31 +13,30 @@ def question3():
           'bandwidth_selection': ['normal_reference', 'cv_ml'],
           'random_seed': [22]
       },
-   'KernelMixtureNetwork':
-  
-     {'center_sampling_method': ["k_means"],
-      'n_centers': [20, 50],
-      'keep_edges': [True],
-      'init_scales': [[0.1, 0.5, 1.]],
-      'estimator': [None],
-      'X_ph': [None],
-      'train_scales': [True],
-      'n_training_epochs': [800],
-      'x_noise_std': [None],
-      'y_noise_std': [0.01, None],
-      'random_seed': [22],
-      },
 
-   'MixtureDensityNetwork':
-       {
-         'n_centers': [20, 50],
-         'estimator': [None],
-         'X_ph': [None],
-         'n_training_epochs': [800],
-         'x_noise_std': [None],
-         'y_noise_std': [0.01, None],
-         'random_seed': [22]
-       },
+    'KernelMixtureNetwork':
+
+    {'center_sampling_method': ["k_means"],
+     'n_centers': [20, 50],
+     'keep_edges': [True],
+     'init_scales': [[0.1, 0.5, 1.]],
+     'train_scales': [True],
+     'hidden_sizes': [(16, 16)],
+     'n_training_epochs': [500],
+     'x_noise_std': [None],
+     'y_noise_std': [None],
+     'random_seed': [22]
+     },
+
+  'MixtureDensityNetwork':
+    {
+      'n_centers': [10, 20],
+      'n_training_epochs': [1000],
+      'hidden_sizes': [(16, 16)],
+      'x_noise_std': [None],
+      'y_noise_std': [None],
+      'random_seed': [22]
+    }
   }
 
   simulators_params = {
