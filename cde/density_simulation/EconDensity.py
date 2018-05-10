@@ -42,7 +42,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = X**2
-    return np.where(X<0, 0, stats.norm.pdf((Y-mean)/self._std(X)))
+    return np.where(X<0, 0, stats.norm.pdf((Y-mean)/self._std(X))) / self._std(X)
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model

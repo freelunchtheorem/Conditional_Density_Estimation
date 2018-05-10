@@ -96,6 +96,24 @@ class TestGaussianMixture(unittest.TestCase):
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 
 class TestEconDensity(unittest.TestCase):
+  def test_pdf(self):
+    sim_model = EconDensity()
+    x = np.ones(shape=(2000,1))
+    y = np.random.uniform(0.01, 5, size=(2000,1))
+    p_sim = sim_model.pdf(x,y)
+    p_true = stats.norm.pdf(y, loc=1, scale=2)
+    diff = np.sum(np.abs(p_sim - p_true))
+    self.assertAlmostEquals(diff, 0.0, places=2)
+
+  def test_cdf(self):
+    sim_model = EconDensity()
+    x = np.ones(shape=(2000,1))
+    y = np.random.uniform(0.01, 5, size=(2000,1))
+    p_sim = sim_model.cdf(x,y)
+    p_true = stats.norm.cdf(y, loc=1, scale=2)
+    diff = np.sum(np.abs(p_sim - p_true))
+    self.assertAlmostEquals(diff, 0.0, places=2)
+
   def test_value_at_risk(self):
     sim_model = EconDensity()
     x_cond = np.array([[0], [1]])
