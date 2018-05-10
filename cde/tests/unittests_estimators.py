@@ -253,7 +253,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_KMN_with_2d_gaussian_sampling(self):
-    np.random.seed(22)
+    np.random.seed(23)
     X, Y = self.get_samples()
 
     model = KernelMixtureNetwork("kmn_sampling", 1, 1, n_centers=5)
