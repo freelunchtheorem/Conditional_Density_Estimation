@@ -160,7 +160,7 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
         random_state: (int) seed used by the random number generator for shuffeling the data
 
       """
-      original_params = self.get_params()
+      original_params = self.get_configuration()
 
       if param_grid is None:
         param_grid = self._param_grid()
@@ -315,7 +315,7 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
-    assert (Y is None) or (self.ndim_y == 1 and X.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
+    assert (Y is None) or (self.ndim_y == 1 and Y.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
     return BaseMixtureEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
 
   def __getstate__(self):

@@ -15,6 +15,7 @@ from cde.utils import io
 import hashlib
 import base64
 import pickle
+import tensorflow as tf
 
 class ConfigRunner():
   """
@@ -65,8 +66,8 @@ class ConfigRunner():
 
     sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
-    est_configs = _create_configurations(est_params)
-    sim_configs = _create_configurations(sim_params)
+    self.est_configs = _create_configurations(est_params)
+    self.sim_configs = _create_configurations(sim_params)
 
     self.observations = observations
     self.n_mc_samples = n_mc_samples
@@ -81,10 +82,7 @@ class ConfigRunner():
         self.configs = pickle.load(f)
     else:
       self.configs_loaded = False
-      conf_est = [globals()[estimator_name](**config) for estimator_name, estimator_params in est_configs.items() for config in estimator_params]
-      conf_sim = [globals()[simulator_name](**config) for simulator_name, sim_params in sim_configs.items() for config in sim_params]
-
-      self.configs = self._merge_configurations(conf_est, conf_sim)
+      self.configs = self._generate_configuration_variants()
       self.config_pickle_file = None
 
     self.results_pickle_file = results_pickle_file
@@ -99,7 +97,7 @@ class ConfigRunner():
 
 
 
-  def _merge_configurations(self, conf_est, conf_sim):
+  def _generate_configuration_variants(self):
     """
     Creates all possible combinations from the (configured) estimators and simulators.
     Requires configured estimators and simulators in the constructor:
@@ -109,6 +107,10 @@ class ConfigRunner():
         returned --> shape of tuples: (estimator object, simulator object)
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
+
+    conf_sim = [globals()[simulator_name](**config) for simulator_name, sim_params in self.sim_configs.items() for config in
+                sim_params]
+
     if np.isscalar(self.observations):
       self.observations = [self.observations]
 
@@ -127,12 +129,20 @@ class ConfigRunner():
         x_cond = sample_x_cond(X=X_max, n_x_cond=self.n_x_cond)
         configured_sims.append(dict({"simulator": sim, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
 
+    # merge simulator variants together with estimator variants
+    task_number = 0
+    for sim_dict in configured_sims:
+      for estimator_name, estimator_params in self.est_configs.items() :
+        for config in estimator_params:
+          simulator_dict = copy.deepcopy(sim_dict)
 
-    for estimator, simulator in itertools.product(conf_est, configured_sims):
-      simulator["estimator"] = estimator
-      simulator["n_mc_samples"] = self.n_mc_samples
-      configs.append(copy.deepcopy(simulator))
+          simulator_dict['estimator_name'] = estimator_name
+          simulator_dict['estimator_config'] = config
+          simulator_dict['task_name'] = '%s_task_%i'%(estimator_name, task_number)
 
+          simulator_dict["n_mc_samples"] = self.n_mc_samples
+          configs.append(simulator_dict)
+          task_number += 1
 
     return configs
 
@@ -195,14 +205,14 @@ class ConfigRunner():
         task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
         if task_hash in gof_results.single_results_dict.keys():
-          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task["estimator"].__class__.__name__,
+          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
                                                                          " Simulator: ", task["simulator"].__class__.__name__))
 
         else:
-          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task["estimator"].__class__.__name__,
+          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                                     " Simulator: ", task["simulator"].__class__.__name__))
 
-          gof_single_result = self._run_single_configuration(**task)
+          gof_single_result = self._run_single_configuration(task)
 
           gof_single_result.hash = task_hash
 
@@ -233,10 +243,24 @@ class ConfigRunner():
         intermediate_gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
         io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
-  def _run_single_configuration(self, estimator, simulator, X, Y, x_cond, n_obs, n_mc_samples):
-    gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=X, Y=Y, n_observations=n_obs,
-                        n_mc_samples=n_mc_samples, x_cond=x_cond)
-    return gof.compute_results()
+  def _run_single_configuration(self, task):
+
+    simulator = task['simulator']
+
+    tf.reset_default_graph()
+
+    estimator = globals()[task['estimator_name']](task['task_name'], task['simulator'].ndim_x,
+                                          task['simulator'].ndim_y, **task['estimator_config'])
+
+    with tf.Session() as sess:
+      gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
+                          n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
+
+      sess.run(tf.global_variables_initializer())
+
+      gof_results = gof.compute_results()
+
+    return gof_results
 
   def _get_results_dataframe(self, results):
     """ retrieves the dataframe for one or more GoodnessOfFitResults result objects.
@@ -323,7 +347,7 @@ def _create_configurations(params_dict):
   return confs
 
 def _hash_task_dict(task_dict):
-  assert {'simulator', 'estimator', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
+  assert {'simulator', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
   task_dict = copy.deepcopy(task_dict)
   del task_dict['X']
   del task_dict['Y']
@@ -351,3 +375,4 @@ def make_hash_sha256(o):
     hasher = hashlib.sha256()
     hasher.update(repr(_make_hashable(o)).encode())
     return base64.b64encode(hasher.digest()).decode()
+
