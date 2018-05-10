@@ -142,6 +142,17 @@ class TestEconDensity(unittest.TestCase):
 
     self.assertAlmostEqual(diff, 0, places=2)
 
+  def test_random_seed(self):
+    sim_model1 = EconDensity(random_seed=22)
+    X1, Y1 = sim_model1.simulate(n_samples=100)
+
+    sim_model2 = EconDensity(random_seed=22)
+    X2, Y2 = sim_model2.simulate(n_samples=100)
+
+    diff_x = np.sum(np.abs(X1[:100] - X2[:]))
+    diff_y = np.sum(np.abs(Y1[:100] - Y2[:]))
+    self.assertAlmostEquals(diff_x, 0, places=2)
+    self.assertAlmostEquals(diff_y, 0, places=2)
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):
