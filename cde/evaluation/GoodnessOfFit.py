@@ -355,9 +355,9 @@ class GoodnessOfFit:
     #print("Finished Mean and Cov: time to compute: ", time.time() - t)
     t = time.time()
 
-
     """ tail risk """
     if self.estimator.ndim_y == 1:
+
       gof_result.VaR_sim_, gof_result.CVaR_sim_ = self.probabilistic_model.tail_risk_measures(self.x_cond, n_samples=self.n_mc_samples)
       gof_result.VaR_sim = [str(gof_result.VaR_sim_.flatten())]
       gof_result.CVaR_sim = [str(gof_result.CVaR_sim_.flatten())]
@@ -383,6 +383,8 @@ class GoodnessOfFit:
 
 def _hellinger_dist(p, q):
   assert p.shape == q.shape
+  q = np.ma.masked_where(q < 0.0, q).flatten()
+  p = np.ma.masked_where(p < 0.0, p).flatten()
   return (np.sqrt(p) - np.sqrt(q)) ** 2
 
 def _kl_divergence(p, q):
