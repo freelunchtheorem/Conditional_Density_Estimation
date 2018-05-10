@@ -194,8 +194,8 @@ class BaseDensityEstimator(ConditionalDensity):
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
 
-  def get_params(self, deep=True):
-    """ Get parameters for this estimator.
+  def get_configuration(self, deep=True):
+    """ Get parameter configuration for this estimator.
 
     Args:
       deep: boolean, optional If True, will return the parameters for this estimator and \

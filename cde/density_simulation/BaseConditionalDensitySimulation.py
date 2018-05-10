@@ -195,7 +195,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert VaRs.shape == CVaRs.shape == (len(x_cond),)
     return VaRs, CVaRs
 
-  def get_params(self, deep=True):
+  def get_configuration(self, deep=True):
     param_dict = super(BaseConditionalDensitySimulation, self).get_params(deep=deep)
     param_dict['simulator'] = self.__class__.__name__
     return param_dict

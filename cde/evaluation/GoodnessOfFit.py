@@ -310,7 +310,7 @@ class GoodnessOfFit:
     assert self.estimator is not None
     assert self.probabilistic_model is not None
 
-    gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_params(), self.probabilistic_model.get_params())
+    gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_configuration(), self.probabilistic_model.get_params())
 
     if self.n_mc_samples < 10**5:
       logging.warning("using less than 10**5 samples for monte carlo not recommended")
