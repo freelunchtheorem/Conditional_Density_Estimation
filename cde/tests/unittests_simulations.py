@@ -95,6 +95,34 @@ class TestGaussianMixture(unittest.TestCase):
     _,  y_sample = gmm.simulate_conditional(x_cond)
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 
+class TestEconDensity(unittest.TestCase):
+  def test_value_at_risk(self):
+    sim_model = EconDensity()
+    x_cond = np.array([[0], [1]])
+    VaR = sim_model.value_at_risk(x_cond, alpha=0.05)
+
+    VaR_cdf = super(EconDensity, sim_model).value_at_risk(x_cond, alpha=0.05)
+
+    diff = np.sum(np.abs(VaR_cdf - VaR))
+
+    self.assertAlmostEqual(VaR[0], norm.ppf(0.05, loc=0, scale=1), places=4)
+    self.assertAlmostEqual(VaR[1], norm.ppf(0.05, loc=1, scale=2), places=4)
+    self.assertAlmostEqual(diff, 0, places=4)
+
+  def test_conditional_value_at_risk(self):
+    sim_model = EconDensity()
+    x_cond = np.array([[0], [1]])
+    CVaR = sim_model.conditional_value_at_risk(x_cond, alpha=0.03)
+
+    CVaR_mc = super(EconDensity, sim_model).conditional_value_at_risk(x_cond, alpha=0.03, n_samples=10**7)
+
+    print("CVaR Analytic:", CVaR)
+    print("CVaR MC:", CVaR_mc)
+    print("VaR", sim_model.value_at_risk(x_cond, alpha=0.03))
+
+    diff = np.mean(np.abs(CVaR_mc - CVaR))
+
+    self.assertAlmostEqual(diff, 0, places=2)
 
 
 class TestRiskMeasures(unittest.TestCase):

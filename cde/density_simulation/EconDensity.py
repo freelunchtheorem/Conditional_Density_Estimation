@@ -1,6 +1,7 @@
 import scipy.stats as stats
 import numpy as np
 from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
+from scipy.stats import norm
 
 class EconDensity(BaseConditionalDensitySimulation):
   """
@@ -114,6 +115,44 @@ class EconDensity(BaseConditionalDensitySimulation):
 
     covs = self._std(x_cond)
     return covs.reshape((covs.shape[0],self.ndim_y, self.ndim_y))
+
+  def value_at_risk(self, x_cond, alpha=0.01, **kwargs):
+    """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+      alpha: quantile percentage of the distribution
+
+    Returns:
+       VaR values for each x to condition on - numpy array of shape (n_values)
+    """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 2
+
+    VaR = norm.ppf(alpha, loc=x_cond, scale=self._std(x_cond))[:,0]
+    assert VaR.shape == (x_cond.shape[0],)
+    return VaR
+
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, **kwargs):
+    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+         alpha: quantile percentage of the distribution
+         n_samples: number of samples for monte carlo evaluation
+
+       Returns:
+         CVaR values for each x to condition on - numpy array of shape (n_values)
+       """
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
+
+    mu = x_cond**2
+    sigma = self._std(x_cond)
+    CVaR = (mu - sigma * (1/alpha) * norm.pdf(norm.ppf(alpha)))[:,0]
+    assert CVaR.shape == (x_cond.shape[0],)
+    return CVaR
 
   def _std(self, X):
     if self.heteroscedastic:
