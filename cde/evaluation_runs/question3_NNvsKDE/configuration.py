@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
   if load:
     path_pickle = ""
-    with open(path_pickle, 'rb') as pickle_file:
+    with open(results_pickle, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 

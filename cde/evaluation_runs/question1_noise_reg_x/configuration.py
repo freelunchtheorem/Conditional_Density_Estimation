@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 import glob
+import os
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 
@@ -92,8 +93,7 @@ if __name__ == '__main__':
       results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg_x")
 
   if load:
-    with open("/Users/fabioferreira/Dropbox/Nonparametric_Density_Estimation/results/question1_noise_reg_x/0_dumps/question1_noise_reg_x_result_04-13-18_01-34"
-              "-38.pickle", 'rb') as pickle_file:
+    with open(results_pickle, 'rb') as pickle_file:
       gof_result = pickle.load(pickle_file)
       results_df = gof_result.generate_results_dataframe(keys_of_interest)
 
@@ -107,5 +107,5 @@ if __name__ == '__main__':
         {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
       ]
 
-      gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="GaussianMixture")
+      gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
       print(gof_result)
