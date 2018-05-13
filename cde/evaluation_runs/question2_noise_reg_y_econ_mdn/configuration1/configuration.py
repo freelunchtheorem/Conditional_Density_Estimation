@@ -30,7 +30,7 @@ def question2(): #noise
 
 if __name__ == '__main__':
 
-  run = True
+  run = False
   load = not run
 
   keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
@@ -72,10 +72,12 @@ if __name__ == '__main__':
 
 
       graph_dicts = [
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.1},
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.01},
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.05},
-        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": None},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.1, "n_centers": 10},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.1, "n_centers": 20},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.01, "n_centers": 10},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": 0.01, "n_centers": 20},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": None, "n_centers": 10},
+        {"estimator": "MixtureDensityNetwork", "simulator": "EconDensity", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
       ]
 
       gof_result.plot_metric(graph_dicts, metric="js_divergence")

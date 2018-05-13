@@ -3,10 +3,12 @@ import traceback
 import numpy as np
 
 
+
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from collections import OrderedDict
 from cde.utils import io
+#from cde.evaluation.ConfigRunner import ConfigRunner
 
 
 class GoodnessOfFitResults:
@@ -106,8 +108,63 @@ class GoodnessOfFitResults:
     plt.xlabel('n_observations')
     plt.ylabel(metric)
     plt.title(title)
-    #plt.plot([], [], ' ', label="no noise specified means no noise was used")
-
     plt.legend()
     plt.show()
     print("plot printed")
+
+  def plot_densities(self, selector, configs, metric="hellinger_distance", simulator="EconDensity", mode="pdf", xlim=(-5, 5), ylim=(-5, 5),
+                     resolution=100, ):
+    assert self.results_df is not None, "first generate results df"
+    assert simulator in list(self.results_df["simulator"]), simulator + " not in the results dataframe"
+    assert metric in self.results_df
+    assert selector
+
+
+    """ Compares the fitted density (see modes) against the original density
+
+    Args:
+      xlim: 2-tuple specifying the x axis limits
+      ylim: 2-tuple specifying the y axis limits
+      resolution: integer specifying the resolution of plot
+      mode: spefify which dist to plot ["pdf", "cdf", "joint_pdf"]
+
+    """
+    modes = ["pdf", "cdf", "joint_pdf"]
+    assert mode in modes, "mode must be on of the following: " + modes
+    #assert self.ndim == 2, "Can only plot two dimensional distributions"
+
+    # prepare mesh
+    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+    X, Y = np.meshgrid(linspace_x, linspace_y)
+    X, Y = X.flatten(), Y.flatten()
+
+
+    selector['simulator'] = 'EconDensity'
+
+    # calculate values of distribution
+    if mode == "pdf":
+      #task_hash = self.results_df.loc[(self.results_df[list(selector)] == pd.Series(selector)).all(axis=1)].iloc[0]['hash']
+      #task = configs[task_hash]
+
+      selected_res = self.results_df.loc[(self.results_df[list(selector)] == pd.Series(selector)).all(axis=1)].iloc[0]
+      cfgs_df = pd.DataFrame.from_dict(configs)
+
+      #Z_actual = task['simulator'].pdf(task['X'], task['Y'])
+      #Z_recovered = task['estimator'].pdf(task['X'], task['Y'])
+    elif mode == "cdf":
+      #todo
+      Z = self.cdf(X, Y)
+    elif mode == "joint_pdf":
+      #todo
+      Z = self.joint_pdf(X, Y)
+
+    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+      [resolution, resolution])
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+                           linewidth=100, antialiased=True)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.show()
