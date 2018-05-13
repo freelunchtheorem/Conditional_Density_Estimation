@@ -372,7 +372,6 @@ class BaseMixtureEstimator(BaseDensityEstimator):
     assert x_cond.ndim == 2
 
     VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
-
     return self._conditional_value_at_risk_mixture(VaRs, x_cond, alpha=alpha)
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
@@ -412,8 +411,14 @@ class BaseMixtureEstimator(BaseDensityEstimator):
 
     c = (VaRs[:, None] - locs) / scales
     for i in range(x_cond.shape[0]):
-      CVaRs[i] = np.sum(
-        (weights[i] * norm.cdf(c[i]) / alpha) * (locs[i] - scales[i] * (norm.pdf(c[i]) / norm.cdf(c[i]))))
+      cdf = norm.cdf(c[i])
+      pdf = norm.pdf(c[i])
+
+      # mask very small values to avoid numerical instabilities
+      cdf = np.ma.masked_where(cdf < 10 ** -64, cdf)
+      pdf = np.ma.masked_where(pdf < 10 ** -64, pdf)
+
+      CVaRs[i] = np.sum((weights[i] * cdf / alpha) * (locs[i] - scales[i] * (pdf / cdf)))
     return CVaRs
 
   def _sample_rows_same(self, X):

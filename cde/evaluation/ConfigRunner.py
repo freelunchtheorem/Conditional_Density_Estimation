@@ -119,15 +119,18 @@ class ConfigRunner():
 
     """ since simulator configurations of the same kind require the same X,Y and x_cond, 
     they have to be generated separately from the estimators"""
-    for sim in conf_sim:
-      n_obs_max = max(self.observations)
-      X_max, Y_max = sim.simulate(n_obs_max)
-      X_max, Y_max = sim._handle_input_dimensionality(X_max, Y_max)
+    for simulator_name, sim_params in self.sim_configs.items():
+      for config in sim_params:
+        sim = globals()[simulator_name](**config)
 
-      for obs in self.observations:
-        X, Y = X_max[:obs], Y_max[:obs]
-        x_cond = sample_x_cond(X=X_max, n_x_cond=self.n_x_cond)
-        configured_sims.append(dict({"simulator": sim, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
+        n_obs_max = max(self.observations)
+        X_max, Y_max = sim.simulate(n_obs_max)
+        X_max, Y_max = sim._handle_input_dimensionality(X_max, Y_max)
+
+        for obs in self.observations:
+          X, Y = X_max[:obs], Y_max[:obs]
+          x_cond = sample_x_cond(X=X_max, n_x_cond=self.n_x_cond)
+          configured_sims.append(dict({"simulator_name": simulator_name, 'simulator_config': config, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
 
     # merge simulator variants together with estimator variants
     task_number = 0
@@ -206,11 +209,11 @@ class ConfigRunner():
 
         if task_hash in gof_results.single_results_dict.keys():
           print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
-                                                                         " Simulator: ", task["simulator"].__class__.__name__))
+                                                                         " Simulator: ", task["simulator_name"]))
 
         else:
           print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
-                                                                    " Simulator: ", task["simulator"].__class__.__name__))
+                                                                    " Simulator: ", task["simulator_name"]))
 
           gof_single_result = self._run_single_configuration(task)
 
@@ -244,19 +247,21 @@ class ConfigRunner():
         io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
   def _run_single_configuration(self, task):
-
-    simulator = task['simulator']
-
     tf.reset_default_graph()
 
-    estimator = globals()[task['estimator_name']](task['task_name'], task['simulator'].ndim_x,
-                                          task['simulator'].ndim_y, **task['estimator_config'])
+    # build simulator and estimator model given the specified configurations
+
+    simulator = globals()[task['simulator_name']](**task['simulator_config'])
+
+    estimator = globals()[task['estimator_name']](task['task_name'], simulator.ndim_x,
+                                                  simulator.ndim_y, **task['estimator_config'])
 
     with tf.Session() as sess:
+      sess.run(tf.global_variables_initializer())
+
+      # train the model
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
-
-      sess.run(tf.global_variables_initializer())
 
       gof_results = gof.compute_results()
 
@@ -347,16 +352,10 @@ def _create_configurations(params_dict):
   return confs
 
 def _hash_task_dict(task_dict):
-  assert {'simulator', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
+  assert {'simulator_name', 'simulator_config', 'estimator_name', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
   task_dict = copy.deepcopy(task_dict)
   del task_dict['X']
   del task_dict['Y']
-
-  """ delete scipy.stats object since it causes hashing issues """
-  if isinstance(task_dict['simulator'], GaussianMixture):
-    attributes_to_delete = ['gaussians']
-
-    [delattr(task_dict['simulator'], attr) for attr in attributes_to_delete if hasattr(task_dict['simulator'], attr)]
 
   tpls = _make_hashable(task_dict)
   return make_hash_sha256(tpls)
