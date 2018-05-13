@@ -76,6 +76,14 @@ class TestHelpers(unittest.TestCase):
     self.assertAlmostEqual(2, integral[1], places=2)
 
 class TestRiskMeasures(unittest.TestCase):
+
+  def get_samples(self, std=1.0):
+    np.random.seed(22)
+    data = np.random.normal([2, 2], std, size=(2000, 2))
+    X = data[:, 0]
+    Y = data[:, 1]
+    return X, Y
+
   def test_value_at_risk_mc(self):
     for mu, sigma in [(-2, 0.5), (0.4, 0.01), (9, 3)]:
       # prepare estimator dummy
@@ -202,6 +210,42 @@ class TestRiskMeasures(unittest.TestCase):
     cov_est = model.covariance(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(cov_est[0][1][0], 0.0, places=1)
     self.assertLessEqual(cov_est[0][0][0] - 5.0,1.0)
+
+  def test_conditional_value_at_risk_mixture(self):
+    np.random.seed(24)
+    X, Y = self.get_samples(std=2)
+    model = KernelMixtureNetwork("kmn-var", 1, 1, center_sampling_method="k_means", n_centers=5, n_training_epochs=50, random_seed=24)
+    model.fit(X, Y)
+
+    x_cond = np.array([[0],[1]])
+
+    CVaR_mixture = model.conditional_value_at_risk(x_cond, alpha=0.01)
+    CVaR_cdf = BaseDensityEstimator.conditional_value_at_risk(model, x_cond, alpha=0.01, n_samples=2*10**7)
+
+    print("CVaR mixture:", CVaR_mixture)
+    print("CVaR cdf:", CVaR_cdf)
+
+    diff = np.mean(np.abs(CVaR_cdf - CVaR_mixture))
+    self.assertAlmostEqual(diff, 0, places=2)
+
+  def test_tail_risks_risk_mixture(self):
+    X, Y = self.get_samples(std=2)
+    model = KernelMixtureNetwork("kmn-var2", 1, 1, center_sampling_method="k_means", n_centers=5, n_training_epochs=50)
+    model.fit(X, Y)
+
+    x_cond = np.array([[0], [1]])
+
+    VaR_mixture, CVaR_mixture = model.tail_risk_measures(x_cond, alpha=0.07)
+    VaR_cdf, CVaR_mc = BaseDensityEstimator.tail_risk_measures(model, x_cond, alpha=0.07)
+
+    print("CVaR mixture:", CVaR_mixture)
+    print("CVaR cdf:", CVaR_mc)
+
+    diff_cvar = np.mean(np.abs(CVaR_mc - CVaR_mixture))
+    self.assertAlmostEqual(diff_cvar, 0, places=2)
+
+    diff_var = np.mean(np.abs(VaR_mixture - VaR_cdf))
+    self.assertAlmostEqual(diff_var, 0, places=2)
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 

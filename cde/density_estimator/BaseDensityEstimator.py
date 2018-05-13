@@ -1,6 +1,6 @@
 from sklearn.model_selection import GridSearchCV
 import warnings
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, norm
 #matplotlib.use("PS") #handles X11 server detection (required to run on console)
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -120,11 +120,14 @@ class BaseDensityEstimator(ConditionalDensity):
     assert x_cond.ndim == 2
 
     if self.has_cdf:
-      return self._quantile_cdf(x_cond, alpha=alpha)
+      VaR =  self._quantile_cdf(x_cond, alpha=alpha)
+      if np.isnan(VaR).any() and self.can_sample: # try with sampling if failed
+        VaR = self._quantile_mc(x_cond, alpha=alpha, n_samples=n_samples)
     elif self.can_sample:
-      return self._quantile_mc(x_cond, alpha=alpha, n_samples=n_samples)
+      VaR =  self._quantile_mc(x_cond, alpha=alpha, n_samples=n_samples)
     else:
       raise NotImplementedError()
+    return VaR
 
   def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
@@ -349,6 +352,69 @@ class BaseMixtureEstimator(BaseDensityEstimator):
       return self._sample_rows_same(X)
     else:
       return self._sample_rows_individually(X)
+
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
+    """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of a GMM. Only if ndim_y = 1
+
+        Based on formulas from section 2.3.2 in "Expected shortfall for distributions in finance",
+        Simon A. Broda, Marc S. Paolella, 2011
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+         alpha: quantile percentage of the distribution
+
+       Returns:
+         CVaR values for each x to condition on - numpy array of shape (n_values)
+       """
+    assert self.fitted, "model must be fitted"
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
+
+    VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
+
+    return self._conditional_value_at_risk_mixture(VaRs, x_cond, alpha=alpha)
+
+  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
+    """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)
+
+        Args:
+          x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+          alpha: quantile percentage of the distribution
+          n_samples: number of samples for monte carlo evaluation
+
+        Returns:
+          - VaR values for each x to condition on - numpy array of shape (n_values)
+          - CVaR values for each x to condition on - numpy array of shape (n_values)
+        """
+    assert self.fitted, "model must be fitted"
+    assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
+    assert x_cond.ndim == 2
+
+    VaRs = self.value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
+    CVaRs = self._conditional_value_at_risk_mixture(VaRs, x_cond, alpha=alpha)
+
+    assert VaRs.shape == CVaRs.shape == (len(x_cond),)
+    return VaRs, CVaRs
+
+  def _conditional_value_at_risk_mixture(self, VaRs, x_cond, alpha=0.01,):
+    """
+    Based on formulas from section 2.3.2 in "Expected shortfall for distributions in finance",
+    Simon A. Broda, Marc S. Paolella, 2011
+    """
+
+    weights, locs, scales = self._get_mixture_components(x_cond)
+
+    locs = locs.reshape(locs.shape[:2])
+    scales = scales.reshape(scales.shape[:2])
+
+    CVaRs = np.zeros(x_cond.shape[0])
+
+    c = (VaRs[:, None] - locs) / scales
+    for i in range(x_cond.shape[0]):
+      CVaRs[i] = np.sum(
+        (weights[i] * norm.cdf(c[i]) / alpha) * (locs[i] - scales[i] * (norm.pdf(c[i]) / norm.cdf(c[i]))))
+    return CVaRs
 
   def _sample_rows_same(self, X):
     """ uses efficient sklearn implementation to sample from gaussian mixture -> only works if all rows of X are the same"""
