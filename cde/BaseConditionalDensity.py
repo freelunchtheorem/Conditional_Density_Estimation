@@ -4,6 +4,10 @@ from .helpers import *
 import scipy.stats as stats
 import warnings
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+
 class ConditionalDensity(BaseEstimator):
 
   def _mean_mc(self, x_cond, n_samples=10 ** 7):
@@ -223,3 +227,36 @@ class ConditionalDensity(BaseEstimator):
     else:
       return X, Y
 
+  def plot2d(self, x_cond=[0, 1, 2], ylim=(0, 8), resolution=50, mode='pdf', show=True, prefix=''):
+    """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
+
+        Args:
+          xlim: 2-tuple specifying the x axis limits
+          ylim: 2-tuple specifying the y axis limits
+          resolution: integer specifying the resolution of plot
+        """
+    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+    # prepare mesh
+
+    for i in range(len(x_cond)):
+      Y = np.linspace(ylim[0], ylim[1], num=resolution)
+      X = np.array([x_cond[i] for _ in range(resolution)])
+    # calculate values of distribution
+
+      print(X.shape, Y.shape)
+      if mode == "pdf":
+        Z = self.pdf(X, Y)
+      elif mode == "cdf":
+        Z = self.cdf(X, Y)
+      elif mode == "joint_pdf":
+        Z = self.joint_pdf(X, Y)
+
+
+      plt.plot(Y, Z, label='x=%.2f'%x_cond[i])
+
+    plt.legend([prefix + "x=%.2f"%x for x in x_cond], loc='upper right')
+
+    plt.xlabel("x")
+    plt.ylabel("y")
+    if show:
+      plt.show()
