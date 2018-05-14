@@ -16,6 +16,7 @@ import hashlib
 import base64
 import pickle
 import tensorflow as tf
+import os
 
 class ConfigRunner():
   """
@@ -151,7 +152,7 @@ class ConfigRunner():
 
 
   def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None,
-                         limit=None, export_pickle=True):
+                         limit=None, export_pickle=True, dump_models=False):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -192,6 +193,7 @@ class ConfigRunner():
     self.export_csv = export_csv
     self.output_dir = output_dir
     self.prefix_filename = prefix_filename
+    self.dump_models = dump_models
 
     self._setup_file_names()
 
@@ -263,6 +265,12 @@ class ConfigRunner():
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
+      gof.task_name = task['task_name']
+
+      if self.dump_models:
+        dump_path = os.path.join(self.model_dump_dir, task['task_name'] + '.pickle')
+        gof.dump_model(dump_path)
+
       gof_results = gof.compute_results()
 
     return gof_results
@@ -333,6 +341,12 @@ class ConfigRunner():
 
     if not self.configs_loaded:
       self.config_pickle_file = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name="configs_")
+
+    if self.dump_models:
+      self.model_dump_dir = os.path.join(self.output_dir, 'model_dumps')
+      if not os.path.exists(self.model_dump_dir):
+        os.makedirs(self.model_dump_dir)
+
 
 
 def _add_seeds_to_sim_params(n_seeds, sim_params):
