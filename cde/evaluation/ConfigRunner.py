@@ -265,13 +265,13 @@ class ConfigRunner():
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
-      gof.task_name = task['task_name']
 
       if self.dump_models:
         dump_path = os.path.join(self.model_dump_dir, task['task_name'] + '.pickle')
         gof.dump_model(dump_path)
 
       gof_results = gof.compute_results()
+      gof_results.task_name = task['task_name']
 
     return gof_results
 
