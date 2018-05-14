@@ -65,11 +65,12 @@ if __name__ == '__main__':
   run = True
   load = not run
 
-  keys_of_interest = ['estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
-                      'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "bandwidth_selection", "n_mc_samples", "n_x_cond", 'mean_est',
+  keys_of_interest = ['task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
+                      'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
                       'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff", "time_to_fit",
-                      "CVaR_sim", "VaR_sim", "VaR_abs_diff", "CVaR_abs_diff"
+                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff",
+                      "VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVaR_est", "CVaR_abs_diff",
+                      "time_to_fit"
                       ]
 
 
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
 
-    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question3_NNvsKDE")
+    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question3_NNvsKDE", dump_models=True)
 
   if load:
     path_pickle = ""
