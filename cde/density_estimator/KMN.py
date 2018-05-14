@@ -201,7 +201,7 @@ class KernelMixtureNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
       # Input_Layers & placeholders
       self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
       self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
-      self.train_phase = tf.placeholder_with_default(tf.Variable(False), None)
+      self.train_phase = tf.placeholder_with_default(False, None)
 
       layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
       layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
