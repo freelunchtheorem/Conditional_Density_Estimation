@@ -1,6 +1,9 @@
 # Nonparametric_Density_Estimation
 
 ## to-do's:
+- running each task in a separate
+- entropy regularization
+- data normalization
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 
 # Citing
