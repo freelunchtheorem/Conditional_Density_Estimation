@@ -220,8 +220,8 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return param_dict
 
-  def plot(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
-    """ Plots the fitted conditional distribution if x and y are 1-dimensional each
+  def plot3d(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
+    """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
 
     Args:
       xlim: 2-tuple specifying the x axis limits
@@ -249,6 +249,7 @@ class BaseDensityEstimator(ConditionalDensity):
     plt.xlabel("x")
     plt.ylabel("y")
     plt.show()
+
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)

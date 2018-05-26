@@ -1,9 +1,11 @@
 # Nonparametric_Density_Estimation
 
 ## to-do's:
-- running each task in a separate
+- dumping individual single result pickles
+- running each task in a separate OS process
 - entropy regularization
 - data normalization
+- setup docker + launch script
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 
 # Citing
