@@ -7,12 +7,13 @@ from cde.utils.tf_utils.network import MLP
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
+from cde.utils.tf_utils.map_inference import MAP_inference
 
 #import matplotlib.pyplot as plt
 
-from .BaseDensityEstimator import BaseMixtureEstimator
+from .BaseNNMixtureEstimator import BaseNNMixtureEstimator
 
-class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
+class MixtureDensityNetwork(BaseNNMixtureEstimator):
   """ Mixture Density Network Estimator
 
     See "Mixture Density networks", Bishop 1994
@@ -55,6 +56,7 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
 
     self.n_training_epochs = n_training_epochs
 
+    # regularization parameters
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
     self.entropy_reg_coef = entropy_reg_coef
@@ -85,10 +87,12 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    # setup inference procedure
-    self.inference = ed.MAP(data={self.mixture: self.y_input})
-    optimizer = tf.train.AdamOptimizer(5e-3)
-    self.inference.initialize(var_list=tf.trainable_variables(), optimizer=optimizer, n_iter=self.n_training_epochs)
+    print(tf.losses.get_regularization_losses())
+    with tf.variable_scope(self.name):
+      # setup inference procedure
+      self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
+      optimizer = tf.train.AdamOptimizer(5e-3)
+      self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
 
     self.sess = tf.get_default_session()
     tf.global_variables_initializer().run()
@@ -99,107 +103,6 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
     self.fitted = True
-
-  def pdf(self, X, Y):
-      """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
-
-         Args:
-           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-
-         Returns:
-            conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
-
-       """
-      assert self.fitted, "model must be fitted to compute likelihood score"
-
-      X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-
-      p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-
-      assert p.ndim == 1 and p.shape[0] == X.shape[0]
-      return p
-
-  def predict_density(self, X, Y=None, resolution=100):
-    """ Computes conditional density p(y|x) over a predefined grid of y target values
-
-      Args:
-         X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resulution: integer specifying the resolution of evaluation_runs grid
-
-       Returns: tuple (P, Y)
-          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
-          - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
-            in case it was provided as argument
-    """
-    if Y is None:
-        max_scale = np.max(self.sess.run(self.scales))
-        Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
-    X = self._handle_input_dimensionality(X)
-    return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
-
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None):
-      """ Fits the conditional density model with hyperparameter search and cross-validation.
-
-      - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-        the conditional log-likelihood is used for evaluation_runs.
-      - Fits the model with the previously selected hyperparameter configuration
-
-      Args:
-        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        n_folds: number of cross-validation folds (positive integer)
-        param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
-                    parametrizations as value. The hyperparameter search is performed over the cartesian product of \
-                    the provided lists.
-
-                    Example:
-                    {"n_centers": [20, 50, 100, 200],
-                     "center_sampling_method": ["agglomerative", "k_means", "random"],
-                     "keep_edges": [True, False]
-                    }
-        random_state: (int) seed used by the random number generator for shuffeling the data
-
-      """
-      original_params = self.get_configuration()
-
-      if param_grid is None:
-        param_grid = self._param_grid()
-
-      param_iterator = sklearn.model_selection.GridSearchCV(self, param_grid, fit_params=None, cv=n_folds)._get_param_iterator()
-      cv_scores = []
-
-      for p in param_iterator:
-        cv = sklearn.model_selection.KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
-
-        scores = []
-        for train_idx, test_idx in cv.split(X, Y):
-          X_train, Y_train = X[train_idx], Y[train_idx]
-          X_test, Y_test = X[test_idx], Y[test_idx]
-
-          kmn_model = self.__class__()
-          kmn_model.set_params(**original_params).set_params(**p)
-
-          kmn_model.fit(X_train, Y_train, verbose=False)
-          scores.append(kmn_model.score(X_test, Y_test))
-
-        cv_score = np.mean(scores)
-        cv_scores.append(cv_score)
-
-        print("Completed cross-validation of model with params: {}".format(p))
-        print("Avg. conditional log likelihood: {}".format(cv_score))
-
-      # Determine parameter set with best conditional likelihood
-      best_idx = np.argmax(cv_scores)
-      selected_params = param_iterator[best_idx]
-
-      print("Completed grid search - Selected params: {}".format(selected_params))
-      print("Refitting model with selected params")
-
-      # Refit with best parameter set
-      self.set_params(**selected_params)
-      self.fit(X,Y, verbose=False)
 
   def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
     """
@@ -295,9 +198,9 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
 
       # softmax entropy penalty -> regularization
       self.softmax_entropy = tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1)
-      if self.entropy_reg_coef > 0:
-        self.softmax_entrop_loss = self.entropy_reg_coef * self.softmax_entropy
-        tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+      self.entropy_reg_coef_ph = tf.placeholder_with_default(self.entropy_reg_coef, name='entropy_reg_coef', shape=())
+      self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
+      tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
       # tensor to store samples
       self.samples = mixture.sample()
@@ -322,18 +225,3 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
     assert self.fitted
     weights, locs, scales = self.sess.run([self.weights, self.locs, self.scales], feed_dict={self.X_ph: X})
     return weights, locs, scales
-
-  def _handle_input_dimensionality(self, X, Y=None, fitting=False):
-    assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
-    assert (Y is None) or (self.ndim_y == 1 and Y.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
-    return BaseMixtureEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
-
-  def __getstate__(self):
-    state = LayersPowered.__getstate__(self)
-    state['fitted'] = self.fitted
-    return state
-
-  def __setstate__(self, state):
-    LayersPowered.__setstate__(self, state)
-    self.fitted = state['fitted']
-    self.sess = tf.get_default_session()
