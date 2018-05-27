@@ -159,7 +159,8 @@ class Layer(object):
     def add_param_plain(self, spec, shape, name, **tags):
         with tf.variable_scope(self.name, reuse=self.variable_reuse):
             tags['trainable'] = tags.get('trainable', True)
-            tags['regularizable'] = tags.get('regularizable', True)
+            if 'regularizable' not in tags:
+                tags['regularizable'] = tags.get('regularizable', True)
             param = create_param(spec, shape, name, **tags)
             self.params[param] = set(tag for tag, value in list(tags.items()) if value)
             return param
@@ -416,7 +417,7 @@ class DenseLayer(Layer):
         if b is None:
             self.b = None
         else:
-            self.b = self.add_param(b, (num_units,), name="b", regularizable=False)
+            self.b = self.add_param(b, (num_units,), name="b")
 
     def get_output_shape_for(self, input_shape):
         return (input_shape[0], self.num_units)

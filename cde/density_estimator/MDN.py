@@ -12,8 +12,6 @@ from cde.utils.serializable import Serializable
 
 from .BaseDensityEstimator import BaseMixtureEstimator
 
-
-
 class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
   """ Mixture Density Network Estimator
 
@@ -29,12 +27,14 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
         n_training_epochs: Number of epochs for training
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+        entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
+        weight_normalization: boolean specifying whether weight normalization shall be used
         random_seed: (optional) seed (int) of the random number generators used
     """
 
 
   def __init__(self, name, ndim_x, ndim_y, n_centers=20, hidden_sizes=(32, 32), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
-               x_noise_std=None, y_noise_std=None, random_seed=None):
+               x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, random_seed=None):
 
     Serializable.quick_init(self, locals())
 
@@ -57,6 +57,8 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
 
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
+    self.entropy_reg_coef = entropy_reg_coef
+    self.weight_normalization = weight_normalization
 
     self.can_sample = True
     self.has_pdf = True
@@ -259,8 +261,10 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
               hidden_sizes=self.hidden_sizes,
               hidden_nonlinearity=self.hidden_nonlinearity,
               output_nonlinearity=None,
+              weight_normalization=self.weight_normalization
           )
 
+      tf.losses.get_regularization_losses()
       core_output_layer = core_network.output_layer
 
       # slice output of MLP into three equally sized parts for loc, scale and mixture weights
@@ -288,6 +292,12 @@ class MixtureDensityNetwork(LayersPowered, Serializable, BaseMixtureEstimator):
       self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
                      in zip(tf.unstack(self.locs, axis=1), tf.unstack( self.scales, axis=1))]
       self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_input))
+
+      # softmax entropy penalty -> regularization
+      self.softmax_entropy = tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1)
+      if self.entropy_reg_coef > 0:
+        self.softmax_entrop_loss = self.entropy_reg_coef * self.softmax_entropy
+        tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
       # tensor to store samples
       self.samples = mixture.sample()

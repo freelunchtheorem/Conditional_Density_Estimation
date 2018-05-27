@@ -478,6 +478,116 @@ class TestSerializationDensityEstimators(unittest.TestCase):
     diff = np.sum(np.abs(pdf_after - pdf_before))
     self.assertAlmostEqual(diff, 0, places=2)
 
+class TestRegularization(unittest.TestCase):
+
+  def get_samples(self, std=1.0, mean=2):
+    np.random.seed(22)
+    data = np.random.normal([mean, mean], std, size=(2000, 2))
+    X = data[:, 0]
+    Y = data[:, 1]
+    return X, Y
+
+  def test1_KMN_with_2d_gaussian_noise_y(self):
+    X, Y = self.get_samples(std=0.5)
+
+    model_no_noise = KernelMixtureNetwork("kmn_no_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    model_noise = KernelMixtureNetwork("kmn_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=1)
+    model_noise.fit(X, Y)
+    var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    print("Training w/o noise:", var_no_noise)
+    print("Training w/ noise:", var_noise)
+
+    self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
+
+  def test2_KMN_with_2d_gaussian_noise_x(self):
+    np.random.seed(22)
+    X = np.random.uniform(0, 6, size=4000)
+    Y = X + np.random.normal(0, 1, size=4000)
+
+    x_test_2 = np.ones(100) * 2
+    x_test_4 = np.ones(100) * 4
+    y_test = np.linspace(1, 5, num=100)
+
+    model_no_noise = KernelMixtureNetwork("kmn_no_noise_x", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+
+    model_noise = KernelMixtureNetwork("kmn_noise_x", 1, 1, n_centers=5, x_noise_std=2, y_noise_std=None)
+    model_noise.fit(X, Y)
+    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+
+    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+    print("Training w/ noise - pdf distance", pdf_distance_noise)
+
+    self.assertGreaterEqual(pdf_distance_no_noise / pdf_distance_noise, 2.0)
+
+  def test3_MDN_with_2d_gaussian_noise_y(self):
+    X, Y = self.get_samples(std=0.5)
+
+    model_no_noise = MixtureDensityNetwork("mdn_no_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    model_noise = MixtureDensityNetwork("mdn_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=1)
+    model_noise.fit(X, Y)
+    var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+
+    print("Training w/o noise:", var_no_noise)
+    print("Training w/ noise:", var_noise)
+
+    self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
+
+  def test4_MDN_with_2d_gaussian_noise_x(self):
+    np.random.seed(22)
+    X = np.random.uniform(0, 6, size=4000)
+    Y = X + np.random.normal(0,1, size=4000)
+
+    x_test_2 = np.ones(100) * 2
+    x_test_4 = np.ones(100) * 4
+    y_test = np.linspace(1,5,num=100)
+
+    model_no_noise = MixtureDensityNetwork("mdn_no_noise", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
+    model_no_noise.fit(X, Y)
+    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+
+    model_noise = MixtureDensityNetwork("mdn_noise", 1, 1, n_centers=1, x_noise_std=2, y_noise_std=None)
+    model_noise.fit(X, Y)
+    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+
+    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+    print("Training w/ noise - pdf distance", pdf_distance_noise)
+
+    self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
+
+  def test5_MDN_entropy_regularization(self):
+    X1, Y1 = self.get_samples(std=1, mean=2)
+    X2, Y2 = self.get_samples(std=1, mean=-2)
+
+    # DATA for GMM with two modes
+    X = np.expand_dims(np.concatenate([X1, X2], axis=0), axis=1)
+    Y = np.expand_dims(np.concatenate([Y1, Y2], axis=0), axis=1)
+
+    with tf.Session() as sess:
+      model_no_reg = MixtureDensityNetwork("mdn_no_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
+                                          entropy_reg_coef=0.0)
+      model_no_reg.fit(X, Y)
+
+      entropy1 = np.mean(
+        sess.run(model_no_reg.softmax_entropy, feed_dict={model_no_reg.X_ph: X, model_no_reg.Y_ph: Y}))
+
+      model_reg = MixtureDensityNetwork("mdn_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
+                                        entropy_reg_coef=10.0)
+      model_reg.fit(X, Y)
+      entropy2 = np.mean(sess.run(model_reg.softmax_entropy, feed_dict={model_reg.X_ph: X, model_reg.Y_ph: Y}))
+
+      print(entropy1)
+      print(entropy2)
+      self.assertGreaterEqual(entropy1 / entropy2, 10)
+
 
 
 #
