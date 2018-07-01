@@ -115,3 +115,6 @@ data/
 # media files
 .png
 .jpg
+
+# personal config files
+config_personal.py
