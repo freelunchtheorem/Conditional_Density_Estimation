@@ -100,8 +100,12 @@ ENV/
 # mypy
 .mypy_cache/
 
+# data folder
+data/
+
 # datafiles
 .xml
+.pkl
 
 # misc
 .idea/
