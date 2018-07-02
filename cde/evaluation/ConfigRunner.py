@@ -17,10 +17,16 @@ import base64
 import pickle
 import tensorflow as tf
 import os
+from ml_logger import logger
+import config
+
+EXP_CONFIG_FILE = 'exp_configs.pkl'
+RESULTS_FILE = 'results.pkl'
 
 class ConfigRunner():
   """
   Args:
+    exp_prefix: (str) prefix of experiment configuration
     est_params: dict containing estimator parametrization
                 example:
 
@@ -58,50 +64,51 @@ class ConfigRunner():
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5,
-               results_pickle_file=None, config_pickle_file=None):
-    assert est_params
-    assert sim_params
-    assert keys_of_interest
+  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5,
+               results_pickle_file=None,):
+    assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
     sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
-
-    self.est_configs = _create_configurations(est_params)
-    self.sim_configs = _create_configurations(sim_params)
 
     self.observations = observations
     self.n_mc_samples = n_mc_samples
     self.n_x_cond = n_x_cond
     self.keys_of_interest = keys_of_interest
+    self.exp_prefix = exp_prefix
 
-    if config_pickle_file:
-      self.configs_loaded = True
-      self.config_pickle_file = config_pickle_file
-      print("{:<70s} {:<30s}".format("Loading previous configs from file: ", self.config_pickle_file))
-      with open(config_pickle_file, 'rb') as f:  # load pickled configs to continue from previous
-        self.configs = pickle.load(f)
+    logger.configure(config.DATA_DIR, prefix=exp_prefix, color='green')
+    logger.log('INITIALIZING CONFIG RUNNER')
+
+    ''' ---------- Either load or generate the configs ----------'''
+    config_pkl_path = os.path.join(logger.log_directory, EXP_CONFIG_FILE)
+
+    if os.path.isfile(config_pkl_path):
+      logger.log("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", self.config_pickle_file))
+      self.configs = logger.load_pkl(EXP_CONFIG_FILE)
     else:
-      self.configs_loaded = False
-      self.configs = self._generate_configuration_variants()
-      self.config_pickle_file = None
+      logger.log("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
+      self.configs = self._generate_configuration_variants(est_params, sim_params)
+      logger.log_data(path=EXP_CONFIG_FILE, data=self.configs)
 
-    self.results_pickle_file = results_pickle_file
-    if self.results_pickle_file:
-      print("{:<70s} {:<30s}".format("Continue with: ", results_pickle_file))
-      with open(results_pickle_file, 'rb') as f: # load pickled gof object to continue with previous calculations
-        self.gof_results = pickle.load(f)
-        self.gof_single_res_collection = self.gof_results.single_results_dict
+    ''' ---------- Either load already existing results or start a new result collection ---------- ''' #TODO: make this workflow with the logger
+    results_pkl_path = os.path.join(logger.log_directory, RESULTS_FILE)
+    if os.path.isfile(results_pkl_path):
+      logger.log("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
+      self.gof_single_res_collection = logger.load_pkl(RESULTS_FILE)
     else: # start from scratch
       self.gof_single_res_collection = {}
       self.gof_results = GoodnessOfFitResults({})
 
 
-
-  def _generate_configuration_variants(self):
+  def _generate_configuration_variants(self, est_params, sim_params):
     """
     Creates all possible combinations from the (configured) estimators and simulators.
     Requires configured estimators and simulators in the constructor:
+
+    Args:
+        est_params: estimator parameters as dict with 2 levels
+        sim_params: density simulator parameters as dict with 2 levels
 
     Returns:
         if n_observations is not a list, a list containing n*m=k tuples while k being the number of the cartesian product of estimators and simulators is
@@ -109,8 +116,8 @@ class ConfigRunner():
         if n_observations is a list, n*m*o=k while o is the number of elements in n_observatons list
     """
 
-    conf_sim = [globals()[simulator_name](**config) for simulator_name, sim_params in self.sim_configs.items() for config in
-                sim_params]
+    self.est_configs = _create_configurations(est_params)
+    self.sim_configs = _create_configurations(sim_params)
 
     if np.isscalar(self.observations):
       self.observations = [self.observations]
@@ -150,9 +157,8 @@ class ConfigRunner():
 
     return configs
 
-
-  def run_configurations(self, export_csv = True, output_dir="./", prefix_filename=None, estimator_filter=None,
-                         limit=None, export_pickle=True, dump_models=False):
+  def run_configurations(self, estimator_filter=None,
+                         limit=None, dump_models=False):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -163,12 +169,10 @@ class ConfigRunner():
     such as n_samples, see GoodnessOfFitResult documentation for more information.
 
       Args:
-        tasks: a list containing k tuples, each tuple has the shape (estimator object, simulator object)
         estimator_filter: a parameter to decide whether to execute just a specific type of estimator, e.g. "KernelMixtureNetwork",
                           must be one of the density estimator class types
         limit: limit the number of (potentially filtered) tasks
-        export_pickle: determines if all results should be exported to output dir as pickle in addition to the csv
-        results_pickle: path to GoodnessOfFitResults pickle file that shall be loaded an continued
+        dump_models: (boolean) whether to save/dump the fitted estimators
 
       Returns:
          returns two objects: (result_list, full_df)
@@ -178,43 +182,32 @@ class ConfigRunner():
           Additionally, if export_pickle is True, the path to the pickle file will be returned, i.e. return values are (results_list, full_df, path_to_pickle)
 
     """
-    # Asserts and Setup
+
+    self.dump_models = dump_models
+    ''' Asserts, Setup and Applying Filters/Limits  '''
     assert len(self.configs) > 0
     self._apply_filters(estimator_filter)
 
     if limit is not None:
       assert limit > 0, "limit must not be negative"
-      print("Limit enabled. Running only the first {} configurations".format(limit))
+      logger.log("Limit enabled. Running only the first {} configurations".format(limit))
 
-    # Setup file names
-    self.result_file_name = "result"
-
-    self.export_pickle = export_pickle
-    self.export_csv = export_csv
-    self.output_dir = output_dir
-    self.prefix_filename = prefix_filename
-    self.dump_models = dump_models
-
-    self._setup_file_names()
-
-    if not self.configs_loaded:
-      self._export_configs()
-
-    # Run the configurations
+    ''' Run the configurations '''
     gof_results = self.gof_results
 
-    print("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(gof_results.single_results_dict))))
+    logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
+    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(gof_results.single_results_dict))))
 
     for i, task in enumerate(self.configs[:limit]):
       try:
         task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
         if task_hash in gof_results.single_results_dict.keys():
-          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
+          logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
                                                                          " Simulator: ", task["simulator_name"]))
 
         else:
-          print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
+          logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                                     " Simulator: ", task["simulator_name"]))
 
           gof_single_result = self._run_single_configuration(task)
@@ -251,7 +244,7 @@ class ConfigRunner():
   def _run_single_configuration(self, task):
     tf.reset_default_graph()
 
-    # build simulator and estimator model given the specified configurations
+    ''' build simulator and estimator model given the specified configurations '''
 
     simulator = globals()[task['simulator_name']](**task['simulator_config'])
 
@@ -261,7 +254,7 @@ class ConfigRunner():
     with tf.Session() as sess:
       sess.run(tf.global_variables_initializer())
 
-      # train the model
+      ''' train the model '''
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
@@ -270,6 +263,7 @@ class ConfigRunner():
         dump_path = os.path.join(self.model_dump_dir, task['task_name'] + '.pickle')
         gof.dump_model(dump_path)
 
+      ''' perform tests with the fitted model '''
       gof_results = gof.compute_results()
       gof_results.task_name = task['task_name']
 
@@ -303,14 +297,6 @@ class ConfigRunner():
       print(str(e))
       traceback.print_exc()
 
-  def _export_configs(self):
-    assert self.config_pickle_file is not None
-    assert len(self.configs) > 0
-
-    print("{:<70s} {:<s}".format("Storing tasks/configs under: ", self.config_pickle_file))
-    with open(self.config_pickle_file, "wb") as f:
-      io.dump_as_pickle(f, self.configs, verbose=False)
-
   def _apply_filters(self, estimator_filter):
 
     if estimator_filter is not None:
@@ -319,8 +305,6 @@ class ConfigRunner():
     if len(self.configs) == 0:
       print("no tasks to execute after filtering for the estimator")
       return None
-
-    print("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
 
   def _setup_file_names(self):
     if self.prefix_filename is not None:
@@ -338,9 +322,6 @@ class ConfigRunner():
       else:
         self.results_csv_path = io.get_full_path(output_dir=self.output_dir, suffix=".csv", file_name=self.result_file_name)
       self.file_handle_results_csv = open(self.results_csv_path, "a+")
-
-    if not self.configs_loaded:
-      self.config_pickle_file = io.get_full_path(output_dir=self.output_dir, suffix=".pickle", file_name="configs_")
 
     if self.dump_models:
       self.model_dump_dir = os.path.join(self.output_dir, 'model_dumps')

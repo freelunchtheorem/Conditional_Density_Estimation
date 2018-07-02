@@ -4,7 +4,9 @@ import glob
 import os
 
 from cde.evaluation.ConfigRunner import ConfigRunner
+from ml_logger import logger
 
+EXP_PREFIX = 'question1_noise_reg_x'
 
 def question1(): #noise
   estimator_params = {
@@ -66,47 +68,31 @@ if __name__ == '__main__':
                       "time_to_fit"
                       ]
 
-  # Search for pickle file in directory
-  results_pickle_file = glob.glob("*question1_noise_reg_x*.pickle")
-  config_pickle_file = glob.glob("config*.pickle")
-
-
-  if results_pickle_file:
-      results_pickle = results_pickle_file[0]
-  else:
-      results_pickle = None
-
-  if config_pickle_file:
-    config_pickle_file = config_pickle_file[0]
-  else:
-    config_pickle_file = None
-
 
   if run:
       observations = 100 * np.logspace(0, 4, num=5, base=2.0,
                                        dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600
 
       conf_est, conf_sim = question1()
-      conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle,
-                                 config_pickle_file=config_pickle_file)
+      conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
+                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
 
-      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg_x", dump_models=True)
+      results_list, full_df = conf_runner.run_configurations(dump_models=True)
 
-  if load:
-    with open(results_pickle, 'rb') as pickle_file:
-      gof_result = pickle.load(pickle_file)
-      results_df = gof_result.generate_results_dataframe(keys_of_interest)
-
-
-      graph_dicts = [
-        { "estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 20},
-        {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 20},
-        {"estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
-        {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 10},
-        { "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 10},
-        {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
-      ]
-
-      gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
-      print(gof_result)
+  # if load:
+  #   with open(results_pickle, 'rb') as pickle_file:
+  #     gof_result = pickle.load(pickle_file)
+  #     results_df = gof_result.generate_results_dataframe(keys_of_interest)
+  #
+  #
+  #     graph_dicts = [
+  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 20},
+  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 20},
+  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
+  #       {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 10},
+  #       { "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 10},
+  #       {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
+  #     ]
+  #
+  #     gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
+  #     print(gof_result)
