@@ -109,7 +109,7 @@ class ML_Logger:
     log_directory = None
 
     # noinspection PyInitNewSignature
-    def __init__(self, log_directory: str = None, prefix="", buffer_size=2048, max_workers=5):
+    def __init__(self, log_directory: str = None, prefix="", buffer_size=2048, max_workers=5, color='green'):
         """
         :param log_directory: Overloaded to use either
             - file://some_abs_dir
@@ -129,6 +129,7 @@ class ML_Logger:
         assert not os.path.isabs(prefix), "prefix can not start with `/`"
         self.prefix = prefix
 
+        self.color = color
         self.log_header_format = "[%Y-%m-%d %H:%M:%S.%f | {}]  ".format(self.prefix)
 
         # todo: add https support
@@ -373,7 +374,7 @@ class ML_Logger:
     def log_text(self, text, filename="text.log", silent=False):
         # todo: consider adding step to this
         if not silent:
-            print(text)
+            print(c(text, color=self.color))
         self.logger.log_text(key=os.path.join(self.prefix or "", filename), text=text)
 
     def _log_header(self):
