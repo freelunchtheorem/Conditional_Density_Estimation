@@ -92,13 +92,13 @@ class ConfigRunner():
       logger.log_data(path=EXP_CONFIG_FILE, data=self.configs)
 
     ''' ---------- Either load already existing results or start a new result collection ---------- ''' #TODO: make this workflow with the logger
-    results_pkl_path = os.path.join(logger.log_directory, RESULTS_FILE)
+    results_pkl_path = os.path.join(logger.log_directory, logger.prefix, RESULTS_FILE)
     if os.path.isfile(results_pkl_path):
       logger.log("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
-      self.gof_single_res_collection = logger.load_pkl(RESULTS_FILE)
+      self.gof_single_res_collection = dict(logger.load_data(RESULTS_FILE))
     else: # start from scratch
       self.gof_single_res_collection = {}
-      self.gof_results = GoodnessOfFitResults({})
+    self.gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
 
 
   def _generate_configuration_variants(self, est_params, sim_params):
@@ -193,16 +193,15 @@ class ConfigRunner():
       logger.log("Limit enabled. Running only the first {} configurations".format(limit))
 
     ''' Run the configurations '''
-    gof_results = self.gof_results
 
     logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
-    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(gof_results.single_results_dict))))
+    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(self.gof_single_res_collection))))
 
     for i, task in enumerate(self.configs[:limit]):
       try:
         task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
-        if task_hash in gof_results.single_results_dict.keys():
+        if task_hash in self.gof_single_res_collection.keys():
           logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
                                                                          " Simulator: ", task["simulator_name"]))
 
@@ -216,9 +215,12 @@ class ConfigRunner():
 
           self.gof_single_res_collection[task_hash] = gof_single_result
 
-          gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
+          logger.log_data(RESULTS_FILE, (task_hash, gof_single_result))
 
-          self._dump_current_state(task, gof_single_result)
+          #gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
+
+          #TODO add csv logging
+          #self._dump_current_state(task, gof_single_result)
 
       except Exception as e:
         print("error in task: ", i+1)
@@ -254,14 +256,13 @@ class ConfigRunner():
     with tf.Session() as sess:
       sess.run(tf.global_variables_initializer())
 
+      #TODO: pull out estimator training from GoodnessOfFit.__init__() and put it into seperate method
       ''' train the model '''
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
-
       if self.dump_models:
-        dump_path = os.path.join(self.model_dump_dir, task['task_name'] + '.pickle')
-        gof.dump_model(dump_path)
+        logger.dump_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
 
       ''' perform tests with the fitted model '''
       gof_results = gof.compute_results()
@@ -346,11 +347,10 @@ def _create_configurations(params_dict):
 
   return confs
 
+# TODO: replace SHA256 by faster, non-cryptographic hash function (e.g. pyhashxx)
 def _hash_task_dict(task_dict):
   assert {'simulator_name', 'simulator_config', 'estimator_name', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
   task_dict = copy.deepcopy(task_dict)
-  del task_dict['X']
-  del task_dict['Y']
 
   tpls = _make_hashable(task_dict)
   return make_hash_sha256(tpls)

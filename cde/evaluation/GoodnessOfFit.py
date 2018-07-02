@@ -378,10 +378,6 @@ class GoodnessOfFit:
 
     return gof_result
 
-  def dump_model(self, pickle_path):
-    with open(pickle_path, 'wb') as f:
-      pickle.dump(self.estimator, f)
-
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
       self.estimator, self.probabilistic_model, self.n_observations, self.x_cond))
