@@ -261,6 +261,8 @@ class ConfigRunner():
       gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
                           n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
+      gof.fit_estimator(print_fit_result=False)
+
       if self.dump_models:
         logger.dump_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
 

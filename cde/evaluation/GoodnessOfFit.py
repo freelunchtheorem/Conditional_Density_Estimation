@@ -24,11 +24,10 @@ class GoodnessOfFit:
     n_observations: number of observations which are drawn from the probabilistic_model to fit the estimator.
                     If the estimator is already fitted, this parameter is ignored
     n_x_cond: number of different x to condition on - e.g. if n_x_cond=20, p(y|x) is evaluated for 20 different x
-    print_fit_result: boolean that specifies whether the fitted distribution shall be plotted (only works if ndim_x and ndim_y = 1)
     seed: random seed to draw samples from the probabilistic model
 
   """
-  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, print_fit_result=False, seed=24):
+  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, seed=24):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
@@ -47,18 +46,27 @@ class GoodnessOfFit:
     np.random.seed(seed)
     self.X = X
     self.Y = Y
-
-    self.time_to_fit = None
-    if not estimator.fitted: # fit estimator if necessary
-      t_start = time.time()
-      estimator.fit(self.X, self.Y, verbose=False)
-      self.time_to_fit = (time.time() - t_start) * n_observations / 1000 #time to fit per 1000 samples
-
-    if print_fit_result:
-      self.probabilistic_model.plot(mode="pdf")
-      estimator.plot()
+    self.n_observations = n_observations
 
     self.estimator = estimator
+
+  def fit_estimator(self, print_fit_result=False):
+    """
+    Fits the estimator with the provided data
+
+    Args:
+      print_fit_result: boolean that specifies whether the fitted distribution shall be plotted (only works if ndim_x and ndim_y = 1)
+    """
+
+    self.time_to_fit = None
+    if not self.estimator.fitted:  # fit estimator if necessary
+      t_start = time.time()
+      self.estimator.fit(self.X, self.Y, verbose=False)
+      self.time_to_fit = (time.time() - t_start) * self.n_observations / 1000  # time to fit per 1000 samples
+
+    if print_fit_result: #TODO handle storing plots via the logger --> use logger.log_pyplot()
+      self.probabilistic_model.plot(mode="pdf")
+      self.estimator.plot()
 
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
