@@ -87,7 +87,6 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    print(tf.losses.get_regularization_losses())
     with tf.variable_scope(self.name):
       # setup inference procedure
       self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})

@@ -1,12 +1,16 @@
 # Nonparametric_Density_Estimation
 
 ## to-do's:
-- dumping individual single result pickles
-- running each task in a separate OS process
+- change logging and data dumping to ml_logger --> done
+- dumping individual single result pickles --> done
+- running each task in a separate OS process --> done
 - entropy regularization -> done
 - data normalization
 - setup docker + launch script
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
+- fix GMM seed problem (GMM simulator is not reproducable)
+- generate nice plots each run and log them as well
+- put sampling of datapints back in run_single_task in order to avoid large memory footprint
 
 # Citing
 If you use NPDE in your research, you can cite it as follows:
