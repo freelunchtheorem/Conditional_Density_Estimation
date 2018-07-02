@@ -19,6 +19,7 @@ import tensorflow as tf
 import os
 from ml_logger import logger
 import config
+import concurrent.futures
 
 EXP_CONFIG_FILE = 'exp_configs.pkl'
 RESULTS_FILE = 'results.pkl'
@@ -64,8 +65,7 @@ class ConfigRunner():
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5,
-               results_pickle_file=None,):
+  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5, n_workers=None):
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
@@ -76,6 +76,7 @@ class ConfigRunner():
     self.n_x_cond = n_x_cond
     self.keys_of_interest = keys_of_interest
     self.exp_prefix = exp_prefix
+    self.n_workers = n_workers
 
     logger.configure(config.DATA_DIR, prefix=exp_prefix, color='green')
     logger.log('INITIALIZING CONFIG RUNNER')
@@ -197,43 +198,74 @@ class ConfigRunner():
     logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
     logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(self.gof_single_res_collection))))
 
-    for i, task in enumerate(self.configs[:limit]):
-      try:
-        task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
+    tasks = self.configs[:limit]
+    iters = range(1, len(tasks)+1)
 
-        if task_hash in self.gof_single_res_collection.keys():
-          logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i+1, "has already been completed:", "Estimator:", task['estimator_name'],
-                                                                         " Simulator: ", task["simulator_name"]))
-
-        else:
-          logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
-                                                                    " Simulator: ", task["simulator_name"]))
-
-          gof_single_result = self._run_single_configuration(task)
-
-          gof_single_result.hash = task_hash
-
+    with concurrent.futures.ProcessPoolExecutor(max_workers=self.n_workers) as executor:
+      for i, task_result in zip(iters, executor.map(self._run_single_task, iters, tasks)):
+        if task_result and type(task_result) is tuple:
+          task_hash, gof_single_result = task_result
           self.gof_single_res_collection[task_hash] = gof_single_result
 
-          logger.log_data(RESULTS_FILE, (task_hash, gof_single_result))
-
-          #gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
-
-          #TODO add csv logging
-          #self._dump_current_state(task, gof_single_result)
-
-      except Exception as e:
-        print("error in task: ", i+1)
-        print(str(e))
-        traceback.print_exc()
+    #TODO add csv logging
+    #self._dump_current_state(task, gof_single_result)
 
     gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
     full_df = gof_results.generate_results_dataframe(keys_of_interest=self.keys_of_interest)
 
-    if self.export_csv:
-      self.file_handle_results_csv.close()
-
     return self.gof_single_res_collection, full_df
+
+  def _run_single_task(self, i, task):
+    try:
+      task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
+
+      if task_hash in self.gof_single_res_collection.keys():
+        logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
+                                                                       task['estimator_name'],
+                                                                       " Simulator: ", task["simulator_name"]))
+        return None
+
+      else:
+        logger.log(
+          "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
+                                                              " Simulator: ", task["simulator_name"]))
+
+        tf.reset_default_graph()
+
+        ''' build simulator and estimator model given the specified configurations '''
+
+        simulator = globals()[task['simulator_name']](**task['simulator_config'])
+
+        estimator = globals()[task['estimator_name']](task['task_name'], simulator.ndim_x,
+                                                      simulator.ndim_y, **task['estimator_config'])
+
+        with tf.Session() as sess:
+          sess.run(tf.global_variables_initializer())
+
+          ''' train the model '''
+          gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
+                              n_observations=task['n_obs'],
+                              n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
+
+          gof.fit_estimator(print_fit_result=False)
+
+          if self.dump_models:
+            logger.dump_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
+
+          ''' perform tests with the fitted model '''
+          gof_results = gof.compute_results()
+          gof_results.task_name = task['task_name']
+
+          gof_results.hash = task_hash
+
+        logger.log_data(RESULTS_FILE, (task_hash, gof_results))
+
+        return gof_results, task_hash
+
+    except Exception as e:
+      logger.log("error in task: ", i + 1)
+      logger.log(str(e))
+      traceback.print_exc()
 
   def _dump_current_state(self, task, gof_single_result):
     if self.export_csv:
@@ -243,34 +275,6 @@ class ConfigRunner():
         intermediate_gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
         io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
-  def _run_single_configuration(self, task):
-    tf.reset_default_graph()
-
-    ''' build simulator and estimator model given the specified configurations '''
-
-    simulator = globals()[task['simulator_name']](**task['simulator_config'])
-
-    estimator = globals()[task['estimator_name']](task['task_name'], simulator.ndim_x,
-                                                  simulator.ndim_y, **task['estimator_config'])
-
-    with tf.Session() as sess:
-      sess.run(tf.global_variables_initializer())
-
-      #TODO: pull out estimator training from GoodnessOfFit.__init__() and put it into seperate method
-      ''' train the model '''
-      gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'], n_observations=task['n_obs'],
-                          n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
-
-      gof.fit_estimator(print_fit_result=False)
-
-      if self.dump_models:
-        logger.dump_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
-
-      ''' perform tests with the fitted model '''
-      gof_results = gof.compute_results()
-      gof_results.task_name = task['task_name']
-
-    return gof_results
 
   def _get_results_dataframe(self, results):
     """ retrieves the dataframe for one or more GoodnessOfFitResults result objects.
