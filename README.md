@@ -3,7 +3,7 @@
 ## to-do's:
 - dumping individual single result pickles
 - running each task in a separate OS process
-- entropy regularization
+- entropy regularization -> done
 - data normalization
 - setup docker + launch script
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
