@@ -11,6 +11,7 @@
 - fix GMM seed problem (GMM simulator is not reproducable)
 - generate nice plots each run and log them as well
 - put sampling of datapints back in run_single_task in order to avoid large memory footprint
+- fix problems with tail risks est - sometimes takes extremely long
 
 # Citing
 If you use NPDE in your research, you can cite it as follows:

@@ -378,7 +378,7 @@ class GoodnessOfFit:
       gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
       gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
 
-    #print("Finished CVaR: time to compute: ", time.time() - t)
+    print("Finished CVaR: time to compute: ", time.time() - t)
     t = time.time()
 
     """ time to fit """
@@ -389,7 +389,6 @@ class GoodnessOfFit:
   def __str__(self):
     return str("{}\n{}\nGoodness of fit:\n n_observations: {}\n n_x_cond: {}".format(
       self.estimator, self.probabilistic_model, self.n_observations, self.x_cond))
-
 
 def _hellinger_dist(p, q):
   assert p.shape == q.shape

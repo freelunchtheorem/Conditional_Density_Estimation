@@ -245,8 +245,10 @@ class ConfigRunner():
 
         simulator = globals()[task['simulator_name']](**task['simulator_config'])
 
+        t = time.time()
         estimator = globals()[task['estimator_name']](task['task_name'], simulator.ndim_x,
                                                       simulator.ndim_y, **task['estimator_config'])
+        time_to_initialize = time.time() - t
 
         with tf.Session() as sess:
           sess.run(tf.global_variables_initializer())
@@ -256,13 +258,18 @@ class ConfigRunner():
                               n_observations=task['n_obs'],
                               n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
 
+          t = time.time()
           gof.fit_estimator(print_fit_result=False)
+          time_to_fit = time.time() - t
 
           if self.dump_models:
             logger.dump_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
 
           ''' perform tests with the fitted model '''
+          t = time.time()
           gof_results = gof.compute_results()
+          time_to_evaluate = time.time() - t
+
           gof_results.task_name = task['task_name']
 
           gof_results.hash = task_hash
@@ -271,10 +278,8 @@ class ConfigRunner():
 
         task_duration = time.time() - start_time
         logger.log(
-          "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<1}".format(i + 1, task_duration, "sec:",
-                                                                                   "Estimator:", task['estimator_name'],
-                                                                                   " Simulator: ",
-                                                                                   task["simulator_name"]))
+          "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
+          "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
 
         return gof_results, task_hash
 
