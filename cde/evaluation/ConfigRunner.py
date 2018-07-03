@@ -20,6 +20,7 @@ import os
 from ml_logger import logger
 import config
 import concurrent.futures
+import time
 
 EXP_CONFIG_FILE = 'exp_configs.pkl'
 RESULTS_FILE = 'results.pkl'
@@ -65,7 +66,7 @@ class ConfigRunner():
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5, n_workers=None):
+  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5):
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
@@ -76,7 +77,6 @@ class ConfigRunner():
     self.n_x_cond = n_x_cond
     self.keys_of_interest = keys_of_interest
     self.exp_prefix = exp_prefix
-    self.n_workers = n_workers
 
     logger.configure(config.DATA_DIR, prefix=exp_prefix, color='green')
     logger.log('INITIALIZING CONFIG RUNNER')
@@ -159,7 +159,7 @@ class ConfigRunner():
     return configs
 
   def run_configurations(self, estimator_filter=None,
-                         limit=None, dump_models=False):
+                         limit=None, dump_models=False, multiprocessing=True, n_workers=None):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -199,10 +199,18 @@ class ConfigRunner():
     logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ", str(len(self.gof_single_res_collection))))
 
     tasks = self.configs[:limit]
-    iters = range(1, len(tasks)+1)
+    iters = range(len(tasks))
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=self.n_workers) as executor:
-      for i, task_result in zip(iters, executor.map(self._run_single_task, iters, tasks)):
+
+    if multiprocessing:
+      with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
+        for i, task_result in zip(iters, executor.map(self._run_single_task, iters, tasks)):
+          if task_result and type(task_result) is tuple:
+            task_hash, gof_single_result = task_result
+            self.gof_single_res_collection[task_hash] = gof_single_result
+    else:
+      for i, task in zip(iters, tasks):
+        task_result = self._run_single_task(i, task)
         if task_result and type(task_result) is tuple:
           task_hash, gof_single_result = task_result
           self.gof_single_res_collection[task_hash] = gof_single_result
@@ -216,6 +224,7 @@ class ConfigRunner():
     return self.gof_single_res_collection, full_df
 
   def _run_single_task(self, i, task):
+    start_time = time.time()
     try:
       task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
@@ -259,6 +268,13 @@ class ConfigRunner():
           gof_results.hash = task_hash
 
         logger.log_data(RESULTS_FILE, (task_hash, gof_results))
+
+        task_duration = time.time() - start_time
+        logger.log(
+          "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<1}".format(i + 1, task_duration, "sec:",
+                                                                                   "Estimator:", task['estimator_name'],
+                                                                                   " Simulator: ",
+                                                                                   task["simulator_name"]))
 
         return gof_results, task_hash
 

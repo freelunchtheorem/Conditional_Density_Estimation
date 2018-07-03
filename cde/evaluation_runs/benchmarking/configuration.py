@@ -13,7 +13,7 @@ def question1(): #noise
   'KernelMixtureNetwork':
 
     {'center_sampling_method': ["k_means"],
-     'n_centers': [50],
+     'n_centers': [10],
      'keep_edges': [True],
      'init_scales': [[0.1, 0.5, 1.]],
      'train_scales': [True],
@@ -53,9 +53,9 @@ if __name__ == '__main__':
 
       conf_est, conf_sim = question1()
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                                 n_mc_samples=2*10**4, n_x_cond=5, n_seeds=5, n_workers=2) #TODO set back n_mc_samples to 2*10**6
+                                 n_mc_samples=2*10**4, n_x_cond=5, n_seeds=5) #TODO set back n_mc_samples to 2*10**6
 
-      results_list, full_df = conf_runner.run_configurations(dump_models=True)
+      results_list, full_df = conf_runner.run_configurations(dump_models=True, multiprocessing=False, n_workers=2)
 
   # if load:
   #   with open(results_pickle, 'rb') as pickle_file:
