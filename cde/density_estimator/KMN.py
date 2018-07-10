@@ -24,7 +24,7 @@ logging.getLogger("tensorflow").setLevel(logging.ERROR)
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
-class KernelMixtureNetwork(BaseNNMixtureEstimator):
+class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore pass its unittests - find out what's the problem
 
   # noinspection PyPackageRequirements
   """ Kernel Mixture Network Estimator
@@ -46,12 +46,13 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
           y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
           entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
           weight_normalization: boolean specifying whether weight normalization shall be used
+                  data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
           random_seed: (optional) seed (int) of the random number generators used
   """
 
   def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=200, keep_edges=False,
-               init_scales='default', hidden_sizes=(32, 32), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
-               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, random_seed=None):
+               init_scales='default', hidden_sizes=(8, 8), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
+               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, data_normalization=False, random_seed=None):
 
     Serializable.quick_init(self, locals())
 
@@ -81,9 +82,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.y_noise_std = y_noise_std
     self.entropy_reg_coef = entropy_reg_coef
     self.weight_normalization = weight_normalization
+    self.data_normalization = data_normalization
 
     if init_scales == 'default':
-        init_scales = np.array([1])
+        init_scales = np.array([2, 1, 0.5])
 
     self.n_scales = len(init_scales)
     # Transform scales so that the softplus will result in passed init_scales
@@ -114,17 +116,22 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    # sample locations
-    sampled_locs = sample_center_points(Y, method=self.center_sampling_method, k=self.n_centers,
-                                     keep_edges=self.keep_edges)
-
-
-
     # setup inference procedure
     self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
     self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), n_iter=self.n_training_epochs)
     tf.global_variables_initializer().run()
     self.sess = tf.get_default_session()
+
+    # data normalization if desired
+    if self.data_normalization:  # this must happen after the initialization
+      self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
+      Y_normalized = (Y - self.data_statistics['Y_mean']) / (self.data_statistics['Y_std'] + 1e-8)
+    else:
+      Y_normalized = Y
+
+    # sample locations and assign them to tf locs variable
+    sampled_locs = sample_center_points(Y_normalized, method=self.center_sampling_method, k=self.n_centers,
+                                     keep_edges=self.keep_edges)
     self.sess.run(tf.assign(self.locs, sampled_locs))
 
     # train the model
@@ -167,19 +174,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     implementation of the KMN
     """
     with tf.variable_scope(self.name):
-      # Input_Layers & placeholders
-      self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
-      self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
-      self.train_phase = tf.placeholder_with_default(False, None)
-
-      layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
-      layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
-
-      # add noise layer if desired
-      if self.x_noise_std is not None:
-        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
-      if self.y_noise_std is not None:
-        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+      layer_in_x, layer_in_y = self._build_input_layers() # add playeholders, data_normalization and data_noise if desired
 
       # get batch size
       self.batch_size = tf.shape(self.X_ph)[0]
@@ -241,6 +236,14 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
       # tensor to compute likelihoods
       self.pdf_ = mixture.prob(self.Y_ph)
 
+      # symbolic tensors for getting the unnormalized mixture components
+      if self.data_normalization:
+        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) * self.std_y_sym
+        self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_x_sym
+      else:
+        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales))
+        self.locs_unnormalized = self.locs
+
   def _param_grid(self):
     n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]
 
@@ -255,14 +258,16 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
   def _get_mixture_components(self, X):
     assert self.fitted
 
-    locs, weights, scales = self.sess.run([self.locs, self.weights, self.scales], feed_dict={self.X_ph: X})
+    locs, weights, scales = self.sess.run([self.locs_unnormalized, self.weights, self.scales_unnormalized], feed_dict={self.X_ph: X})
 
     locs = np.tile(locs.reshape([1] + list(locs.shape)), (X.shape[0], scales.shape[0],1))
 
-    scale_diags = np.tile(scales.reshape((scales.shape[0],1)), (1, self.ndim_y))
-    cov = np.concatenate([scale_diags[i,:].reshape((1,1,self.ndim_y)) for i in range(scales.shape[0]) for j in range(self.n_centers)], axis=1)
+    cov = np.concatenate([scales[i,:].reshape((1,1,self.ndim_y)) for i in range(scales.shape[0]) for j in range(self.n_centers)], axis=1)
     cov = np.tile(cov, (X.shape[0], 1, 1))
 
+    assert weights.shape[0] == locs.shape[0] == cov.shape[0] == X.shape[0]
+    assert weights.shape[1] == locs.shape[1] == cov.shape[1] == self.n_centers*self.n_scales
+    assert locs.shape[2] == cov.shape[2] == self.ndim_y
     return weights, locs, cov
 
   def __str__(self):

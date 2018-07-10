@@ -286,7 +286,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
     for method in ["agglomerative"]:
       with tf.Session() as sess:
-        model = KernelMixtureNetwork("kmn_"+method, 1, 1, center_sampling_method=method, n_centers=5)
+        model = KernelMixtureNetwork("kmn_"+method, 1, 1, center_sampling_method=method, n_centers=100)
         model.fit(X, Y)
 
         y = np.arange(-1, 5, 0.5)
@@ -537,6 +537,72 @@ class TestRegularization(unittest.TestCase):
       print(entropy1)
       print(entropy2)
       self.assertGreaterEqual(entropy1 / entropy2, 10)
+
+  def test7_data_normalization(self):
+    X, Y = self.get_samples(std=2, mean=20)
+    with tf.Session() as sess:
+      model = KernelMixtureNetwork("kmn_data_normalization", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
+                                          data_normalization=True, n_training_epochs=100)
+      model.fit(X, Y)
+
+      # test if data statistics were properly assigned to tf graph
+      x_mean, x_std = sess.run([model.mean_x_sym, model.std_x_sym])
+      print(x_mean, x_std)
+      mean_diff = float(np.abs(x_mean-20))
+      std_diff = float(np.abs(x_std-2))
+      self.assertLessEqual(mean_diff, 0.5)
+      self.assertLessEqual(std_diff, 0.5)
+
+  def test8_data_normalization(self):
+    np.random.seed(24)
+    mean = 10
+    std = 2
+    data = np.random.normal([mean, mean, mean, mean], std, size=(2000, 4))
+    X = data[:, 0:2]
+    Y = data[:, 2:4]
+
+    with tf.Session() as sess:
+      model = MixtureDensityNetwork("mdn_data_normalization", 2, 2, n_centers=2, x_noise_std=None, y_noise_std=None,
+                                          data_normalization=True, n_training_epochs=2000, random_seed=22)
+      model.fit(X, Y)
+      y_mean, y_std = sess.run([model.mean_y_sym, model.std_y_sym])
+      print(y_mean, y_std)
+      cond_mean = model.mean_(Y)
+      mean_diff = np.abs(mean-np.mean(cond_mean))
+      self.assertLessEqual(mean_diff, 0.5)
+
+      cond_cov = np.mean(model.covariance(Y), axis=0)
+      print(cond_cov)
+      self.assertGreaterEqual(cond_cov[0][0], std * 0.7)
+      self.assertLessEqual(cond_cov[0][0], std * 1.3)
+      self.assertGreaterEqual(cond_cov[1][1], std * 0.7)
+      self.assertLessEqual(cond_cov[1][1], std * 1.3)
+
+  def test9_data_normalization(self):
+    np.random.seed(24)
+    mean = -700
+    std = 80
+    data = np.random.normal([mean, mean, mean, mean], std, size=(2000, 4))
+    X = data[:, 0:2]
+    Y = data[:, 2:4]
+
+    with tf.Session() as sess:
+      model = KernelMixtureNetwork("kmn_data_normalization_2", 2, 2, n_centers=5, x_noise_std=None, y_noise_std=None,
+                                    data_normalization=True, n_training_epochs=500, random_seed=22, keep_edges=False, train_scales=True, weight_normalization=True)
+      model.fit(X, Y)
+      y_mean, y_std = sess.run([model.mean_y_sym, model.std_y_sym])
+      print(y_mean, y_std)
+      cond_mean = model.mean_(Y)
+      print(np.mean(cond_mean))
+      mean_diff = np.abs(mean - np.mean(cond_mean))
+      self.assertLessEqual(mean_diff, np.abs(mean) * 0.1)
+
+      cond_cov = np.mean(model.covariance(Y), axis=0)
+      print(cond_cov)
+      self.assertGreaterEqual(cond_cov[0][0], std * 0.7)
+      self.assertLessEqual(cond_cov[0][0], std * 1.3)
+      self.assertGreaterEqual(cond_cov[1][1], std * 0.7)
+      self.assertLessEqual(cond_cov[1][1], std * 1.3)
 
 
 #

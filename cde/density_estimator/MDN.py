@@ -29,13 +29,14 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
         entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
-        weight_normalization: boolean specifying whether weight normalization shall be used
+        weight_normalization: (boolean) whether weight normalization shall be used
+        data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
         random_seed: (optional) seed (int) of the random number generators used
     """
 
 
-  def __init__(self, name, ndim_x, ndim_y, n_centers=20, hidden_sizes=(32, 32), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
-               x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, random_seed=None):
+  def __init__(self, name, ndim_x, ndim_y, n_centers=20, hidden_sizes=(8, 8), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
+               x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, data_normalization=False, random_seed=None):
 
     Serializable.quick_init(self, locals())
 
@@ -61,6 +62,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.y_noise_std = y_noise_std
     self.entropy_reg_coef = entropy_reg_coef
     self.weight_normalization = weight_normalization
+    self.data_normalization = data_normalization
 
     self.can_sample = True
     self.has_pdf = True
@@ -98,6 +100,9 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
     self.can_sample = True
     self.has_cdf = True
+
+    if self.data_normalization: # this must happen after the initialization
+      self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
 
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
@@ -140,19 +145,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     """
 
     with tf.variable_scope(self.name):
-      # Input_Layers & placeholders
-      self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
-      self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
-      self.train_phase = tf.placeholder_with_default(False, None)
-
-      layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
-      layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
-
-      # add noise layer if desired
-      if self.x_noise_std is not None:
-          layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
-      if self.y_noise_std is not None:
-          layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+      layer_in_x, layer_in_y = self._build_input_layers()  # add playeholders, data_normalization and data_noise if desired
 
       # create core multi-layer perceptron
       mlp_output_dim = 2 * self.ndim_y * self.n_centers + self.n_centers
@@ -166,7 +159,6 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
               weight_normalization=self.weight_normalization
           )
 
-      tf.losses.get_regularization_losses()
       core_output_layer = core_network.output_layer
 
       # slice output of MLP into three equally sized parts for loc, scale and mixture weights
@@ -202,7 +194,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
       # tensor to store samples
-      self.samples = mixture.sample()
+      self.samples = mixture.sample() #TODO either use it or remove it
 
       # placeholder for the grid
       self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
@@ -211,6 +203,14 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
       # tensor to compute probabilities
       self.pdf_ = mixture.prob(self.y_input)
+
+      # symbolic tensors for getting the unnormalized mixture components
+      if self.data_normalization:
+        self.scales_unnormalized = self.scales * self.std_y_sym
+        self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_x_sym
+      else:
+        self.scales_unnormalized = self.scales
+        self.locs_unnormalized = self.locs
 
   def _param_grid(self):
     n_centers = [1, 2, 4, 8, 16, 32]
@@ -222,5 +222,5 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
   def _get_mixture_components(self, X):
     assert self.fitted
-    weights, locs, scales = self.sess.run([self.weights, self.locs, self.scales], feed_dict={self.X_ph: X})
+    weights, locs, scales = self.sess.run([self.weights, self.locs_unnormalized, self.scales_unnormalized], feed_dict={self.X_ph: X})
     return weights, locs, scales

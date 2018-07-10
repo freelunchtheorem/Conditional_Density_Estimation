@@ -361,6 +361,28 @@ class VariableLayer(Layer):
     def get_output_for(self, input, **kwargs):
         return self.param
 
+class NormalizationLayer(Layer):
+    def __init__(self, incoming, feature_dim, **kwargs):
+        super(NormalizationLayer, self).__init__(incoming, **kwargs)
+        self.mean = self.add_param(
+            tf.Variable(np.zeros(feature_dim, dtype=np.float32), name='data_norm_mean', trainable=False),
+            (feature_dim,),
+            name='mean',
+            trainable=False
+        )
+        self.std = self.add_param(
+          tf.Variable(np.ones(feature_dim, dtype=np.float32), name='data_norm_mean', trainable=False),
+          (feature_dim,),
+          name='mean',
+          trainable=False
+        )
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape
+
+    def get_output_for(self, input, **kwargs):
+        return (input - self.mean) / (self.std + 1e-8)
+
 
 class ParamLayer(Layer):
     def __init__(self, incoming, num_units, param=tf.zeros_initializer(),

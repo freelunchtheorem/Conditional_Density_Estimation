@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
+#TODO: understand how data normalization scheme affects the methods here
 class ConditionalDensity(BaseEstimator):
 
   def _mean_mc(self, x_cond, n_samples=10 ** 7):

@@ -7,6 +7,8 @@ import sklearn
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
+import cde.utils.tf_utils.layers as L
+
 
 class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
@@ -51,7 +53,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       c1 = np.diag(weights[i].dot(scales[i]))
 
       c2 = np.zeros(c1.shape)
-      for j in range(weights.shape[0]):
+      for j in range(weights.shape[1]):
         a = (locs[i][j] - glob_mean[i])
         d = weights[i][j] * np.outer(a,a)
         c2 += d
@@ -305,6 +307,53 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
     assert (Y is None) or (self.ndim_y == 1 and Y.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
     return BaseDensityEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
+
+  def _compute_data_normalization(self, X, Y):
+    # compute data statistics (mean & std)
+    X_mean = np.mean(X, axis=0)
+    X_std = np.std(X, axis=0)
+    Y_mean = np.mean(Y, axis=0)
+    Y_std = np.std(Y, axis=0)
+
+    self.data_statistics = {
+      'X_mean': X_mean,
+      'X_std': X_std,
+      'Y_mean': Y_mean,
+      'Y_std': Y_std,
+    }
+
+    # assign them to tf variables
+    sess = tf.get_default_session()
+    sess.run([
+      tf.assign(self.mean_x_sym, X_mean),
+      tf.assign(self.std_x_sym, X_std),
+      tf.assign(self.mean_y_sym, Y_mean),
+      tf.assign(self.std_y_sym, Y_std)
+    ])
+
+  def _build_input_layers(self):
+    # Input_Layers & placeholders
+    self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
+    self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
+    self.train_phase = tf.placeholder_with_default(False, None)
+
+    layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
+    layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
+
+    # add data normalization layer if desired
+    if self.data_normalization:
+      layer_in_x = L.NormalizationLayer(layer_in_x, self.ndim_x, name="data_norm_x")
+      self.mean_x_sym, self.std_x_sym = layer_in_x.get_params()
+      layer_in_y = L.NormalizationLayer(layer_in_y, self.ndim_y, name="data_norm_y")
+      self.mean_y_sym, self.std_y_sym = layer_in_y.get_params()
+
+    # add noise layer if desired
+    if self.x_noise_std is not None:
+      layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
+    if self.y_noise_std is not None:
+      layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+
+    return layer_in_x, layer_in_y
 
   def __getstate__(self):
     state = LayersPowered.__getstate__(self)
