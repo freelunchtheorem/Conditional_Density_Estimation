@@ -44,6 +44,18 @@ ImportError: /common/homes/students/ferreira/anaconda3/envs/p3.6/lib/python3.6/s
 - cuda 9 and cudnn 7 required
 - see https://www.tensorflow.org/install/install_sources#tested_source_configurations for cuDNN and cuda requirements
 
+# Docker commands
+
+#kill all containers:
+docker kill $(docker ps -q)
+
+#run docker interactively
+docker run -it <image> /bin/bash oder
+docker run -it --entrypoint /bin/bash <image>
+
+#tag an image for uploading
+docker tag tensorflow/tensorflow ferreirafabio/nde:tf-cpu
+docker push ferreirafabio/nde:tf-cpu
 
 ```
 cat /usr/local/cuda/include/cudnn.h | grep CUDNN_MAJOR -A 2
