@@ -46,17 +46,24 @@ ImportError: /common/homes/students/ferreira/anaconda3/envs/p3.6/lib/python3.6/s
 
 # Docker commands
 
-# kill all containers:
+# Setup stuff
+## kill all containers:
 docker kill $(docker ps -q)
 
-# run docker interactively
+## run docker interactively
 docker run -it <image> /bin/bash oder
 docker run -it --entrypoint /bin/bash <image>
 
-# tag an image for uploading
+## tag an image for uploading
 docker tag tensorflow/tensorflow ferreirafabio/nde:tf-cpu
 docker push ferreirafabio/nde:tf-cpu
 
+## commit changes to image
+docker container ls
+docker commit CONTAINER_ID tensorflow/tensorflow
+
+## resume a container
+docker exec -it <container-id> /bin/bash
 
 # CUDA/CudNN
 ```
