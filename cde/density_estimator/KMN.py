@@ -85,7 +85,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     self.data_normalization = data_normalization
 
     if init_scales == 'default':
-        init_scales = np.array([2, 1, 0.5])
+        init_scales = np.array([1.0])
 
     self.n_scales = len(init_scales)
     # Transform scales so that the softplus will result in passed init_scales
@@ -176,6 +176,9 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     with tf.variable_scope(self.name):
       layer_in_x, layer_in_y = self._build_input_layers() # add playeholders, data_normalization and data_noise if desired
 
+      self.X_in = L.get_output(layer_in_x)
+      self.Y_in = L.get_output(layer_in_y)
+
       # get batch size
       self.batch_size = tf.shape(self.X_ph)[0]
 
@@ -225,16 +228,11 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
       self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
       tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
-      # tensor to store samples
-      self.samples = mixture.sample()
-
-      # placeholder for the grid
-      self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
-      # tensor to store grid point densities
-      self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
-
-      # tensor to compute likelihoods
-      self.pdf_ = mixture.prob(self.Y_ph)
+      # tensor to compute probabilities
+      if self.data_normalization:
+        self.pdf_ = mixture.prob(self.y_input) / self.std_y_sym
+      else:
+        self.pdf_ = mixture.prob(self.y_input)
 
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:
@@ -268,6 +266,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     assert weights.shape[0] == locs.shape[0] == cov.shape[0] == X.shape[0]
     assert weights.shape[1] == locs.shape[1] == cov.shape[1] == self.n_centers*self.n_scales
     assert locs.shape[2] == cov.shape[2] == self.ndim_y
+    assert locs.ndim == 3 and cov.ndim == 3 and weights.ndim == 3
     return weights, locs, cov
 
   def __str__(self):

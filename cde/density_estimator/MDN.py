@@ -196,13 +196,11 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       # tensor to store samples
       self.samples = mixture.sample() #TODO either use it or remove it
 
-      # placeholder for the grid
-      self.y_grid_ph = y_grid_ph = tf.placeholder(tf.float32)
-      # tensor to store grid point densities
-      self.densities = tf.transpose(mixture.prob(tf.reshape(y_grid_ph, (-1, 1))))
-
       # tensor to compute probabilities
-      self.pdf_ = mixture.prob(self.y_input)
+      if self.data_normalization:
+        self.pdf_ = mixture.prob(self.y_input) / self.std_y_sym
+      else:
+        self.pdf_ = mixture.prob(self.y_input)
 
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:
