@@ -361,19 +361,20 @@ class VariableLayer(Layer):
     def get_output_for(self, input, **kwargs):
         return self.param
 
+
 class NormalizationLayer(Layer):
-    def __init__(self, incoming, feature_dim, **kwargs):
+    def __init__(self, incoming, feature_dim, name='', **kwargs):
         super(NormalizationLayer, self).__init__(incoming, **kwargs)
         self.mean = self.add_param(
-            tf.Variable(np.zeros(feature_dim, dtype=np.float32), name='data_norm_mean', trainable=False),
+            tf.Variable(np.zeros(feature_dim, dtype=np.float32), name=name+'_mean', trainable=False),
             (feature_dim,),
-            name='mean',
+            name=name+'mean',
             trainable=False
         )
         self.std = self.add_param(
-          tf.Variable(np.ones(feature_dim, dtype=np.float32), name='data_norm_mean', trainable=False),
+          tf.Variable(np.ones(feature_dim, dtype=np.float32), name=name+'_std', trainable=False),
           (feature_dim,),
-          name='mean',
+          name=name+'std',
           trainable=False
         )
 

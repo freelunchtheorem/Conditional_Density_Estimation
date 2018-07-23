@@ -102,7 +102,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     self._build_model()
 
     # initialize LayersPowered --> provides functions for serializing tf models
-    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer])
+    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
 
   def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
     """ Fits the conditional density model with provided data
@@ -174,10 +174,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     implementation of the KMN
     """
     with tf.variable_scope(self.name):
-      layer_in_x, layer_in_y = self._build_input_layers() # add playeholders, data_normalization and data_noise if desired
+      self.layer_in_x, self.layer_in_y = self._build_input_layers() # add playeholders, data_normalization and data_noise if desired
 
-      self.X_in = L.get_output(layer_in_x)
-      self.Y_in = L.get_output(layer_in_y)
+      self.X_in = L.get_output(self.layer_in_x)
+      self.Y_in = L.get_output(self.layer_in_y)
 
       # get batch size
       self.batch_size = tf.shape(self.X_ph)[0]
@@ -185,7 +185,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
       # create core multi-layer perceptron
       core_network = MLP(
         name="core_network",
-        input_layer=layer_in_x,
+        input_layer=self.layer_in_x,
         output_dim=self.n_centers*self.n_scales,
         hidden_sizes=self.hidden_sizes,
         hidden_nonlinearity=self.hidden_nonlinearity,
@@ -217,7 +217,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
       assert len(self.scales_array) == self.n_scales
 
       # put mixture components together
-      self.y_input = L.get_output(layer_in_y)
+      self.y_input = L.get_output(self.layer_in_y)
       self.cat = cat = Categorical(logits=self.logits)
       self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in self.locs_array for scale in scales_array]
       self.mixture = mixture = Mixture(cat=cat, components=components)
@@ -230,7 +230,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
 
       # tensor to compute probabilities
       if self.data_normalization:
-        self.pdf_ = mixture.prob(self.y_input) / self.std_y_sym
+        self.pdf_ = mixture.prob(self.y_input) / tf.reduce_prod(self.std_y_sym)
       else:
         self.pdf_ = mixture.prob(self.y_input)
 
@@ -258,15 +258,13 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
 
     locs, weights, scales = self.sess.run([self.locs_unnormalized, self.weights, self.scales_unnormalized], feed_dict={self.X_ph: X})
 
-    locs = np.tile(locs.reshape([1] + list(locs.shape)), (X.shape[0], scales.shape[0],1))
-
-    cov = np.concatenate([scales[i,:].reshape((1,1,self.ndim_y)) for i in range(scales.shape[0]) for j in range(self.n_centers)], axis=1)
-    cov = np.tile(cov, (X.shape[0], 1, 1))
+    locs = np.concatenate([np.tile(np.expand_dims(locs[i:i+1], axis=1), (X.shape[0], self.n_scales, 1)) for i in range(self.n_centers)], axis=1)
+    cov = np.tile(np.expand_dims(scales, axis=0), (X.shape[0], self.n_centers, 1))
 
     assert weights.shape[0] == locs.shape[0] == cov.shape[0] == X.shape[0]
     assert weights.shape[1] == locs.shape[1] == cov.shape[1] == self.n_centers*self.n_scales
     assert locs.shape[2] == cov.shape[2] == self.ndim_y
-    assert locs.ndim == 3 and cov.ndim == 3 and weights.ndim == 3
+    assert locs.ndim == 3 and cov.ndim == 3 and weights.ndim == 2
     return weights, locs, cov
 
   def __str__(self):

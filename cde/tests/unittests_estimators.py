@@ -200,7 +200,8 @@ class TestRiskMeasures(unittest.TestCase):
     from tensorflow import set_random_seed
     set_random_seed(22)
 
-    data = np.random.normal([2, 2, 7, -2], 5, size=(5000, 4))
+    scale = 5.0
+    data = np.random.normal(loc=[2, 2, 7, -2], scale=scale, size=(5000, 4))
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
@@ -208,8 +209,9 @@ class TestRiskMeasures(unittest.TestCase):
     model.fit(X, Y)
 
     cov_est = model.covariance(x_cond=np.array([[0, 1]]))
+    print(cov_est)
     self.assertAlmostEqual(cov_est[0][1][0], 0.0, places=1)
-    self.assertLessEqual(cov_est[0][0][0] - 5.0,1.0)
+    self.assertLessEqual(np.abs(np.sqrt(cov_est[0][0][0]) - scale),1.0)
 
   def test_conditional_value_at_risk_mixture(self):
     np.random.seed(24)
@@ -249,9 +251,9 @@ class TestRiskMeasures(unittest.TestCase):
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
-  def get_samples(self, std=1.0):
+  def get_samples(self, mu=2, std=1.0):
     np.random.seed(22)
-    data = np.random.normal([2, 2], std, size=(2000, 2))
+    data = np.random.normal([mu, mu], std, size=(2000, 2))
     X = data[:, 0]
     Y = data[:, 1]
     return X, Y
@@ -282,45 +284,79 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_KMN_with_2d_gaussian(self):
-    X, Y = self.get_samples()
+    mu = -2.0
+    std = 2.0
+    X, Y = self.get_samples(mu=mu, std=std)
 
     for method in ["agglomerative"]:
       with tf.Session() as sess:
-        model = KernelMixtureNetwork("kmn_"+method, 1, 1, center_sampling_method=method, n_centers=100)
+        model = KernelMixtureNetwork("kmn_"+method, 1, 1, center_sampling_method=method, n_centers=20,
+                                     hidden_sizes=(16, 16), init_scales=np.array([0.5]), train_scales=True,
+                                     data_normalization=False)
         model.fit(X, Y)
 
-        y = np.arange(-1, 5, 0.5)
-        x = np.asarray([2 for i in range(y.shape[0])])
+        y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+        x = np.asarray([mu for i in range(y.shape[0])])
         p_est = model.pdf(x, y)
-        p_true = norm.pdf(y, loc=2, scale=1)
+        p_true = norm.pdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
         p_est = model.cdf(x, y)
-        p_true = norm.cdf(y, loc=2, scale=1)
+        p_true = norm.cdf(y, loc=mu, scale=std)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_KMN_with_2d_gaussian_2(self):
+    mu = 200
+    std = 23
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    for method in ["agglomerative"]:
+      with tf.Session() as sess:
+        model = KernelMixtureNetwork("kmn2_" + method, 1, 1, center_sampling_method=method, n_centers=10,
+                                     hidden_sizes=(16, 16), init_scales=np.array([1.0]), train_scales=True,
+                                     data_normalization=True)
+        model.fit(X, Y)
+
+        y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+        x = np.asarray([mu for i in range(y.shape[0])])
+        p_est = model.pdf(x, y)
+        p_true = norm.pdf(y, loc=mu, scale=std)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+        p_est = model.cdf(x, y)
+        p_true = norm.cdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_KMN_with_2d_gaussian_sampling(self):
-    np.random.seed(23)
-    X, Y = self.get_samples()
+    np.random.seed(22)
+    X, Y = self.get_samples(mu=5)
 
-    model = KernelMixtureNetwork("kmn_sampling", 1, 1, n_centers=5)
+    import time
+    t = time.time()
+    model = KernelMixtureNetwork("kmn_sampling", 1, 1, center_sampling_method='k_means', n_centers=5,
+                                 n_training_epochs=200, data_normalization=False)
+    print("time to build model:", time.time() - t)
+    t = time.time()
+
     model.fit(X, Y)
+    print("time to fit model:", time.time() - t)
 
-    x_cond = np.ones(shape=(200000,1))
+    x_cond = 2 * np.ones(shape=(2000000,1))
     _, y_sample = model.sample(x_cond)
-    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=1)
-    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=1)
+    print(np.mean(y_sample), np.std(y_sample))
+    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(x_cond[1])), places=1)
+    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(x_cond[1])), places=1)
 
-    x_cond = np.ones(shape=(200000, 1))
+    x_cond = np.ones(shape=(400000, 1))
     x_cond[0,0] = 5.0
     _, y_sample = model.sample(x_cond)
-    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(y_sample[1])), places=1)
-    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=1)
+    self.assertAlmostEqual(np.mean(y_sample), float(model.mean_(x_cond[1])), places=1)
+    self.assertAlmostEqual(np.std(y_sample), float(model.covariance(x_cond[1])), places=1)
 
   def test_MDN_with_2d_gaussian_sampling(self):
     X, Y = self.get_samples()
 
-    model = MixtureDensityNetwork("mdn_gaussian_sampling", 1, 1, n_centers=5)
+    model = MixtureDensityNetwork("mdn_gaussian_sampling", 1, 1, n_centers=5, n_training_epochs=200)
     model.fit(X, Y)
 
     x_cond = np.ones(shape=(10**6,1))
@@ -329,19 +365,39 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     self.assertAlmostEqual(np.std(y_sample), float(model.covariance(y_sample[1])), places=0)
 
   def test_MDN_with_2d_gaussian(self):
-    X, Y = self.get_samples()
+    mu = 200
+    std = 23
+    X, Y = self.get_samples(mu=mu, std=std)
 
-    model = MixtureDensityNetwork("mdn", 1, 1, n_centers=5)
+    model = MixtureDensityNetwork("mdn", 1, 1, n_centers=10, data_normalization=True)
     model.fit(X, Y)
 
-    y = np.arange(-1, 5, 0.5)
-    x = np.asarray([2 for i in range(y.shape[0])])
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=2, scale=1)
+    p_true = norm.pdf(y, loc=mu, scale=std)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
     p_est = model.cdf(x, y)
-    p_true = norm.cdf(y, loc=2, scale=1)
+    p_true = norm.cdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_MDN_with_2d_gaussian2(self):
+    mu = -5
+    std = 2.5
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    model = MixtureDensityNetwork("mdn2", 1, 1, n_centers=5, weight_normalization=True)
+    model.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = model.cdf(x, y)
+    p_true = norm.cdf(y, loc=mu, scale=std)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_CDE_with_2d_gaussian(self):
@@ -372,7 +428,7 @@ class TestSerializationDensityEstimators(unittest.TestCase):
   def testPickleUnpickleMDN(self):
     X, Y = self.get_samples()
     with tf.Session() as sess:
-      model = MixtureDensityNetwork("mdn_pickle", 2, 2, n_training_epochs=10)
+      model = MixtureDensityNetwork("mdn_pickle", 2, 2, n_training_epochs=10, data_normalization=True,  weight_normalization=False)
       model.fit(X, Y)
       pdf_before = model.pdf(X, Y)
 
@@ -389,7 +445,7 @@ class TestSerializationDensityEstimators(unittest.TestCase):
   def testPickleUnpickleKDN(self):
     X, Y = self.get_samples()
     with tf.Session() as sess:
-      model = KernelMixtureNetwork("kde", 2, 2, n_centers=10, n_training_epochs=10)
+      model = KernelMixtureNetwork("kde", 2, 2, n_centers=10, n_training_epochs=10, data_normalization=True,  weight_normalization=True)
       model.fit(X, Y)
       pdf_before = model.pdf(X, Y)
 
@@ -573,25 +629,27 @@ class TestRegularization(unittest.TestCase):
 
       cond_cov = np.mean(model.covariance(Y), axis=0)
       print(cond_cov)
-      self.assertGreaterEqual(cond_cov[0][0], std * 0.7)
-      self.assertLessEqual(cond_cov[0][0], std * 1.3)
-      self.assertGreaterEqual(cond_cov[1][1], std * 0.7)
-      self.assertLessEqual(cond_cov[1][1], std * 1.3)
+      self.assertGreaterEqual(cond_cov[0][0], std**2 * 0.7)
+      self.assertLessEqual(cond_cov[0][0], std**2 * 1.3)
+      self.assertGreaterEqual(cond_cov[1][1], std**2 * 0.7)
+      self.assertLessEqual(cond_cov[1][1], std**2 * 1.3)
 
   def test9_data_normalization(self):
     np.random.seed(24)
-    mean = -700
-    std = 80
-    data = np.random.normal([mean, mean, mean, mean], std, size=(2000, 4))
+    mean = -80
+    std = 7
+    data = np.random.normal([mean, mean, mean, mean], std, size=(4000, 4))
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
     with tf.Session() as sess:
       model = KernelMixtureNetwork("kmn_data_normalization_2", 2, 2, n_centers=5, x_noise_std=None, y_noise_std=None,
-                                    data_normalization=True, n_training_epochs=500, random_seed=22, keep_edges=False, train_scales=True, weight_normalization=True)
+                                    data_normalization=True, n_training_epochs=2000, random_seed=22, keep_edges=False,
+                                   train_scales=True, weight_normalization=True, init_scales=np.array([1.0]))
+
       model.fit(X, Y)
-      y_mean, y_std = sess.run([model.mean_y_sym, model.std_y_sym])
-      print(y_mean, y_std)
+      # y_mean, y_std = sess.run([model.mean_y_sym, model.std_y_sym])
+      # print(y_mean, y_std)
       cond_mean = model.mean_(Y)
       print(np.mean(cond_mean))
       mean_diff = np.abs(mean - np.mean(cond_mean))
@@ -599,10 +657,10 @@ class TestRegularization(unittest.TestCase):
 
       cond_cov = np.mean(model.covariance(Y), axis=0)
       print(cond_cov)
-      self.assertGreaterEqual(cond_cov[0][0], std * 0.7)
-      self.assertLessEqual(cond_cov[0][0], std * 1.3)
-      self.assertGreaterEqual(cond_cov[1][1], std * 0.7)
-      self.assertLessEqual(cond_cov[1][1], std * 1.3)
+      self.assertGreaterEqual(cond_cov[0][0], std**2 * 0.7)
+      self.assertLessEqual(cond_cov[0][0], std**2 * 1.3)
+      self.assertGreaterEqual(cond_cov[1][1], std**2 * 0.7)
+      self.assertLessEqual(cond_cov[1][1], std**2 * 1.3)
 
 
 #

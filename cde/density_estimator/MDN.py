@@ -74,7 +74,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self._build_model()
 
     # initialize LayersPowered --> provides functions for serializing tf models
-    LayersPowered.__init__(self, [self.softmax_layer_weights, self.softplus_layer_scales, self.reshape_layer_locs])
+    LayersPowered.__init__(self, [self.softmax_layer_weights, self.softplus_layer_scales, self.reshape_layer_locs, self.layer_in_y])
 
   def fit(self, X, Y, random_seed=None, verbose=True, eval_set=None, **kwargs):
     """ Fits the conditional density model with provided data
@@ -145,13 +145,12 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     """
 
     with tf.variable_scope(self.name):
-      layer_in_x, layer_in_y = self._build_input_layers()  # add playeholders, data_normalization and data_noise if desired
-
+      self.layer_in_x, self.layer_in_y = self._build_input_layers()  # add playeholders, data_normalization and data_noise if desired
       # create core multi-layer perceptron
       mlp_output_dim = 2 * self.ndim_y * self.n_centers + self.n_centers
       core_network = MLP(
               name="core_network",
-              input_layer=layer_in_x,
+              input_layer=self.layer_in_x,
               output_dim=mlp_output_dim,
               hidden_sizes=self.hidden_sizes,
               hidden_nonlinearity=self.hidden_nonlinearity,
@@ -181,7 +180,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       self.weights = L.get_output(self.softmax_layer_weights)
 
       # # put mixture components together
-      self.y_input = L.get_output(layer_in_y)
+      self.y_input = L.get_output(self.layer_in_y)
       self.cat = cat = Categorical(logits=self.logits)
       self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc, scale
                      in zip(tf.unstack(self.locs, axis=1), tf.unstack( self.scales, axis=1))]
@@ -198,7 +197,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
       # tensor to compute probabilities
       if self.data_normalization:
-        self.pdf_ = mixture.prob(self.y_input) / self.std_y_sym
+        self.pdf_ = mixture.prob(self.y_input) / tf.reduce_prod(self.std_y_sym)
       else:
         self.pdf_ = mixture.prob(self.y_input)
 
@@ -221,4 +220,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
   def _get_mixture_components(self, X):
     assert self.fitted
     weights, locs, scales = self.sess.run([self.weights, self.locs_unnormalized, self.scales_unnormalized], feed_dict={self.X_ph: X})
+    assert weights.shape[0] == locs.shape[0] == scales.shape[0] == X.shape[0]
+    assert weights.shape[1] == locs.shape[1] == scales.shape[1] == self.n_centers
+    assert locs.shape[2] == scales.shape[2] == self.ndim_y
+    assert locs.ndim == 3 and scales.ndim == 3 and weights.ndim == 2
     return weights, locs, scales

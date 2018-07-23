@@ -50,7 +50,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     weights, locs, scales = self._get_mixture_components(x_cond)
 
     for i in range(x_cond.shape[0]):
-      c1 = np.diag(weights[i].dot(scales[i]))
+      c1 = np.diag(weights[i].dot(scales[i]**2))
 
       c2 = np.zeros(c1.shape)
       for j in range(weights.shape[1]):
