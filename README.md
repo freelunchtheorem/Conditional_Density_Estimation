@@ -5,7 +5,7 @@
 - dumping individual single result pickles --> done
 - running each task in a separate OS process --> done
 - entropy regularization -> done
-- data normalization
+- data normalization --> done
 - setup docker + launch script
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 - fix GMM seed problem (GMM simulator is not reproducable)
