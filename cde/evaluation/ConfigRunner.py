@@ -100,6 +100,7 @@ class ConfigRunner():
 
     else: # start from scratch
       self.gof_single_res_collection = {}
+
     self.gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
 
 
@@ -217,6 +218,10 @@ class ConfigRunner():
           task_hash, gof_single_result = task_result
           self.gof_single_res_collection[task_hash] = gof_single_result
 
+      # todo: append results within _run_single_task once ml-logger supports appending by removing the following two lines
+      logger.log_data(RESULTS_FILE, data=self.gof_single_res_collection)
+      logger.flush(RESULTS_FILE)
+
     #TODO add csv logging
     #self._dump_current_state(task, gof_single_result)
 
@@ -277,14 +282,16 @@ class ConfigRunner():
 
           gof_results.hash = task_hash
 
-        logger.log_data(RESULTS_FILE, (task_hash, gof_results))
+        # todo: uncomment once iteratively appending is supported by ml-logger
+        #logger.log_data(RESULTS_FILE, (task_hash, gof_results))
+        #logger.flush(RESULTS_FILE)
 
         task_duration = time.time() - start_time
         logger.log_text(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
 
-        return gof_results, task_hash
+        return task_hash, gof_results
 
     except Exception as e:
       logger.log_text("error in task: ", str(i + 1))
