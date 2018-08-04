@@ -3,14 +3,15 @@ import numpy as np
 import glob
 from cde.evaluation.ConfigRunner import ConfigRunner
 
+EXP_PREFIX = 'question2_noise_reg_y_econ_mdn_1'
 
 def question2(): #noise
   estimator_params = {
   'MixtureDensityNetwork':
     {
       'n_centers': [10, 20],
-      'estimator': [None],
-      'X_ph': [None],
+      #'estimator': [None],
+      #'X_ph': [None],
       'n_training_epochs': [2000],
       'x_noise_std': [None],
       'y_noise_std': [0.01, 0.05, 0.1, None],
@@ -59,10 +60,10 @@ if __name__ == '__main__':
     observations = 100 * np.logspace(0, 5, num=6, base=2.0, dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600, 3200
 
     conf_est, conf_sim = question2()
-    conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
+    conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
+                               n_mc_samples=2 * 10 ** 4, n_x_cond=5, n_seeds=5)  # TODO set back n_mc_samples to 2*10**6
 
-    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question2_noise_reg")
+    results_list, full_df = conf_runner.run_configurations(dump_models=True)
 
   if load:
 

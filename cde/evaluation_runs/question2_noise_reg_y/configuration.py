@@ -4,8 +4,9 @@ import glob
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 
+EXP_PREFIX = 'question2_noise_reg_y'
 
-def question1(): #noise
+def question2(): #noise
   estimator_params = {
   'KernelMixtureNetwork':
 
@@ -85,11 +86,11 @@ if __name__ == '__main__':
       observations = 100 * np.logspace(0, 4, num=5, base=2.0,
                                        dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600
 
-      conf_est, conf_sim = question1()
-      conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
+      conf_est, conf_sim = question2()
+      conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
+                                 n_mc_samples=2 * 10 ** 4, n_x_cond=5, n_seeds=5)  # TODO set back n_mc_samples to 2*10**6
 
-      results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question1_noise_reg_y", dump_models=True)
+      results_list, full_df = conf_runner.run_configurations(dump_models=True)
 
   if load:
     with open(results_pickle, 'rb') as pickle_file:

@@ -5,6 +5,8 @@ import glob
 from cde.evaluation.ConfigRunner import ConfigRunner
 from collections import OrderedDict
 
+EXP_PREFIX = 'question3_NNvs_KDE'
+
 def question3():
   estimator_params = {
 
