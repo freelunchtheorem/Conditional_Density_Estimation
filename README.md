@@ -1,15 +1,18 @@
 # Nonparametric_Density_Estimation
 
-## to-do's:
+## finished to-do's:
 - change logging and data dumping to ml_logger --> done
 - dumping individual single result pickles --> done
 - running each task in a separate OS process --> done
 - entropy regularization -> done
 - data normalization --> done
-- setup docker + launch script
+- write ConfigRunner unittest --> done
+- generate nice plots each run and log them as well -> done
+
+## to-do's:
+- setup docker (done) + launch script (not done)
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 - fix GMM seed problem (GMM simulator is not reproducable)
-- generate nice plots each run and log them as well
 - put sampling of datapints back in run_single_task in order to avoid large memory footprint
 - fix problems with tail risks est - sometimes takes extremely long
 
