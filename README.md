@@ -12,6 +12,7 @@
 ## to-do's:
 - setup docker (done) + launch script (not done)
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
+- two helpers.py existing (cde/density_simulation + cde/), merge into one
 - fix GMM seed problem (GMM simulator is not reproducable)
 - put sampling of datapints back in run_single_task in order to avoid large memory footprint
 - fix problems with tail risks est - sometimes takes extremely long
