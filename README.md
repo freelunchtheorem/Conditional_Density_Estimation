@@ -6,7 +6,7 @@
 - running each task in a separate OS process --> done
 - entropy regularization -> done
 - data normalization --> done
-- write ConfigRunner unittest --> done
+- write ConfigRunner unittest to test entire I/O pipeline --> done
 - generate nice plots each run and log them as well -> done
 
 ## to-do's:
