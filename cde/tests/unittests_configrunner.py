@@ -11,8 +11,6 @@ import shutil
 import tensorflow as tf
 
 
-
-PLOT_COND_DISTR = True
 NUM_CONFIGS_TO_TEST = 2
 
 EXP_PREFIX = 'test_io_question1_noise_reg_x'
@@ -57,14 +55,15 @@ class configrunner(unittest.TestCase):
     for conf in conf_runner.configs:
       self.assertTrue(conf['task_name'] in model_dumps_list_no_suffix)
 
+
     """ check if model dumps can be used successfully"""
     for model_dump_i in model_dumps_list:
       #tf.reset_default_graph()
       with tf.Session(graph=tf.Graph()) as sess:
         model = logger.load_pkl(f"model_dumps/"+model_dump_i)
         self.assertTrue(model)
-        if model.ndim_x == 1 and model.ndim_y == 1 and PLOT_COND_DISTR:
-          model.plot3d()
+        if model.ndim_x == 1 and model.ndim_y == 1:
+          self.assertTrue(model.plot3d(show=False))
 
 
 

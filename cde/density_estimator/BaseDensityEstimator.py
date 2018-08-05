@@ -1,5 +1,6 @@
 from sklearn.model_selection import GridSearchCV
 import warnings
+import matplotlib as mpl
 from scipy.stats import multivariate_normal, norm
 #matplotlib.use("PS") #handles X11 server detection (required to run on console)
 import matplotlib.pyplot as plt
@@ -220,7 +221,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return param_dict
 
-  def plot3d(self, xlim=(0, 3.5), ylim=(0, 8), resolution=50):
+  def plot3d(self, xlim=(0, 3.5), ylim=(-8, 8), resolution=50, show=False):
     """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
 
     Args:
@@ -230,6 +231,10 @@ class BaseDensityEstimator(ConditionalDensity):
     """
     assert self.fitted, "model must be fitted to plot"
     assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+
+    if show == False and mpl.is_interactive():
+      plt.ioff()
+      mpl.use('Agg')
 
     # prepare mesh
     linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
@@ -248,7 +253,10 @@ class BaseDensityEstimator(ConditionalDensity):
                            linewidth=100, antialiased=True)
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.show()
+    if show:
+      plt.show()
+
+    return fig
 
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):

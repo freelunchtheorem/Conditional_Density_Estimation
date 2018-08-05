@@ -282,6 +282,14 @@ class ConfigRunner():
 
           gof_results.hash = task_hash
 
+          if gof.estimator.ndim_x == 1 and gof.estimator.ndim_y == 1:
+            plt2d = gof.estimator.plot2d(show=False)
+            plt3d = gof.estimator.plot3d(show=False)
+            gof_results.fitted_plot2d = plt2d
+            gof_results.fitted_plot3d = plt3d
+            logger.log_pyplot(key=task['task_name']+"_fitted_cond_distr_2d", fig=plt2d)
+            logger.log_pyplot(key=task['task_name']+"_fitted_cond_distr_3d", fig=plt3d)
+
         # todo: uncomment once iteratively appending is supported by ml-logger
         #logger.log_data(RESULTS_FILE, (task_hash, gof_results))
         #logger.flush(RESULTS_FILE)
@@ -290,6 +298,8 @@ class ConfigRunner():
         logger.log_text(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
+
+
 
         return task_hash, gof_results
 
