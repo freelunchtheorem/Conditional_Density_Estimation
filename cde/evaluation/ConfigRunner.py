@@ -12,12 +12,11 @@ from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpD
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
+from ml_logger import logger
 import hashlib
 import base64
-import pickle
 import tensorflow as tf
 import os
-from ml_logger import logger
 import config
 import concurrent.futures
 import time
@@ -219,8 +218,8 @@ class ConfigRunner():
           self.gof_single_res_collection[task_hash] = gof_single_result
 
       # todo: append results within _run_single_task once ml-logger supports appending by removing the following two lines
-      logger.log_data(RESULTS_FILE, data=self.gof_single_res_collection)
-      logger.flush(RESULTS_FILE)
+      #logger.log_data(RESULTS_FILE, data=self.gof_single_res_collection)
+      #logger.flush(RESULTS_FILE)
 
     #TODO add csv logging
     #self._dump_current_state(task, gof_single_result)
@@ -262,11 +261,11 @@ class ConfigRunner():
 
           ''' train the model '''
           gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
-                              n_observations=task['n_obs'],
-                              n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'])
+                              n_observations=task['n_obs'], n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'],
+                              task_name = task['task_name'])
 
           t = time.time()
-          gof.fit_estimator(print_fit_result=False)
+          gof.fit_estimator(print_fit_result=True)
           time_to_fit = time.time() - t
 
           if self.dump_models:
@@ -282,24 +281,12 @@ class ConfigRunner():
 
           gof_results.hash = task_hash
 
-          if gof.estimator.ndim_x == 1 and gof.estimator.ndim_y == 1:
-            plt2d = gof.estimator.plot2d(show=False)
-            plt3d = gof.estimator.plot3d(show=False)
-            gof_results.fitted_plot2d = plt2d
-            gof_results.fitted_plot3d = plt3d
-            logger.log_pyplot(key=task['task_name']+"_fitted_cond_distr_2d", fig=plt2d)
-            logger.log_pyplot(key=task['task_name']+"_fitted_cond_distr_3d", fig=plt3d)
-
-        # todo: uncomment once iteratively appending is supported by ml-logger
-        #logger.log_data(RESULTS_FILE, (task_hash, gof_results))
-        #logger.flush(RESULTS_FILE)
+        logger.log_data(data=(task_hash, gof_results), path=RESULTS_FILE)
 
         task_duration = time.time() - start_time
         logger.log_text(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
-
-
 
         return task_hash, gof_results
 

@@ -1,8 +1,11 @@
+import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 from cde import ConditionalDensity
+
+
 
 class BaseConditionalDensitySimulation(ConditionalDensity):
 
@@ -54,7 +57,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     """
     raise NotImplementedError
 
-  def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100, mode="pdf"):
+  def plot(self, xlim=(-5, 5), ylim=(-5, 5), resolution=100, mode="pdf", show=False):
     """ Plots the distribution specified in mode if x and y are 1-dimensional each
 
     Args:
@@ -67,6 +70,10 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     modes = ["pdf", "cdf", "joint_pdf"]
     assert mode in modes, "mode must be on of the following: " + modes
     assert self.ndim == 2, "Can only plot two dimensional distributions"
+
+    if show == False and mpl.is_interactive():
+      plt.ioff()
+
 
     # prepare mesh
     linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
@@ -90,7 +97,10 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
                            linewidth=100, antialiased=True)
     plt.xlabel("x")
     plt.ylabel("y")
-    plt.show()
+    if show:
+      plt.show()
+
+    return fig
 
   def mean_(self, x_cond, n_samples=10**7):
     """ Mean of the fitted distribution conditioned on x_cond

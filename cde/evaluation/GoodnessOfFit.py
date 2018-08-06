@@ -1,9 +1,8 @@
 import time
 import numpy as np
 import scipy
-import warnings
 import logging
-import pickle
+from ml_logger import logger
 
 
 
@@ -25,9 +24,12 @@ class GoodnessOfFit:
                     If the estimator is already fitted, this parameter is ignored
     n_x_cond: number of different x to condition on - e.g. if n_x_cond=20, p(y|x) is evaluated for 20 different x
     seed: random seed to draw samples from the probabilistic model
+    task_name: specifies a unique name fo the GoodnessOfFit run, e.g. KernelMixtureNetwork_task_19. If task_name was not set during call,
+    the name was specified in the estimator object (estimator.name) is used. If it was not specified there either, it is set to
+     estimator and prob_model name.
 
   """
-  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, seed=24):
+  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, seed=24, task_name=None):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
@@ -48,9 +50,20 @@ class GoodnessOfFit:
     self.Y = Y
     self.n_observations = n_observations
 
+    self.plot_fitted_cond_distr_3d = None
+    self.plot_fitted_cond_distr_2d = None
+    self.plot_true_cond_distr_3d = None
+
+    if task_name is not None:
+      self.task_name = task_name
+    elif hasattr(self.estimator, 'name'):
+      self.task_name = str(self.estimator.name)
+    else:
+      self.task_name = type(self.estimator).__name__ + '_' + type(self.probabilistic_model).__name__
+
     self.estimator = estimator
 
-  def fit_estimator(self, print_fit_result=False):
+  def fit_estimator(self, print_fit_result=True): #todo set to False
     """
     Fits the estimator with the provided data
 
@@ -61,12 +74,22 @@ class GoodnessOfFit:
     self.time_to_fit = None
     if not self.estimator.fitted:  # fit estimator if necessary
       t_start = time.time()
-      self.estimator.fit(self.X, self.Y, verbose=False)
+      self.estimator.fit(self.X, self.Y)
       self.time_to_fit = (time.time() - t_start) * self.n_observations / 1000  # time to fit per 1000 samples
 
-    if print_fit_result: #TODO handle storing plots via the logger --> use logger.log_pyplot()
-      self.probabilistic_model.plot(mode="pdf")
-      self.estimator.plot()
+    if print_fit_result and self.estimator.fitted:
+      if self.probabilistic_model.ndim_x == 1 and self.probabilistic_model.ndim_y == 1:
+        plt3d_true = self.probabilistic_model.plot(mode="pdf")
+        self.plot_true_cond_distr_3d = plt3d_true
+        logger.log_pyplot(key=self.task_name, fig=plt3d_true)
+
+      if self.estimator.ndim_x == 1 and self.estimator.ndim_y == 1:
+        plt2d = self.estimator.plot2d(show=False)
+        plt3d = self.estimator.plot3d(show=False)
+        self.plot_fitted_cond_distr_2d = plt2d
+        self.plot_fitted_cond_distr_3d = plt3d
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=plt2d)
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=plt3d)
 
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
@@ -321,10 +344,12 @@ class GoodnessOfFit:
 
     gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_configuration(), self.probabilistic_model.get_configuration())
 
+    gof_result.plot_fitted_cond_distr_3d = self.plot_fitted_cond_distr_3d
+    gof_result.plot_fitted_cond_distr_2d = self.plot_fitted_cond_distr_2d
+    gof_result.plot_true_cond_distr_3d = self.plot_true_cond_distr_3d
+
     if self.n_mc_samples < 10**5:
       logging.warning("using less than 10**5 samples for monte carlo not recommended")
-      #warnings.showwarning("using less than 10**5 samples for monte carlo not recommended")
-      #warnings.warn()
 
     # Divergence Measures
     gof_result.hellinger_distance_, gof_result.kl_divergence_, gof_result.js_divergence_ = self.divergence_measures_pdf(n_samples=self.n_mc_samples)
