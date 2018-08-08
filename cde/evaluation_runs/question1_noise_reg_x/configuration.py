@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 import glob
 import os
 
@@ -10,6 +11,7 @@ from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger
 
 EXP_PREFIX = 'question1_noise_reg_x'
+RESULTS_FILE = 'results.pkl'
 
 def question1(): #noise
   estimator_params = {
@@ -80,23 +82,28 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
 
-      results_list, full_df = conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=8)
+      conf_runner.configs = conf_runner.configs[:2]
+      conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=8)
 
-  # if load:
-  #   with open(results_pickle, 'rb') as pickle_file:
-  #     gof_result = pickle.load(pickle_file)
-  #     results_df = gof_result.generate_results_dataframe(keys_of_interest)
-  #
-  #
-  #     graph_dicts = [
-  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 20},
-  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 20},
-  #       {"estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
-  #       {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 10},
-  #       { "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 10},
-  #       {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
-  #     ]
-  #
-  #     gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
-  #     print(gof_result)
+
+
+
+
+  if load:
+    results_from_pkl_file = dict(logger.load_pkl(RESULTS_FILE))
+    gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
+    results_df = gof_result.generate_results_dataframe(keys_of_interest)
+
+
+    graph_dicts = [
+      {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 20},
+      {"estimator": "KernelMixtureNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 20},
+      {"estimator": "KernelMixtureNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 20},
+      {"estimator": "MixtureDensityNetwork", "x_noise_std": 0.1, "y_noise_std": None, "n_centers": 10},
+      { "estimator": "MixtureDensityNetwork", "x_noise_std": 0.01, "y_noise_std": None, "n_centers": 10},
+      {"estimator": "MixtureDensityNetwork", "x_noise_std": None, "y_noise_std": None, "n_centers": 10}
+    ]
+
+    gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
+    print(gof_result)
 

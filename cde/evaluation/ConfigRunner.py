@@ -95,7 +95,7 @@ class ConfigRunner():
     results_pkl_path = os.path.join(logger.log_directory, logger.prefix, RESULTS_FILE)
     if os.path.isfile(results_pkl_path):
       logger.log_text("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
-      self.gof_single_res_collection = dict({logger.load_pkl(RESULTS_FILE)})
+      self.gof_single_res_collection = dict(logger.load_pkl(RESULTS_FILE))
 
     else: # start from scratch
       self.gof_single_res_collection = {}
@@ -203,27 +203,15 @@ class ConfigRunner():
     tasks = self.configs[:limit]
     iters = range(len(tasks))
 
-
     if multiprocessing:
       with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
-        for i, task_result in zip(iters, executor.map(self._run_single_task, iters, tasks)):
-          if task_result and type(task_result) is tuple:
-            task_hash, gof_single_result = task_result
-            self.gof_single_res_collection[task_hash] = gof_single_result
+        for _, _ in zip(iters, executor.map(self._run_single_task, iters, tasks)):
+          pass
+
     else:
       for i, task in zip(iters, tasks):
-        task_result = self._run_single_task(i, task)
-        if task_result and type(task_result) is tuple:
-          task_hash, gof_single_result = task_result
-          self.gof_single_res_collection[task_hash] = gof_single_result
+        self._run_single_task(i, task)
 
-    #TODO add csv logging
-    #self._dump_current_state(task, gof_single_result)
-
-    gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
-    full_df = gof_results.generate_results_dataframe(keys_of_interest=self.keys_of_interest)
-
-    return self.gof_single_res_collection, full_df
 
   def _run_single_task(self, i, task):
     start_time = time.time()
@@ -291,13 +279,13 @@ class ConfigRunner():
       logger.log_text(str(e))
       traceback.print_exc()
 
-  def _dump_current_state(self, task, gof_single_result):
-    if self.export_csv:
-      self._export_results(task=task, gof_result=gof_single_result, file_handle_results=self.file_handle_results_csv)
-    if self.export_pickle:
-      with open(self.results_pickle_path, "wb") as f:
-        intermediate_gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
-        io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
+  def _dump_current_state(self):
+    #if self.export_csv:
+    #  self._export_results(task=task, gof_result=gof_single_result, file_handle_results=self.file_handle_results_csv)
+    #if self.export_pickle:
+    with open(self.results_pickle_path, "wb") as f:
+      intermediate_gof_results = GoodnessOfFitResults(single_results_dict=self.gof_single_res_collection)
+      io.dump_as_pickle(f, intermediate_gof_results, verbose=False)
 
 
   def _get_results_dataframe(self, results):
