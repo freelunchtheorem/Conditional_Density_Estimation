@@ -72,6 +72,8 @@ docker tag tensorflow/tensorflow ferreirafabio/nde:tf-cpu
 docker push ferreirafabio/nde:tf-cpu
 
 # bwUniCluster commands
+see http://www.bwhpc-c5.de/wiki/index.php/Batch_Jobs for more info
+
 ### job shell script:
 
 ````
