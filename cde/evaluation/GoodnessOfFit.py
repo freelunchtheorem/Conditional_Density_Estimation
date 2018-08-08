@@ -76,13 +76,13 @@ class GoodnessOfFit:
 
     if print_fit_result and self.estimator.fitted:
       if self.probabilistic_model.ndim_x == 1 and self.probabilistic_model.ndim_y == 1:
-        plt3d_true = self.probabilistic_model.plot(mode="pdf")
+        plt3d_true, _ = self.probabilistic_model.plot(mode="pdf", numpyfig=False)
         logger.log_pyplot(key=self.task_name, fig=plt3d_true)
         plt.close(plt3d_true)
 
       if self.estimator.ndim_x == 1 and self.estimator.ndim_y == 1:
-        plt2d = self.estimator.plot2d(show=False)
-        plt3d = self.estimator.plot3d(show=False)
+        plt2d = self.estimator.plot2d(show=False, numpyfig=False)
+        plt3d = self.estimator.plot3d(show=False, numpyfig=False)
         logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=plt2d)
         logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=plt3d)
         plt.close(plt2d)

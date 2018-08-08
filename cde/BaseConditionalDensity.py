@@ -268,14 +268,12 @@ class ConditionalDensity(BaseEstimator):
     if show:
       plt.show()
 
-    numpy_img = None
-
     if numpyfig:
       fig.tight_layout(pad=0)
       fig.canvas.draw()
       numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
       numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+      return numpy_img
 
-
-    return fig, numpy_img
+    return fig
 

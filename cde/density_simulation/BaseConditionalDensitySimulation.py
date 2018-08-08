@@ -100,15 +100,14 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     if show:
       plt.show()
 
-    numpy_img = None
-
     if numpyfig:
       fig.tight_layout(pad=0)
       fig.canvas.draw()
       numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
       numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+      return numpy_img
 
-    return fig, numpy_img
+    return fig
 
   def mean_(self, x_cond, n_samples=10**7):
     """ Mean of the fitted distribution conditioned on x_cond
