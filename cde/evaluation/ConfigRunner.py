@@ -217,10 +217,6 @@ class ConfigRunner():
           task_hash, gof_single_result = task_result
           self.gof_single_res_collection[task_hash] = gof_single_result
 
-      # todo: append results within _run_single_task once ml-logger supports appending by removing the following two lines
-      #logger.log_data(RESULTS_FILE, data=self.gof_single_res_collection)
-      #logger.flush(RESULTS_FILE)
-
     #TODO add csv logging
     #self._dump_current_state(task, gof_single_result)
 

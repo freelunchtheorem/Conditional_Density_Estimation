@@ -228,7 +228,7 @@ class ConditionalDensity(BaseEstimator):
     else:
       return X, Y
 
-  def plot2d(self, x_cond=[0, 1, 2], ylim=(-8, 8), resolution=50, mode='pdf', show=True, prefix=''):
+  def plot2d(self, x_cond=[0, 1, 2], ylim=(-8, 8), resolution=50, mode='pdf', show=True, prefix='', numpyfig=False):
     """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
 
         Args:
@@ -268,4 +268,14 @@ class ConditionalDensity(BaseEstimator):
     if show:
       plt.show()
 
-    return fig
+    numpy_img = None
+
+    if numpyfig:
+      fig.tight_layout(pad=0)
+      fig.canvas.draw()
+      numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+      numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+
+    return fig, numpy_img
+

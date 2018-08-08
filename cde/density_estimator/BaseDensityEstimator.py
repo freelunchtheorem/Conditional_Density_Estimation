@@ -221,7 +221,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return param_dict
 
-  def plot3d(self, xlim=(0, 3.5), ylim=(-8, 8), resolution=50, show=False):
+  def plot3d(self, xlim=(0, 3.5), ylim=(-8, 8), resolution=50, show=False, numpyfig=False):
     """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
 
     Args:
@@ -256,7 +256,17 @@ class BaseDensityEstimator(ConditionalDensity):
     if show:
       plt.show()
 
-    return fig
+    numpy_img = None
+
+    if numpyfig:
+      fig.tight_layout(pad=0)
+      fig.canvas.draw()
+      numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+      numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    return fig, numpy_img
+
+
 
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):

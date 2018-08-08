@@ -2,6 +2,7 @@ import time
 import numpy as np
 import scipy
 import logging
+import matplotlib.pyplot as plt
 from ml_logger import logger
 
 
@@ -50,10 +51,6 @@ class GoodnessOfFit:
     self.Y = Y
     self.n_observations = n_observations
 
-    self.plot_fitted_cond_distr_3d = None
-    self.plot_fitted_cond_distr_2d = None
-    self.plot_true_cond_distr_3d = None
-
     if task_name is not None:
       self.task_name = task_name
     elif hasattr(self.estimator, 'name'):
@@ -80,23 +77,16 @@ class GoodnessOfFit:
     if print_fit_result and self.estimator.fitted:
       if self.probabilistic_model.ndim_x == 1 and self.probabilistic_model.ndim_y == 1:
         plt3d_true = self.probabilistic_model.plot(mode="pdf")
-        self.plot_true_cond_distr_3d = plt3d_true
-        logger.log_pyplot(key=self.task_name, fig=self.plot_true_cond_distr_3d)
-        plt3d_true.clf()
-        self.plot_true_cond_distr_3d.clf()
+        logger.log_pyplot(key=self.task_name, fig=plt3d_true)
+        plt.close(plt3d_true)
 
       if self.estimator.ndim_x == 1 and self.estimator.ndim_y == 1:
         plt2d = self.estimator.plot2d(show=False)
         plt3d = self.estimator.plot3d(show=False)
-        self.plot_fitted_cond_distr_2d = plt2d
-        self.plot_fitted_cond_distr_3d = plt3d
-        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=self.plot_fitted_cond_distr_2d)
-        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=self.plot_fitted_cond_distr_3d)
-        self.plot_fitted_cond_distr_3d.clf()
-        self.plot_fitted_cond_distr_2d.clf()
-        plt2d.clf()
-        plt3d.clf()
-
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=plt2d)
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=plt3d)
+        plt.close(plt2d)
+        plt.close(plt3d)
 
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
@@ -350,10 +340,6 @@ class GoodnessOfFit:
     assert self.probabilistic_model is not None
 
     gof_result = GoodnessOfFitSingleResult(self.x_cond, self.estimator.get_configuration(), self.probabilistic_model.get_configuration())
-
-    gof_result.plot_fitted_cond_distr_3d = self.plot_fitted_cond_distr_3d
-    gof_result.plot_fitted_cond_distr_2d = self.plot_fitted_cond_distr_2d
-    gof_result.plot_true_cond_distr_3d = self.plot_true_cond_distr_3d
 
     if self.n_mc_samples < 10**5:
       logging.warning("using less than 10**5 samples for monte carlo not recommended")
