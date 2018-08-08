@@ -88,8 +88,13 @@ class GoodnessOfFit:
         plt3d = self.estimator.plot3d(show=False)
         self.plot_fitted_cond_distr_2d = plt2d
         self.plot_fitted_cond_distr_3d = plt3d
-        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=plt2d)
-        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=plt3d)
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_2d", fig=self.plot_fitted_cond_distr_2d)
+        logger.log_pyplot(key=self.task_name + "_fitted_cond_distr_3d", fig=self.plot_fitted_cond_distr_3d)
+        self.plot_fitted_cond_distr_3d.clf()
+        self.plot_fitted_cond_distr_2d.clf()
+        plt2d.clf()
+        plt3d.clf()
+
 
   def kolmogorov_smirnov_cdf(self, x_cond, n_samples=10**6):
     """ Calculates Kolmogorov-Smirnov Statistics
