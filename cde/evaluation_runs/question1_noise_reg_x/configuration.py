@@ -3,6 +3,9 @@ import numpy as np
 import glob
 import os
 
+import matplotlib as mpl
+mpl.use("PS") #handles X11 server detection (required to run on console)
+
 from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger
 
@@ -96,3 +99,4 @@ if __name__ == '__main__':
   #
   #     gof_result.plot_metric(graph_dicts, metric="kl_divergence", simulator="EconDensity")
   #     print(gof_result)
+

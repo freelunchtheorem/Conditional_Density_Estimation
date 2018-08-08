@@ -2,7 +2,7 @@ from sklearn.model_selection import GridSearchCV
 import warnings
 import matplotlib as mpl
 from scipy.stats import multivariate_normal, norm
-#matplotlib.use("PS") #handles X11 server detection (required to run on console)
+#mpl.use("PS") #handles X11 server detection (required to run on console)
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
