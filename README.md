@@ -71,6 +71,42 @@ docker commit CONTAINER_ID tensorflow/tensorflow
 docker tag tensorflow/tensorflow ferreirafabio/nde:tf-cpu
 docker push ferreirafabio/nde:tf-cpu
 
+# bwUniCluster commands
+### job shell script:
+
+````
+#!/bin/bash
+#MSUB -l naccesspolicy=singlejob
+#MSUB -l nodes=1:ppn=1
+#MSUB -l walltime=48:00:00
+#MSUB -l pmem=1000000mb
+#MSUB -N config1
+#MSUB -v PATH="$HOME/python3.6/bin:$PATH"
+#MSUB -v PYTHONPATH="$HOME/python3.6:$PYTHONPATH"
+#MSUB -v PYTHONPATH="/home/kit/fbv/gd5482/Nonparametric_Density_Estimation:$PYTHONPATH"
+
+python /home/kit/fbv/gd5482/Nonparametric_Density_Estimation/cde/evaluation_runs/question1_noise_reg_x/configuration.py
+````
+
+### enqueue job in MOAB
+```
+msub -q fat job.sh
+```
+### check job status
+```
+showq -u $USER
+```
+
+### cancel job
+```
+canceljob <ID>
+```
+
+### use interactive mode for 'debugging'
+```
+msub  -I  -V  -l naccesspolicy=singlejob,pmem=64000mb -l walltime=0:24:00:00
+```
+for a fat node (32 CPUs) with 64GB RAM and then run python script manually
 
 # CUDA/CudNN
 ```
@@ -86,3 +122,4 @@ libcudnn.so.5 -> libcudnn.so.6
 libcudnn.so.6 -> libcudnn.so.6.0.21
 libcudnn is installed
 ```
+
