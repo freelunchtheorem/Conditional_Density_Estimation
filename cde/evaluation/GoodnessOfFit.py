@@ -76,7 +76,7 @@ class GoodnessOfFit:
 
     if print_fit_result and self.estimator.fitted:
       if self.probabilistic_model.ndim_x == 1 and self.probabilistic_model.ndim_y == 1:
-        plt3d_true, _ = self.probabilistic_model.plot(mode="pdf", numpyfig=False)
+        plt3d_true = self.probabilistic_model.plot(mode="pdf", numpyfig=False)
         logger.log_pyplot(key=self.task_name, fig=plt3d_true)
         plt.close(plt3d_true)
 
