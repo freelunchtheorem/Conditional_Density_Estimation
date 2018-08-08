@@ -1,11 +1,10 @@
-import pickle
-import numpy as np
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-import glob
-import os
-
 import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
+import numpy as np
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+
+
+
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger

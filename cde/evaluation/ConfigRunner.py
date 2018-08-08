@@ -266,13 +266,14 @@ class ConfigRunner():
           gof_results.hash = task_hash
 
         logger.log_data(data=(task_hash, gof_results), path=RESULTS_FILE)
+        logger.flush(file_name=RESULTS_FILE)
+        del gof_results
 
         task_duration = time.time() - start_time
         logger.log_text(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
 
-        return task_hash, gof_results
 
     except Exception as e:
       logger.log_text("error in task: ", str(i + 1))
