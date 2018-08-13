@@ -8,13 +8,13 @@
 - data normalization --> done
 - write ConfigRunner unittest to test entire I/O pipeline --> done
 - generate nice plots each run and log them as well -> done
+- fix GMM seed problem (GMM simulator is not reproducable) --> done
 
 ## to-do's:
 - setup docker (done) + launch script (not done)
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 - two helpers.py existing (cde/density_simulation + cde/), merge into one
-- fix GMM seed problem (GMM simulator is not reproducable)
-- put sampling of datapints back in run_single_task in order to avoid large memory footprint
+- put sampling of datapoints back in run_single_task in order to avoid large memory footprint
 - fix problems with tail risks est - sometimes takes extremely long
 
 # Citing

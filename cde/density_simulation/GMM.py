@@ -223,7 +223,7 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     return X, y_sample
 
   def _sample(self, weights, locs, scales, n_samples):
-    gmm = GMM(n_components=self.n_kernels, covariance_type='diag', max_iter=5, tol=1e-1)
+    gmm = GMM(n_components=self.n_kernels, covariance_type='diag', max_iter=5, tol=1e-1, random_state=self.random_state)
     gmm.fit(np.random.normal(size=(100,self.ndim_y)))
     gmm.converged_ = True
     gmm.weights_ = weights

@@ -95,6 +95,22 @@ class TestGaussianMixture(unittest.TestCase):
     _,  y_sample = gmm.simulate_conditional(x_cond)
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 
+  def test_sampling_consistency(self):
+    from cde.evaluation.ConfigRunner import make_hash_sha256
+    gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+    x1, y1 = gmm1.simulate(n_samples=10 ** 3)
+    hash_x1 = make_hash_sha256(x1)
+    hash_y1 = make_hash_sha256(y1)
+
+    gmm2 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+    x2, y2 = gmm2.simulate(n_samples=10 ** 3)
+
+    hash_x2 = make_hash_sha256(x2)
+    hash_y2 = make_hash_sha256(y2)
+
+    self.assertEqual(hash_x1, hash_x2)
+    self.assertEqual(hash_y1, hash_y2)
+
   def test_hash(self):
     from cde.evaluation.ConfigRunner import make_hash_sha256
     gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
