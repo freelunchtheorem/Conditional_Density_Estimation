@@ -37,7 +37,7 @@ def question2(): #noise
                   'heteroscedastic': [True],
                   },
 
-  'GaussianMixture': {'n_kernels' : [20],
+  'GaussianMixture': {'n_kernels' : [10],
                       'ndim_x': [2],
                       'ndim_y': [2],
                       'means_std': [1.5]

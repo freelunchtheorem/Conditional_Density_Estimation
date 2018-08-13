@@ -3,9 +3,6 @@ mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 
-
-
-
 from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger
 
@@ -43,7 +40,7 @@ def question1(): #noise
                   'heteroscedastic': [True],
                   },
 
-  'GaussianMixture': {'n_kernels' : [20],
+  'GaussianMixture': {'n_kernels' : [10],
                       'ndim_x': [2],
                       'ndim_y': [2],
                       'means_std': [1.5]
@@ -81,7 +78,7 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
 
-      conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=8)
+      conf_runner.run_configurations(dump_models=True, multiprocessing=False, n_workers=1)
 
 
 
