@@ -250,7 +250,6 @@ class ConditionalDensity(BaseEstimator):
       X = np.array([x_cond[i] for _ in range(resolution)])
     # calculate values of distribution
 
-      print(X.shape, Y.shape)
       if mode == "pdf":
         Z = self.pdf(X, Y)
       elif mode == "cdf":

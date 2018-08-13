@@ -71,7 +71,7 @@ class GoodnessOfFit:
     self.time_to_fit = None
     if not self.estimator.fitted:  # fit estimator if necessary
       t_start = time.time()
-      self.estimator.fit(self.X, self.Y)
+      self.estimator.fit(self.X, self.Y, verbose=False)
       self.time_to_fit = (time.time() - t_start) * self.n_observations / 1000  # time to fit per 1000 samples
 
     if print_fit_result and self.estimator.fitted:

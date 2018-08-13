@@ -95,6 +95,14 @@ class TestGaussianMixture(unittest.TestCase):
     _,  y_sample = gmm.simulate_conditional(x_cond)
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 
+  def test_hash(self):
+    from cde.evaluation.ConfigRunner import make_hash_sha256
+    gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+    gmm2 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+    hash1 = make_hash_sha256(gmm1)
+    hash2 = make_hash_sha256(gmm2)
+    self.assertEqual(hash1, hash2)
+
 class TestEconDensity(unittest.TestCase):
   def test_pdf(self):
     sim_model = EconDensity()

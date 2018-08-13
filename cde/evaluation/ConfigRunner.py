@@ -81,11 +81,11 @@ class ConfigRunner():
     logger.log_text('INITIALIZING CONFIG RUNNER')
 
     ''' ---------- Either load or generate the configs ----------'''
-    config_pkl_path = os.path.join(logger.log_directory, EXP_CONFIG_FILE)
+    config_pkl_path = os.path.join(logger.log_directory, logger.prefix, EXP_CONFIG_FILE)
 
     if os.path.isfile(config_pkl_path):
-      logger.log_text("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", self.config_pickle_file))
-      self.configs = logger.load_pkl(EXP_CONFIG_FILE)
+      logger.log_text("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
+      self.configs = logger.load_pkl(EXP_CONFIG_FILE)[0]
     else:
       logger.log_text("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
       self.configs = self._generate_configuration_variants(est_params, sim_params)
