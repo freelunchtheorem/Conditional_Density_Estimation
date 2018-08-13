@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
-from .helpers import project_to_pos_semi_def
+from cde.helpers import project_to_pos_semi_def
 from sklearn.mixture import GaussianMixture as GMM
 
 class GaussianMixture(BaseConditionalDensitySimulation):
