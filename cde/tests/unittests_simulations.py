@@ -57,7 +57,6 @@ class TestArmaJump(unittest.TestCase):
     cov = arj.covariance(x_cond)[0][0][0]
     self.assertGreater(cov, 0.1 ** 2)
 
-
 class TestGaussianMixture(unittest.TestCase):
 
   def test_mean(self):
@@ -178,6 +177,47 @@ class TestEconDensity(unittest.TestCase):
     self.assertAlmostEquals(diff_x, 0, places=2)
     self.assertAlmostEquals(diff_y, 0, places=2)
 
+class TetsSkewNormal(unittest.TestCase):
+  def setUp(self):
+    self.dist = SkewNormal(random_seed=22)
+
+  def test_pdf(self):
+    X = np.linspace(-1, 1, num=1000)
+    Y = np.linspace(-1, 1, num=1000)
+    p = self.dist.pdf(X, Y)
+    self.assertEqual(p.shape, (1000,))
+
+  def test_cdf(self):
+    X = np.linspace(-1, 1, num=1000)
+    Y = np.linspace(-1, 1, num=1000)
+    p = self.dist.pdf(X, Y)
+    self.assertEqual(p.shape, (1000,))
+
+  def test_simulate_conditional_skew(self):
+    x_cond_pos = np.ones(10**4) * 0.1
+    y_samples_pos = self.dist.simulate_conditional(x_cond_pos)
+    self.assertEqual(y_samples_pos.shape, (int(10**4), 1))
+    x_cond_neg = - np.ones(10 ** 4) * 0.1
+    y_samples_neg = self.dist.simulate_conditional(x_cond_neg)
+    self.assertEqual(y_samples_neg.shape, (int(10**4), 1))
+
+    skew_pos = stats.skew(y_samples_pos)
+    skew_neg = stats.skew(y_samples_neg)
+    self.assertLess(skew_neg, skew_pos)
+
+  def test_simulate(self):
+    x, y = self.dist.simulate(n_samples=1000)
+    self.assertEqual(x.shape, (1000, 1))
+    self.assertEqual(y.shape, (1000, 1))
+
+  def test_seed(self):
+    sim_1 = SkewNormal(random_seed=22)
+    x1 = sim_1.simulate(100)
+    sim_2 = SkewNormal(random_seed=22)
+    x2 = sim_2.simulate(100)
+    self.assertTrue(np.allclose(x1, x2))
+
+
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):
     # prepare estimator dummy
@@ -219,7 +259,6 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
 
-
   def test_conditional_value_at_risk_mc_2dim_xcond(self):
     # prepare estimator dummy
     mu = 0
@@ -235,7 +274,6 @@ class TestRiskMeasures(unittest.TestCase):
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
-
 
   def test_conditional_value_at_risk_mc_1dim_xcond_flattend(self):
     # prepare estimator dummy
@@ -253,8 +291,6 @@ class TestRiskMeasures(unittest.TestCase):
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
     self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
-
-
 
   def test_mean_mc(self):
     # prepare estimator dummy

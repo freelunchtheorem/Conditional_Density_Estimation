@@ -3,6 +3,7 @@ from .GMM import GaussianMixture
 from .EconDensity import EconDensity
 from .ArmaJump import ArmaJump
 from .JumpDiffusionModel import JumpDiffusionModel
+from .SkewNormal import SkewNormal
 import inspect, sys
 import numpy as np
 
