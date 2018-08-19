@@ -78,23 +78,23 @@ class ConfigRunner():
     self.exp_prefix = exp_prefix
 
     logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix)
-    logger.log_text('INITIALIZING CONFIG RUNNER')
+    logger.print('INITIALIZING CONFIG RUNNER')
 
     ''' ---------- Either load or generate the configs ----------'''
     config_pkl_path = os.path.join(logger.log_directory, logger.prefix, EXP_CONFIG_FILE)
 
     if os.path.isfile(config_pkl_path):
-      logger.log_text("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
-      self.configs = logger.load_pkl(EXP_CONFIG_FILE)
+      logger.print("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
+      self.configs = logger.load_pkl(EXP_CONFIG_FILE)[0]
     else:
-      logger.log_text("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
+      logger.print("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
       self.configs = self._generate_configuration_variants(est_params, sim_params)
       logger.log_data(path=EXP_CONFIG_FILE, data=self.configs)
 
     ''' ---------- Either load already existing results or start a new result collection ---------- '''
     results_pkl_path = os.path.join(logger.log_directory, logger.prefix, RESULTS_FILE)
     if os.path.isfile(results_pkl_path):
-      logger.log_text("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
+      logger.print("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
       self.gof_single_res_collection = dict(logger.load_pkl(RESULTS_FILE))
 
     else: # start from scratch
@@ -192,15 +192,15 @@ class ConfigRunner():
 
     if limit is not None:
       assert limit > 0, "limit must not be negative"
-      logger.log_text("Limit enabled. Running only the first {} configurations".format(limit))
+      logger.print("Limit enabled. Running only the first {} configurations".format(limit))
       tasks = self.configs[:limit]
     else:
       tasks = self.configs
 
     ''' Run the configurations '''
 
-    logger.log_text("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
-    logger.log_text("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
+    logger.print("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
+    logger.print("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
                                          str(len(self.gof_single_res_collection))))
 
 
@@ -223,14 +223,14 @@ class ConfigRunner():
 
       # skip task if it has already been completed
       if task_hash in self.gof_single_res_collection.keys():
-        logger.log_text("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
+        logger.print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
                                                                        task['estimator_name'],
                                                                        " Simulator: ", task["simulator_name"]))
         return None
 
       # run task when it has not been completed
       else:
-        logger.log_text(
+        logger.print(
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))
 
@@ -275,14 +275,14 @@ class ConfigRunner():
         del gof_results
 
         task_duration = time.time() - start_time
-        logger.log_text(
+        logger.print(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
 
 
     except Exception as e:
-      logger.log_text("error in task: ", str(i + 1))
-      logger.log_text(str(e))
+      logger.print("error in task: ", str(i + 1))
+      logger.print(str(e))
       traceback.print_exc()
 
   def _dump_current_state(self):
