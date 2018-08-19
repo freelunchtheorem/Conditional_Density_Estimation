@@ -60,3 +60,52 @@ def get_full_path(output_dir, suffix=".pickle", file_name=None):
   else:
     full_path = os.path.join(output_dir, file_name + str(datetime.now().strftime("%m-%d-%y_%H-%M-%S")) + str(suffix))
   return full_path
+
+
+def load_time_series_csv(file_path, delimiter=',', time_format=None):
+  """ Loads a .csv time series file (e.g. EuroStoxx50) as a pandas dataframe and applies some basic formatting.
+  The basic formatting includes:
+  a) if no time column is available in the .csv, calling this function sorts the data according to the first column
+  b) if a time column is available (i.e. some column containing the string 'time'), the function tries to re-arrange the column into an
+  expected format, sets it as an index and sorts it according to the date stamps
+
+
+  Args:
+    file_path: an absolute or relative path to the .csv file as str
+    delimiter: the column separator used in the .csv file
+    time_format: optional but if set (must be str), the function tries to re-arrange the date column into a deviating format
+
+  Returns:
+    a pandas dataframe containing the information from the .csv file. If a time or date colum is available, the df contains the date as
+    index and is sorted according to this column.
+  """
+  assert os.path.exists(file_path), "invalid path to output directory"
+  time_series = pd.read_csv(file_path, delimiter=delimiter)
+
+  if time_format is None:
+    POSSIBLE_TIME_FORMATS = ['%Y-%m-%d %H:%M:%S', '%d-%m-%y %H:%M:%S', "%Y%m%d"]
+  else:
+    POSSIBLE_TIME_FORMATS = [time_format]
+
+  columns = list(time_series.columns.values)
+  TIME_COLUMNS = ['time', 'date']
+  #time_col = [s for s in columns if "time" in s]
+  time_col = [s for s in columns for t in TIME_COLUMNS if t in s]
+
+
+  if time_col:
+    time_col = time_col[0] # take first occurrence
+    for format in POSSIBLE_TIME_FORMATS:
+      try:
+        time_series[time_col] = pd.to_datetime(time_series[time_col], format=format)  # try to get the date
+        break  # if correct format, don't test any other formats
+      except ValueError:
+        pass  # if incorrect format, keep trying other formats
+
+    time_series = time_series.set_index(time_col)
+
+  time_series = time_series.sort_index()
+  return time_series
+
+
+
