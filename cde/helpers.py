@@ -62,7 +62,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
     df = pd.concat([dist, y_s], axis=1).sort_values('distance')
 
     # Y sorted by their distance to the
-    Y = df.as_matrix(np.arange(Y.shape[1]))
+    Y = df[np.arange(Y.shape[1])].values
     centers = np.array([Y[0], Y[-1]])
     Y = Y[1:-1]
     # adjust k such that the final output has size k

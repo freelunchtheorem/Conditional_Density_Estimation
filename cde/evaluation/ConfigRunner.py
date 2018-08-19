@@ -85,13 +85,13 @@ class ConfigRunner():
 
     if os.path.isfile(config_pkl_path):
       logger.log_text("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
-      self.configs = logger.load_pkl(EXP_CONFIG_FILE)[0]
+      self.configs = logger.load_pkl(EXP_CONFIG_FILE)
     else:
       logger.log_text("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
       self.configs = self._generate_configuration_variants(est_params, sim_params)
       logger.log_data(path=EXP_CONFIG_FILE, data=self.configs)
 
-    ''' ---------- Either load already existing results or start a new result collection ---------- ''' #TODO: make this workflow with the logger
+    ''' ---------- Either load already existing results or start a new result collection ---------- '''
     results_pkl_path = os.path.join(logger.log_directory, logger.prefix, RESULTS_FILE)
     if os.path.isfile(results_pkl_path):
       logger.log_text("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
@@ -193,6 +193,9 @@ class ConfigRunner():
     if limit is not None:
       assert limit > 0, "limit must not be negative"
       logger.log_text("Limit enabled. Running only the first {} configurations".format(limit))
+      tasks = self.configs[:limit]
+    else:
+      tasks = self.configs
 
     ''' Run the configurations '''
 
@@ -200,7 +203,7 @@ class ConfigRunner():
     logger.log_text("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
                                          str(len(self.gof_single_res_collection))))
 
-    tasks = self.configs[:limit]
+
     iters = range(len(tasks))
 
     if multiprocessing:
@@ -218,12 +221,14 @@ class ConfigRunner():
     try:
       task_hash = _hash_task_dict(task)  # generate SHA256 hash of task dict as identifier
 
+      # skip task if it has already been completed
       if task_hash in self.gof_single_res_collection.keys():
         logger.log_text("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
                                                                        task['estimator_name'],
                                                                        " Simulator: ", task["simulator_name"]))
         return None
 
+      # run task when it has not been completed
       else:
         logger.log_text(
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],

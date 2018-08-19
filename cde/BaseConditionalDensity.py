@@ -7,6 +7,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
 
 #TODO: understand how data normalization scheme affects the methods here
 class ConditionalDensity(BaseEstimator):
@@ -93,67 +94,19 @@ class ConditionalDensity(BaseEstimator):
       VaRs[i] = np.percentile(samples, alpha * 100.0)
     return VaRs
 
-  def _quantile_cdf(self, x_cond, alpha=0.01, eps=10 ** -8, max_iter=10**5):
-    # older implementation of root finding algorithm for finding quantiles
+  def _quantile_cdf(self, x_cond, alpha=0.01, eps=1e-8, init_bound=1e3):
+    # finds the alpha quantile of the distribution through root finding by bounding
 
-    VaRs = np.zeros(x_cond.shape[0])
+    cdf_fun = lambda y: self.cdf(x_cond, y) - alpha
+    init_bound = init_bound * np.ones(x_cond.shape[0])
+    return find_root_by_bounding(cdf_fun, left=-init_bound, right=init_bound, eps=eps)
 
-    # numerical approximation
-    for j in range(x_cond.shape[0]):
-      left, right = -10 ** 8, 10 ** 8
-      approx_error = 10 ** 8
-      n_iter = 0
-      while approx_error > eps:
-        middle = (left + right) / 2
-        y = np.array([middle])
+  def _quantile_cdf_old(self, x_cond, alpha=0.01, eps=10 ** -8):
+    # Newton Method for finding the alpha quantile of a conditional distribution -> slower than bounding method
+    cdf_fun = lambda y: self.cdf(x_cond, y) - alpha
+    pdf_fun = lambda y: self.pdf(x_cond, y)
 
-        p = self.cdf(x_cond[j, :], y)
-
-        if p > alpha:
-          right = middle
-        else:
-          left = middle
-        approx_error = np.abs(p - alpha)
-
-        n_iter += 1
-
-        if n_iter > max_iter:
-          warnings.warn("Max_iter has been reached - stopping newton method for determining quantiles")
-          middle = np.NaN
-          break
-
-      VaRs[j] = middle
-    return VaRs
-
-  def _quantile_cdf_old(self, x_cond, alpha=0.01, eps=10 ** -8, start_value=-0.1, max_iter=10**5):
-    # Newton Method for finding the alpha quantile of a conditional distribution
-    VaRs = np.zeros(x_cond.shape[0])
-    for j in range(x_cond.shape[0]):
-
-      q = [start_value]
-
-      q = self._newton_method(x_cond[j, :], np.array(q), alpha, eps=eps)
-
-      VaRs[j] = q
-
-    return VaRs
-
-  def _newton_method(self, x, q, alpha, eps=10**-8, learning_rate=0.01, max_iter=10**4):
-      approx_error = 10 ** 8
-      n_iter = 0
-      while approx_error > eps:
-        F = self.cdf(x, q)
-        f = self.pdf(x, q)
-        q = q - learning_rate * (F - alpha + 10**-10) / (f+10**-10)
-
-        approx_error = np.abs(F - alpha)
-        n_iter += 1
-
-        if n_iter > max_iter:
-          warnings.warn("Max_iter has been reached - stopping newton method for determining quantiles")
-          break
-
-      return q
+    return find_root_newton_method(fun=cdf_fun, grad=pdf_fun, x0=np.zeros(x_cond.shape[0]), eps=eps, max_iter=max_iter)
 
   def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
