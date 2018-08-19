@@ -78,7 +78,7 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
 
-      conf_runner.run_configurations(dump_models=True, multiprocessing=False, n_workers=1)
+      conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=1)
 
 
 
