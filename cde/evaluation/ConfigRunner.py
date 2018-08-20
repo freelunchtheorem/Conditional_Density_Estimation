@@ -1,10 +1,8 @@
 import itertools
 import pandas as pd
 import numpy as np
-import gc
 import copy
 import traceback
-import logging
 
 """ do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation
@@ -12,13 +10,13 @@ from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpD
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
+from cde.utils.async_executor import AsyncExecutor
 from ml_logger import logger
 import hashlib
 import base64
 import tensorflow as tf
 import os
 import config
-import concurrent.futures
 import time
 
 EXP_CONFIG_FILE = 'exp_configs.pkl'
@@ -184,7 +182,7 @@ class ConfigRunner():
           Additionally, if export_pickle is True, the path to the pickle file will be returned, i.e. return values are (results_list, full_df, path_to_pickle)
 
     """
-
+    self.tf_config = tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.95 / n_workers))
     self.dump_models = dump_models
     ''' Asserts, Setup and Applying Filters/Limits  '''
     assert len(self.configs) > 0
@@ -207,9 +205,8 @@ class ConfigRunner():
     iters = range(len(tasks))
 
     if multiprocessing:
-      with concurrent.futures.ProcessPoolExecutor(max_workers=n_workers) as executor:
-        for _, _ in zip(iters, executor.map(self._run_single_task, iters, tasks)):
-          pass
+      exec = AsyncExecutor(num_workers=n_workers)
+      exec.run(self._run_single_task, iters, tasks)
 
     else:
       for i, task in zip(iters, tasks):
@@ -245,7 +242,7 @@ class ConfigRunner():
                                                       simulator.ndim_y, **task['estimator_config'])
         time_to_initialize = time.time() - t
 
-        with tf.Session() as sess:
+        with tf.Session(config=self.tf_config) as sess:
           sess.run(tf.global_variables_initializer())
 
           ''' train the model '''
@@ -259,7 +256,6 @@ class ConfigRunner():
 
           if self.dump_models:
             logger.log_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
-            #logger.flush()
 
           ''' perform tests with the fitted model '''
           t = time.time()
@@ -278,7 +274,6 @@ class ConfigRunner():
         logger.print(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
-
 
     except Exception as e:
       logger.print("error in task: ", str(i + 1))
