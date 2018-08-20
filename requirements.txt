@@ -9,3 +9,4 @@ scipy==1.0.0
 pytest==3.3.2
 scikit_learn==0.19.1
 ml-logger==0.1.27
+statsmodels
