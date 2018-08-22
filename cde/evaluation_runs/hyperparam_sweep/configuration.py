@@ -1,6 +1,9 @@
 import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
+import argparse
+import os
+
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 
 from cde.evaluation.ConfigRunner import ConfigRunner
@@ -64,6 +67,17 @@ def question1():
 
 if __name__ == '__main__':
 
+  parser = argparse.ArgumentParser(description='Run configuration script')
+  parser.add_argument('--parallel', type=bool, default=True,
+                      help='an integer for the accumulator')
+  parser.add_argument('--n_workers', type=int, default=1,
+                      help='sum the integers (default: find the max)')
+  parser.add_argument('--use_gpu', type=bool, default=False)
+  args = parser.parse_args()
+
+  if not args.use_gpu:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
   run = True
   load = not run
 
@@ -84,7 +98,7 @@ if __name__ == '__main__':
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                  n_mc_samples=2e6, n_x_cond=10, n_seeds=5)
 
-      conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=1)
+      conf_runner.run_configurations(dump_models=True, multiprocessing=args.parallel, n_workers=args.n_workers)
 
 
 
