@@ -51,8 +51,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
   """
 
   def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=200, keep_edges=False,
-               init_scales='default', hidden_sizes=(8, 8), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
-               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=False, data_normalization=False, random_seed=None):
+               init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
+               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
 
     Serializable.quick_init(self, locals())
 
