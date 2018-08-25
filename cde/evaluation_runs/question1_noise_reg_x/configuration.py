@@ -2,6 +2,8 @@ import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+import argparse
+import os
 
 from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger
@@ -9,7 +11,7 @@ from ml_logger import logger
 EXP_PREFIX = 'question1_noise_reg_x'
 RESULTS_FILE = 'results.pkl'
 
-def question1(): #noise
+def question1():
   estimator_params = {
   'KernelMixtureNetwork':
 
@@ -19,17 +21,17 @@ def question1(): #noise
      'init_scales': [[0.1, 0.5, 1.]],
      'train_scales': [True],
      'hidden_sizes': [(16, 16)],
-     'n_training_epochs': [500],
-     'x_noise_std': [0.01, 0.05, 0.1, None],
+     'n_training_epochs': [1000],
+     'x_noise_std': [0.01, 0.05, 0.1, 0.2, None],
      'y_noise_std': [None],
-     'random_seed': [22]
+     'random_seed': [22],
      },
   'MixtureDensityNetwork':
     {
       'n_centers': [10, 20],
       'n_training_epochs': [1000],
       'hidden_sizes': [(16, 16)],
-      'x_noise_std': [0.01, 0.05, 0.1, None],
+      'x_noise_std': [0.01, 0.05, 0.1, 0.2, None],
       'y_noise_std': [None],
       'random_seed': [22]
     }
@@ -49,7 +51,8 @@ def question1(): #noise
                'arma_a1': [0.9],
                'std': [0.05],
                'jump_prob': [0.05],
-              }
+              },
+  'SkewNormal': {}
   }
 
 
@@ -57,6 +60,16 @@ def question1(): #noise
 
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Run configuration script')
+  parser.add_argument('--parallel', type=bool, default=True,
+                      help='an integer for the accumulator')
+  parser.add_argument('--n_workers', type=int, default=1,
+                      help='sum the integers (default: find the max)')
+  parser.add_argument('--use_gpu', type=bool, default=True)
+  args = parser.parse_args()
+
+  if not args.use_gpu:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
   run = True
   load = not run
@@ -71,12 +84,12 @@ if __name__ == '__main__':
 
 
   if run:
-      observations = 100 * np.logspace(0, 4, num=5, base=2.0,
-                                       dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600
+      observations = 100 * np.logspace(0, 6, num=7, base=2.0,
+                                       dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600, 3200
 
       conf_est, conf_sim = question1()
       conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                                 n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5)
+                                 n_mc_samples=2e6, n_x_cond=5, n_seeds=5)
 
       conf_runner.run_configurations(dump_models=True, multiprocessing=True, n_workers=1)
 

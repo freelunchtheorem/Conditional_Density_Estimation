@@ -72,7 +72,7 @@ if __name__ == '__main__':
                       help='an integer for the accumulator')
   parser.add_argument('--n_workers', type=int, default=1,
                       help='sum the integers (default: find the max)')
-  parser.add_argument('--use_gpu', type=bool, default=False)
+  parser.add_argument('--use_gpu', type=bool, default=True)
   args = parser.parse_args()
 
   if not args.use_gpu:
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
 
   if run:
-      observations = 100 * np.logspace(0, 5, num=6, base=2.0,
+      observations = 100 * np.logspace(0, 6, num=7, base=2.0,
                                        dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600
 
       conf_est, conf_sim = question1()
