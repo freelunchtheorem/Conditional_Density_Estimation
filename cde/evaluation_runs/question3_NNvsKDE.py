@@ -1,11 +1,17 @@
-import pickle
+import matplotlib as mpl
+mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
-import glob
 
-from cde.evaluation.ConfigRunner import ConfigRunner
-from collections import OrderedDict
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation_runs import base_experiment
+
+from ml_logger import logger
 
 EXP_PREFIX = 'question3_NNvs_KDE'
+RESULTS_FILE = 'results.pkl'
+
+
+
 
 def question3():
   estimator_params = {
@@ -59,52 +65,19 @@ def question3():
                 },
   }
 
-  return estimator_params, simulators_params
+  observations = 100 * np.logspace(0, 6, num=7, base=2.0, dtype=np.int32)
+
+  return estimator_params, simulators_params, observations
 
 
 if __name__ == '__main__':
-
-  run = True
-  load = not run
-
-  keys_of_interest = ['task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
-                      'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
-                      'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff",
-                      "VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVaR_est", "CVaR_abs_diff",
-                      "time_to_fit"
-                      ]
-
-
-  # Search for pickle file in directory
-  results_pickle_file = glob.glob("*question3_NNvsKDE*.pickle")
-  config_pickle_file = glob.glob("config*.pickle")
-
-  if results_pickle_file:
-    results_pickle = results_pickle_file[0]
-  else:
-    results_pickle = None
-
-  if config_pickle_file:
-    config_pickle_file = config_pickle_file[0]
-  else:
-    config_pickle_file = None
-
-
-  if run:
-    observations = 100 * np.logspace(0, 5, num=6, base=2.0, dtype=np.int32)  # creates a list with log scale: 100, 200, 400, 800, 1600, 3200
-
-    conf_est, conf_sim = question3()
-    conf_runner = ConfigRunner(conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
-                               n_mc_samples=2*10**6, n_x_cond=5, n_seeds=5, results_pickle_file=results_pickle, config_pickle_file=config_pickle_file)
-
-    results_list, full_df = conf_runner.run_configurations(output_dir="./", prefix_filename="question3_NNvsKDE", dump_models=True)
+  estimator_params, simulators_params, observations = question3()
+  load = base_experiment.launch_experiment(estimator_params, simulators_params, observations, EXP_PREFIX)
 
   if load:
-    path_pickle = ""
-    with open(results_pickle, 'rb') as pickle_file:
-      gof_result = pickle.load(pickle_file)
-      results_df = gof_result.generate_results_dataframe(keys_of_interest)
+      results_from_pkl_file = dict(logger.load_pkl(RESULTS_FILE))
+      gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
+      results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
 
 
       graph_dicts = [
