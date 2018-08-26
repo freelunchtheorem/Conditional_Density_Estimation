@@ -63,7 +63,9 @@ class ConfigRunner():
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7, n_x_cond=5, n_seeds=5):
+  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7,
+               n_x_cond=5, n_seeds=5, use_gpu=True):
+
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
@@ -74,6 +76,7 @@ class ConfigRunner():
     self.n_x_cond = n_x_cond
     self.keys_of_interest = keys_of_interest
     self.exp_prefix = exp_prefix
+    self.use_gpu = use_gpu
 
     logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix)
     logger.print('INITIALIZING CONFIG RUNNER')
@@ -182,7 +185,6 @@ class ConfigRunner():
           Additionally, if export_pickle is True, the path to the pickle file will be returned, i.e. return values are (results_list, full_df, path_to_pickle)
 
     """
-    self.tf_config = tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=0.95 / n_workers))
     self.dump_models = dump_models
     ''' Asserts, Setup and Applying Filters/Limits  '''
     assert len(self.configs) > 0
@@ -242,7 +244,11 @@ class ConfigRunner():
                                                       simulator.ndim_y, **task['estimator_config'])
         time_to_initialize = time.time() - t
 
-        with tf.Session(config=self.tf_config) as sess:
+        # if desired hide gpu devices
+        if not self.use_gpu:
+          os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+        with tf.Session() as sess:
           sess.run(tf.global_variables_initializer())
 
           ''' train the model '''

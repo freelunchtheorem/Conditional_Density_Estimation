@@ -231,12 +231,11 @@ class GoodnessOfFit:
     assert distances.ndim == 1 and distances.shape[0] == self.x_cond.shape[0]
     return distances
 
-  def divergence_measures_pdf(self, n_samples=10**7, batch_size=None):
+  def divergence_measures_pdf(self, n_samples=10**7):
     """ Computes kl-divergence, js-divergence and hellinger distance
 
       Args:
        n_samples: number of samples for monte carlo integration over the y space
-       batch_size: (optional) batch size for computing mc estimates - if None: batch_size is set to n_samples
 
       Returns:
         - hellinger distance of each x value to condition on - numpy array of shape (n_values,)
@@ -252,11 +251,11 @@ class GoodnessOfFit:
     kl_divs = np.zeros(self.x_cond.shape[0])
     js_divs = np.zeros(self.x_cond.shape[0])
 
-    batch_size = n_samples
+    batch_size = int(n_samples)
 
     for i in range(self.x_cond.shape[0]):
-      samples = stats.cauchy.rvs(loc=0, scale=2, size=(batch_size, self.estimator.ndim_x))
-      f = _multidim_cauchy_pdf(samples, loc=0, scale=2).flatten()
+      samples = stats.cauchy.rvs(loc=0, scale=1, size=(batch_size, self.estimator.ndim_x))
+      f = _multidim_cauchy_pdf(samples, loc=0, scale=1).flatten()
       x = np.tile(self.x_cond[i].reshape((1, self.x_cond[i].shape[0])), (samples.shape[0], 1))
 
       p = P(x, samples).flatten()
