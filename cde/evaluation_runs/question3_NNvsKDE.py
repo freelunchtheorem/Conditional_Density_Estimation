@@ -7,7 +7,7 @@ from cde.evaluation_runs import base_experiment
 
 from ml_logger import logger
 
-EXP_PREFIX = 'question3_NNvs_KDE'
+EXP_PREFIX = 'question3_KDE'
 RESULTS_FILE = 'results.pkl'
 
 
@@ -21,30 +21,6 @@ def question3():
           'bandwidth_selection': ['normal_reference', 'cv_ml'],
           'random_seed': [22]
       },
-
-    'KernelMixtureNetwork':
-
-    {'center_sampling_method': ["k_means"],
-     'n_centers': [20, 50],
-     'keep_edges': [True],
-     'init_scales': [[0.1, 0.5, 1.]],
-     'train_scales': [True],
-     'hidden_sizes': [(16, 16)],
-     'n_training_epochs': [500],
-     'x_noise_std': [None],
-     'y_noise_std': [None],
-     'random_seed': [22]
-     },
-
-  'MixtureDensityNetwork':
-    {
-      'n_centers': [10, 20],
-      'n_training_epochs': [1000],
-      'hidden_sizes': [(16, 16)],
-      'x_noise_std': [None],
-      'y_noise_std': [None],
-      'random_seed': [22]
-    }
   }
 
   simulators_params = {
@@ -63,6 +39,7 @@ def question3():
                       'ndim_y': [2],
                       'means_std': [1.5]
                 },
+  'SkewNormal': {}
   }
 
   observations = 100 * np.logspace(0, 6, num=7, base=2.0, dtype=np.int32)
@@ -73,24 +50,3 @@ def question3():
 if __name__ == '__main__':
   estimator_params, simulators_params, observations = question3()
   load = base_experiment.launch_experiment(estimator_params, simulators_params, observations, EXP_PREFIX)
-
-  if load:
-      results_from_pkl_file = dict(logger.load_pkl(RESULTS_FILE))
-      gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
-      results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
-
-
-      graph_dicts = [
-        {"estimator": "KernelMixtureNetwork", "y_noise_std": 0.01},
-        {"estimator": "KernelMixtureNetwork", "y_noise_std": 0.01, "n_centers": 50},
-        {"estimator": "KernelMixtureNetwork"},
-        {"estimator": "MixtureDensityNetwork", "n_centers": 10},
-        {"estimator": "MixtureDensityNetwork", "n_centers": 10, "y_noise_std": 0.01},
-        {"estimator": "MixtureDensityNetwork", "n_centers": 50},
-        {"estimator": "MixtureDensityNetwork", "n_centers": 50, "y_noise_std": 0.01},
-        {"estimator": "ConditionalKernelDensityEstimation"},
-
-      ]
-
-      gof_result.plot_metric(graph_dicts, title="NN vs KDE", metric="hellinger_distance", simulator="EconDensity")
-      print(gof_result)

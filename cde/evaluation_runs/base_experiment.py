@@ -1,6 +1,3 @@
-import matplotlib as mpl
-mpl.use("PS") #handles X11 server detection (required to run on console)
-import numpy as np
 import argparse
 
 from cde.evaluation.ConfigRunner import ConfigRunner
