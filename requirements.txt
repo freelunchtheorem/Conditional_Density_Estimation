@@ -8,5 +8,5 @@ seaborn==0.8.1
 scipy==1.0.0
 pytest==3.3.2
 scikit_learn==0.19.1
-git+https://github.com/jonasrothfuss/ml_logger.gitt@2d373835ea159587fc323140ed0e8a8ea1bf9843
+git+https://github.com/jonasrothfuss/ml_logger.git@2d373835ea159587fc323140ed0e8a8ea1bf9843
 statsmodels
