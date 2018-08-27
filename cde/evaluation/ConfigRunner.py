@@ -78,25 +78,24 @@ class ConfigRunner():
     self.exp_prefix = exp_prefix
     self.use_gpu = use_gpu
 
-    logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix)
-    logger.print('INITIALIZING CONFIG RUNNER')
+    logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix, color='green')
 
     ''' ---------- Either load or generate the configs ----------'''
     config_pkl_path = os.path.join(logger.log_directory, logger.prefix, EXP_CONFIG_FILE)
 
     if os.path.isfile(config_pkl_path):
-      logger.print("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
-      self.configs = logger.load_pkl(EXP_CONFIG_FILE)[0]
+      logger.log("{:<70s} {:<30s}".format("Loading experiment previous configs from file: ", config_pkl_path))
+      self.configs = logger.load_pkl(EXP_CONFIG_FILE)
     else:
-      logger.print("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
+      logger.log("{:<70s} {:<30s}".format("Generating and storing experiment configs under: ", config_pkl_path))
       self.configs = self._generate_configuration_variants(est_params, sim_params)
-      logger.log_data(path=EXP_CONFIG_FILE, data=self.configs)
+      logger.dump_pkl(data=self.configs, path=EXP_CONFIG_FILE)
 
     ''' ---------- Either load already existing results or start a new result collection ---------- '''
     results_pkl_path = os.path.join(logger.log_directory, logger.prefix, RESULTS_FILE)
     if os.path.isfile(results_pkl_path):
-      logger.print("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
-      self.gof_single_res_collection = dict(logger.load_pkl(RESULTS_FILE))
+      logger.log_line("{:<70s} {:<30s}".format("Continue with: ", results_pkl_path))
+      self.gof_single_res_collection = dict(logger.load_pkl_log(RESULTS_FILE))
 
     else: # start from scratch
       self.gof_single_res_collection = {}
@@ -192,15 +191,15 @@ class ConfigRunner():
 
     if limit is not None:
       assert limit > 0, "limit must not be negative"
-      logger.print("Limit enabled. Running only the first {} configurations".format(limit))
+      logger.log("Limit enabled. Running only the first {} configurations".format(limit))
       tasks = self.configs[:limit]
     else:
       tasks = self.configs
 
     ''' Run the configurations '''
 
-    logger.print("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
-    logger.print("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
+    logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
+    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
                                          str(len(self.gof_single_res_collection))))
 
 
@@ -222,14 +221,14 @@ class ConfigRunner():
 
       # skip task if it has already been completed
       if task_hash in self.gof_single_res_collection.keys():
-        logger.print("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
+        logger.log("Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "has already been completed:", "Estimator:",
                                                                        task['estimator_name'],
                                                                        " Simulator: ", task["simulator_name"]))
         return None
 
       # run task when it has not been completed
       else:
-        logger.print(
+        logger.log(
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))
 
@@ -261,7 +260,7 @@ class ConfigRunner():
           time_to_fit = time.time() - t
 
           if self.dump_models:
-            logger.log_data(path="model_dumps/{}.pkl".format(task['task_name']), data=gof.estimator)
+            logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
 
           ''' perform tests with the fitted model '''
           t = time.time()
@@ -272,18 +271,18 @@ class ConfigRunner():
 
           gof_results.hash = task_hash
 
-        logger.log_data(data=(task_hash, gof_results), path=RESULTS_FILE)
+        logger.log_pkl(data=(task_hash, gof_results), path=RESULTS_FILE)
         logger.flush(file_name=RESULTS_FILE)
         del gof_results
 
         task_duration = time.time() - start_time
-        logger.print(
+        logger.log(
           "Finished task {:<1} in {:<1.4f} {:<43} {:<10} {:<1} {:<1} {:<2} | {:<1} {:<1.2f} {:<1} {:<1.2f} {:<1} {:<1.2f}".format(i + 1, task_duration, "sec:",
           "Estimator:", task['estimator_name'], " Simulator: ", task["simulator_name"], "t_init:", time_to_initialize, "t_fit:", time_to_fit, "t_eval:", time_to_evaluate))
 
     except Exception as e:
-      logger.print("error in task: ", str(i + 1))
-      logger.print(str(e))
+      logger.log("error in task: ", str(i + 1))
+      logger.log(str(e))
       traceback.print_exc()
 
   def _dump_current_state(self):

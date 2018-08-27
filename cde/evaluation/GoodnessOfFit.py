@@ -378,9 +378,6 @@ class GoodnessOfFit:
       gof_result.mean_abs_diff = np.mean(np.abs(gof_result.mean_est_ - gof_result.mean_sim_))
       gof_result.cov_abs_diff = np.mean(np.abs(gof_result.cov_est_ - gof_result.cov_sim_))
 
-    #print("Finished Mean and Cov: time to compute: ", time.time() - t)
-    t = time.time()
-
     """ tail risk """
     if self.estimator.ndim_y == 1:
 
@@ -394,9 +391,6 @@ class GoodnessOfFit:
 
       gof_result.VaR_abs_diff = np.mean(np.abs(gof_result.VaR_sim_ - gof_result.VaR_est_))
       gof_result.CVaR_abs_diff = np.mean(np.abs(gof_result.CVaR_sim_ - gof_result.CVaR_est_))
-
-    print("Finished CVaR: time to compute: ", time.time() - t)
-    t = time.time()
 
     """ time to fit """
     gof_result.time_to_fit = self.time_to_fit
