@@ -1,5 +1,5 @@
 import matplotlib as mpl
-mpl.use("TkAgg") #handles X11 server detection (required to run on console)
+mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment

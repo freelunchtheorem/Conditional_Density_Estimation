@@ -1,11 +1,11 @@
 import matplotlib as mpl
-mpl.use("TkAgg") #handles X11 server detection (required to run on console)
+mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment
 from ml_logger import logger
 
-EXP_PREFIX = 'question1_entropy_reg'
+EXP_PREFIX = 'question2_entropy_reg'
 RESULTS_FILE = 'results.pkl'
 
 def question1():
