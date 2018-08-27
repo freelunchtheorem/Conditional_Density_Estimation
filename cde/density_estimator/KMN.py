@@ -224,7 +224,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
 
       # softmax entropy penalty -> regularization
       self.softmax_entropy = tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1)
-      self.entropy_reg_coef_ph = tf.placeholder_with_default(self.entropy_reg_coef, name='entropy_reg_coef', shape=())
+      self.entropy_reg_coef_ph = tf.placeholder_with_default(float(self.entropy_reg_coef), name='entropy_reg_coef', shape=())
       self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
       tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
