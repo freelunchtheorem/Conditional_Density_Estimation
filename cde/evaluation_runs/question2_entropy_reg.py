@@ -22,7 +22,7 @@ def question1():
      'x_noise_std': [0.2],
      'y_noise_std': [0.2],
      'random_seed': [22],
-     'entropy_reg_coef': [0.001, 0.01, 0.1, 1, 10, 100]
+     'entropy_reg_coef': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
      },
 
   'MixtureDensityNetwork':
@@ -33,7 +33,7 @@ def question1():
       'x_noise_std': [0.2],
       'y_noise_std': [0.2],
       'random_seed': [22],
-      'entropy_reg_coef': [0.001, 0.01, 0.1, 1, 10, 100]
+      'entropy_reg_coef': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
     }
   }
 
