@@ -59,7 +59,7 @@ class configrunner(unittest.TestCase):
     """ check if model dumps can be used successfully"""
     for model_dump_i in model_dumps_list:
       #tf.reset_default_graph()
-      with tf.Session(graph=tf.Graph()) as sess:
+      with tf.Session(graph=tf.Graph()):
         model = logger.load_pkl(f"model_dumps/"+model_dump_i)
         self.assertTrue(model)
         if model.ndim_x == 1 and model.ndim_y == 1:

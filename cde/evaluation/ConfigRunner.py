@@ -394,3 +394,37 @@ def make_hash_sha256(o):
     hasher.update(repr(_make_hashable(o)).encode())
     return base64.b64encode(hasher.digest()).decode()
 
+
+# todo: might find a better place for this function
+def load_dumped_estimators(gof_result, task_id=None):
+  """
+  Loads the estimators that have been dumped during the configuration runs into a GoodnessOfFitResults object at the corresponding single
+  result entry. Assumes an ml-logger instance has been set-up and configured correctly.
+    Args:
+        gof_result: a GoodnessOfFitResults object containing single result entries.
+        task_id: can either be None in which case all estimators are loaded, a list or a scalar value that indicates the task number for
+        which the estimator is/are loaded.
+
+      Returns:
+         returns the modified gof_result including the loaded estimators
+  """
+  assert logger
+  assert task_id is None or isinstance(task_id, list) or np.isscalar(task_id)
+
+  if np.isscalar(task_id):
+    task_id = [task_id]
+
+  if task_id is not None:
+    """ assumes that task_names end with a number separated by '_', e.g. MixtureDensityNetwork_task_128 """
+    results_to_use = [(key, singl_res) for task in task_id for key, singl_res in gof_result.single_results_dict.items()
+                      if singl_res.task_name.rsplit('_', 1)[1] == str(task)]
+  else:
+    results_to_use = list(gof_result.single_results_dict.items())
+
+  with tf.Session(graph=tf.Graph()):
+    for key, single_result in results_to_use:
+      single_result.estimator = logger.load_pkl(f"model_dumps/" + single_result.task_name + ".pkl")
+      print("loaded estimator for entry " + single_result.task_name)
+      gof_result.single_results_dict[key] = single_result
+
+  return gof_result
