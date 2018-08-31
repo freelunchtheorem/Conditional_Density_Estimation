@@ -4,6 +4,7 @@ import numpy as np
 
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment
+import cde.evaluation.ConfigRunner as ConfigRunner
 
 from ml_logger import logger
 
@@ -50,3 +51,12 @@ def question3():
 if __name__ == '__main__':
   estimator_params, simulators_params, observations = question3()
   load = base_experiment.launch_experiment(estimator_params, simulators_params, observations, EXP_PREFIX)
+
+  if load:
+    logger.configure('/Users/fabioferreira/Dropbox/0_Studium/Master/git_projects/Nonparametric_Density_Estimation/data/local', EXP_PREFIX)
+
+    results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
+    gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
+    results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
+
+    gof_result = ConfigRunner.load_dumped_estimators(gof_result)
