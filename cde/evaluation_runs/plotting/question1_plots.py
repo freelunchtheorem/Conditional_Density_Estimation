@@ -12,14 +12,14 @@ EXP_PREFIX = 'question1_noise_reg_x'
 RESULTS_FILE = 'results.pkl'
 
 logger.configure(
-  '/home/jonasrothfuss/Dropbox/Eigene_Dateien/Uni/WS17_18/Density_Estimation/Nonparametric_Density_Estimation/data/cluster',
+  '/Volumes/fabioexternal/Dropbox/0_Studium/Master/git_projects/Nonparametric_Density_Estimation/data/cluster',
   EXP_PREFIX)
 
 results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
 gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
 results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
 
-#gof_result = ConfigRunner.load_dumped_estimators(gof_result, task_id=[5])
+#gof_result = ConfigRunner.load_dumped_estimators(gof_result)
 
 
 SMALL_SIZE = 11

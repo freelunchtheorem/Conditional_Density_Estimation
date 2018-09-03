@@ -261,6 +261,7 @@ class ConfigRunner():
 
           if self.dump_models:
             logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
+            logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
 
           ''' perform tests with the fitted model '''
           t = time.time()
@@ -411,6 +412,7 @@ def load_dumped_estimators(gof_result, task_id=None):
   assert logger
   assert task_id is None or isinstance(task_id, list) or np.isscalar(task_id)
 
+
   if np.isscalar(task_id):
     task_id = [task_id]
 
@@ -421,10 +423,21 @@ def load_dumped_estimators(gof_result, task_id=None):
   else:
     results_to_use = list(gof_result.single_results_dict.items())
 
-  with tf.Session(graph=tf.Graph()):
-    for key, single_result in results_to_use:
-      single_result.estimator = logger.load_pkl(f"model_dumps/" + single_result.task_name + ".pkl")
-      print("loaded estimator for entry " + single_result.task_name)
+
+  for key, single_result in results_to_use:
+    with tf.Session(graph=tf.Graph()):
+      single_result.estimator = load_dumped_estimator(single_result)
       gof_result.single_results_dict[key] = single_result
 
   return gof_result
+
+def load_dumped_estimator(dict_entry):
+  assert len(dict_entry) == 1
+  if type(dict_entry) == dict and len(dict_entry) == 1:
+    dict_entry = list(dict_entry.values())[0]
+
+  with tf.Session(graph=tf.Graph()) as sess:
+    dict_entry.estimator = logger.load_pkl(f"model_dumps/" + dict_entry.task_name + ".pkl")
+    print("loaded estimator for entry " + dict_entry.task_name)
+
+  return dict_entry

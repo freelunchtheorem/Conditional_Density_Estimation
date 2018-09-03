@@ -1,13 +1,16 @@
 from cde.density_simulation import *
 from cde.density_estimator import *
-
+from cde.evaluation_runs import base_experiment
+from ml_logger import logger
+from cde.helpers import take_of_type
+from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+import cde.evaluation.ConfigRunner as ConfigRunner
 import tensorflow as tf
 import os
 import pickle
-
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+
+
 
 
 def fit_and_plot_estimated_vs_original_2D(estimator, simulator, n_samples):
@@ -52,6 +55,71 @@ def comparison_plot2d_sim_est(est, sim, x_cond=[1.0, 2.0], ylim=(-4,8), resoluti
   plt.xlabel("y")
   plt.ylabel("p(y|x)")
   plt.show()
+
+
+def get_density_plots(estimators_list, simulators_dict, path_to_results, exp_prefix="question1_noise_reg_x", task_ids=None):
+  """
+  This function allows to compare plots from estimators and simulators (i.e. fitted and true densities). Two modes are currently available:
+  1) by specifying estimators and simulator, the function picks one result pair randomly that matches the given simulator/estimator
+  selection
+  2) by specifying the task_ids as list, it is possible to pick specific plots to compare
+
+  Args:
+    estimators: a list containing strings of estimators to be evaluated, e.g. ['KernelMixtureNetwork', 'MixtureDensityNetwork']
+    simulators: a dict containing specifications of a simulator under which the estimators shall be compared, e.g.
+      {'heteroscedastic': True, 'random_seed': 20, 'std': 1, 'simulator': 'EconDensity'}
+    path_to_results: absolute path to where the dumped model files are stored
+    exp_prefix: specifies the task question
+
+  Returns:
+    A list of figures for fitted and true densities.
+  """
+
+  if task_ids is not None:
+    assert type(task_ids) == list
+    assert len(task_ids) == len(estimators_list)
+
+
+  RESULTS_FILE = 'results.pkl'
+  logger.configure(path_to_results, exp_prefix)
+
+  results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
+  gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
+  results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
+
+  """ load model's estimators """
+  if task_ids is None:
+
+    models_of_interest = {k: v for k, v in gof_result.single_results_dict.items() if
+                          v.probabilistic_model_params == simulators_dict and v.ndim_x + v.ndim_y == 2}
+
+    models = [ConfigRunner.load_dumped_estimator(take_of_type(1, estimator_str, models_of_interest)) for estimator_str in estimators_list]
+  else:
+    models = [ConfigRunner.load_dumped_estimators(gof_result, task_id=task_ids)]
+
+  """ load model's simulators """
+  # todo: implement when simulator dumps exist
+
+  figs = []
+
+  for model in models:
+    graph = model.estimator.sess.graph
+    sess = tf.Session(graph=graph)
+
+    with sess:
+      sess.run(tf.global_variables_initializer())
+      model.estimator.sess = sess
+      """ fitted density figures"""
+      plt.suptitle(model.estimator.name)
+      fig_fitted = model.estimator.plot3d()
+      figs.append(fig_fitted)
+
+      """ true density figures """
+      # todo: use newly dumped simulators
+
+      sess.close()
+
+  return figs
 
 
 if __name__ == "__main__":
