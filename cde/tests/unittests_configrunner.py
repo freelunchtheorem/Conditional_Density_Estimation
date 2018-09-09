@@ -1,7 +1,7 @@
 from cde.helpers import *
 from cde.evaluation.ConfigRunner import ConfigRunner
 from ml_logger import logger
-from cde.evaluation_runs.question1_noise_reg_x.configuration import question1
+from cde.evaluation_runs.question1_noise_reg_xy import question1
 
 import random
 import os
@@ -11,7 +11,7 @@ import shutil
 import tensorflow as tf
 
 
-NUM_CONFIGS_TO_TEST = 10
+NUM_CONFIGS_TO_TEST = 1
 
 EXP_PREFIX = 'test_io_question1_noise_reg_x'
 EXP_CONFIG_FILE = 'exp_configs.pkl'
@@ -26,7 +26,6 @@ class configrunner(unittest.TestCase):
     if os.path.exists(test_dir):
       shutil.rmtree(test_dir)
 
-    observations = 100 * np.logspace(0, 4, num=1, base=2.0, dtype=np.int32)
 
     keys_of_interest = ['task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std', 'y_noise_std',
                         'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est', 'cov_est', 'mean_sim', 'cov_sim',
@@ -35,7 +34,7 @@ class configrunner(unittest.TestCase):
                         "time_to_fit"]
 
 
-    conf_est, conf_sim = question1()
+    conf_est, conf_sim, observations = question1()
     conf_runner = ConfigRunner(EXP_PREFIX, conf_est, conf_sim, observations=observations, keys_of_interest=keys_of_interest,
                                n_mc_samples=1 * 10 ** 2, n_x_cond=5, n_seeds=5)
 

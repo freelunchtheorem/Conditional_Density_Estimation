@@ -168,3 +168,9 @@ class GoodnessOfFitResults:
     plt.xlabel("x")
     plt.ylabel("y")
     plt.show()
+
+
+
+
+
+

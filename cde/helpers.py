@@ -187,3 +187,13 @@ def project_to_pos_semi_def(M):
     M = _project_to_pos_semi_def(M)
 
   return M
+
+
+def take(n, mydict):
+  "Return first n items of the iterable as a list"
+  return {k: mydict[k] for k in list(mydict)[:n]}
+
+
+def take_of_type(n, type, mydict):
+  d = {k: mydict[k] for k, v in mydict.items() if v.task_name.split('_')[0] == type}
+  return take(n, d)

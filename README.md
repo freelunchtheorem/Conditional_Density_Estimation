@@ -16,6 +16,7 @@
 - helpery.py, row 78, set n_jobs to 1 due to parallel error
 - put sampling of datapoints back in run_single_task in order to avoid large memory footprint
 - fix problems with tail risks est - sometimes takes extremely long
+- fix GMM figure export problem
 
 # Citing
 If you use NPDE in your research, you can cite it as follows:

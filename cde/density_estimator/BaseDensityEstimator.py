@@ -221,7 +221,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return param_dict
 
-  def plot3d(self, xlim=(0, 3.5), ylim=(-8, 8), resolution=50, show=False, numpyfig=False):
+  def plot3d(self, xlim=(-5, 5), ylim=(-8, 8), resolution=100, show=False, numpyfig=False):
     """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
 
     Args:
@@ -247,7 +247,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
     X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
       [resolution, resolution])
-    fig = plt.figure()
+    fig = plt.figure(dpi=300)
     ax = fig.gca(projection='3d')
     surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
                            linewidth=100, antialiased=True)
