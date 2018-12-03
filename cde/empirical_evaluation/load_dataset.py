@@ -40,6 +40,7 @@ def make_riskneutral_df(time_horizon):
   cols_of_interest = ['bakshiSkew', 'bakshiKurt', 'SVIX',]
   riskteural_measures = load_time_series_csv(RISKNEUTRAL_CSV, delimiter=';')
   riskteural_measures = riskteural_measures[['daystomaturity'] + cols_of_interest]
+  riskteural_measures = riskteural_measures.dropna()
   interpolated_df = pd.DataFrame()
   for date in list(set(riskteural_measures.index)):
     # filter all row for respective date
@@ -94,7 +95,23 @@ def make_overall_eurostoxx_df(return_period=1):
   df = compute_frama_french_factor_risk(df, [10])
   return df
 
+def target_feature_split(df, target_col, filter_nan=True):
+  assert target_col in df.columns
+
+  if filter_nan:
+    nrows = df.shape[0]
+    df = df.dropna()
+    print("Dropping %i rows from frame"%(nrows-df.shape[0]))
+
+  Y = df[target_col]
+  X = df.loc[:, df.columns != target_col]
+
+  assert X.shape[0] == Y.shape[0]
+  return X, Y
 
 if __name__ == '__main__':
   df = make_overall_eurostoxx_df()
-  print(df)
+
+  X, Y = target_feature_split(df, 'log_ret_1', filter_nan=True)
+
+  print(X, Y)
