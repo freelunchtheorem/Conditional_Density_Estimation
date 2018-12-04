@@ -189,7 +189,7 @@ class ConditionalDensity(BaseEstimator):
           ylim: 2-tuple specifying the y axis limits
           resolution: integer specifying the resolution of plot
         """
-    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+    assert self.ndim_y == 1, "Can only plot two dimensional distributions"
     # prepare mesh
 
     # turn off interactive mode is show is set to False
@@ -198,6 +198,8 @@ class ConditionalDensity(BaseEstimator):
       mpl.use('Agg')
 
     fig = plt.figure(dpi=300)
+    labels = []
+
     for i in range(len(x_cond)):
       Y = np.linspace(ylim[0], ylim[1], num=resolution)
       X = np.array([x_cond[i] for _ in range(resolution)])
@@ -211,9 +213,12 @@ class ConditionalDensity(BaseEstimator):
         Z = self.joint_pdf(X, Y)
 
 
-      plt_out = plt.plot(Y, Z, label='x=%.2f'%x_cond[i])
+      label = "x="+ str(x_cond[i])  if self.ndim_x > 1 else 'x=%.2f' % x_cond[i]
+      labels.append(label)
 
-    plt.legend([prefix + "x=%.2f"%x for x in x_cond], loc='upper right')
+      plt_out = plt.plot(Y, Z, label=label)
+
+    plt.legend([prefix + label for label in labels], loc='upper right')
 
     plt.xlabel("x")
     plt.ylabel("y")
