@@ -11,9 +11,12 @@ REALIZED_VOL_CSV = "../../data/2_Eurostoxx50/eurostoxx50_realized_volmeasures.cs
 RISKNEUTRAL_CSV = "../../data/2_Eurostoxx50/eurostoxx50_riskneutralmeasures.csv"
 VRP_CSV = "../../data/2_Eurostoxx50/eurostoxx50_vrp.csv"
 FAMA_FRENCH_CSV = "../../data/2_Eurostoxx50/FamaFrench_Europe_3_Factors_Daily.csv"
-FAMA_FRENCH_MOMENTS_CSV = "../../data/2_Eurostoxx50/FamaFrench_Europe_MOM_Factor_Daily.csv"
+FAMA_FRENCH_MOMENTUM_CSV = "../../data/2_Eurostoxx50/FamaFrench_Europe_MOM_Factor_Daily.csv"
 
-def make_return_df(return_periods):
+
+""" HELPER METHODS """
+
+def _make_return_df(return_periods):
   eurostoxx = load_time_series_csv(EUROSTOXX_CSV)
   for h in return_periods:
     eurostoxx['log_ret_%i'%h] = np.log(eurostoxx.lastprice) - np.log(eurostoxx.lastprice.shift(h))
@@ -22,21 +25,20 @@ def make_return_df(return_periods):
   eurostoxx['log_ret_last_period'] = (np.log(eurostoxx.lastprice) - np.log(eurostoxx.lastprice.shift(1))).shift(1)
   return eurostoxx.drop(labels=['lastprice'], axis=1)
 
-
-def make_risk_free_df():
+def _make_risk_free_df():
   euro_oid = load_time_series_csv(EURO_OIS_CSV)
   euro_oid = euro_oid[euro_oid.maturity == 1]
   euro_oid['log_risk_free_1d'] = np.log((euro_oid['yield']/365) + 1)
   return euro_oid.drop(labels=['maturity', 'yield'], axis=1)
 
-def make_exp_tail_variation_df():
+def _make_exp_tail_variation_df():
   return load_time_series_csv(EURO_TAIL_VARIATION_CSV)
 
-def make_realized_vol_df():
+def _make_realized_vol_df():
   realized_vol = load_time_series_csv(REALIZED_VOL_CSV)
   return realized_vol.loc[:, ['RealizedVariation']]
 
-def make_riskneutral_df(time_horizon):
+def _make_riskneutral_df(time_horizon):
   cols_of_interest = ['bakshiSkew', 'bakshiKurt', 'SVIX',]
   riskteural_measures = load_time_series_csv(RISKNEUTRAL_CSV, delimiter=';')
   riskteural_measures = riskteural_measures[['daystomaturity'] + cols_of_interest]
@@ -61,38 +63,39 @@ def make_riskneutral_df(time_horizon):
   del interpolated_df['daystomaturity']
   return interpolated_df
 
-def make_variance_risk_premium_df():
+def _make_variance_risk_premium_df():
   return load_time_series_csv(VRP_CSV, delimiter=';')
 
-def make_fama_french_df():
+def _make_fama_french_df():
   fama_french_factors = load_time_series_csv(FAMA_FRENCH_CSV, time_format="%Y%m%d")
   return fama_french_factors.loc[:, ['Mkt-RF', 'SMB', 'HML']]
 
-def make_fama_french_mom_df():
-  return load_time_series_csv(FAMA_FRENCH_MOMENTS_CSV, time_format="%Y%m%d")
+def _make_fama_french_mom_df():
+  return load_time_series_csv(FAMA_FRENCH_MOMENTUM_CSV, time_format="%Y%m%d")
 
-def compute_frama_french_factor_risk(df, time_steps):
+def _compute_frama_french_factor_risk(df, time_steps):
   assert set(['WML', "Mkt-RF", 'SMB', 'HML']) <= set(df.columns)
   for ts in time_steps:
     for factor in ['WML', "Mkt-RF", 'SMB', 'HML']:
       df[factor + '_risk_%id'%ts] = df[factor].rolling(ts).sum()
   return df
 
+""" PUBLIC METHODS """
 
 def make_overall_eurostoxx_df(return_period=1):
-  eurostoxx_returns = make_return_df(return_periods=[return_period])
-  riskfree = make_risk_free_df()
-  realized_vol = make_realized_vol_df()
-  riskneutral_measures = make_riskneutral_df(time_horizon=30)
-  fama_french = make_fama_french_df()
-  fama_french_mom = make_fama_french_mom_df()
+  eurostoxx_returns = _make_return_df(return_periods=[return_period])
+  riskfree = _make_risk_free_df()
+  realized_vol = _make_realized_vol_df()
+  riskneutral_measures = _make_riskneutral_df(time_horizon=30)
+  fama_french = _make_fama_french_df()
+  fama_french_mom = _make_fama_french_mom_df()
 
   df = eurostoxx_returns.join(riskfree, how='inner')
   df = df.join(realized_vol, how='inner')
   df = df.join(riskneutral_measures, how='inner')
   df = df.join(fama_french, how='inner')
   df = df.join(fama_french_mom, how='inner')  # add WML (winner-minus-looser) factor
-  df = compute_frama_french_factor_risk(df, [10])
+  df = _compute_frama_french_factor_risk(df, [10])
   return df
 
 def target_feature_split(df, target_col, filter_nan=True):
