@@ -1,7 +1,7 @@
 import pandas as pd
 import traceback
 import numpy as np
-
+import copy
 
 
 import matplotlib.pyplot as plt
@@ -46,7 +46,8 @@ class GoodnessOfFitResults:
     finally:
       file_handle_results_csv.close()
 
-  def plot_metric(self, graph_dicts, metric='hellinger_distance', simulator='EconDensity', title="", keys_of_interest=None):
+  def plot_metric(self, plot_dicts, metric='hellinger_distance', keys_of_interest=None,
+                  figsize=(20,8), layout=None, fig=None, color=None):
     """
     Generates a plot for a metric with axis x representing the n_observations and y representing the metric.
     Args:
@@ -63,54 +64,62 @@ class GoodnessOfFitResults:
     """
 
     assert self.results_df is not None, "first generate results df"
-    assert simulator in list(self.results_df["simulator"]), simulator + " not in the results dataframe"
     assert metric in self.results_df
-    assert graph_dicts is not None
+    assert plot_dicts is not None
     assert 'estimator' in self.results_df
     if keys_of_interest is not None:
       assert all(key in self.results_df for key in keys_of_interest), "at least one key of interest not in the results data frame"
 
-    n_curves_to_plot = len(graph_dicts)
-    color = iter(cm.rainbow(np.linspace(0, 1, n_curves_to_plot)))
+    if layout is None:
+      layout = (1, len(plot_dicts.keys()))
+    if fig is not None:
+      axarr = fig.axes
+    else:
+      fig, axarr = plt.subplots(*layout, figsize=figsize)
+      axarr = axarr.flatten()
+    for i, (ax_title, graph_dicts) in enumerate(plot_dicts.items()):
+
+      n_curves_to_plot = len(graph_dicts)
+      color_iter = iter(cm.rainbow(np.linspace(0, 1, n_curves_to_plot))) if color is None else copy.deepcopy(color)
 
 
-    d_keys = list(graph_dicts[0].keys())
-    d_keys = " ".join(str(x) if x != 'estimator' and x != 'simulator' else "" for x in d_keys)
+      # d_keys = list(graph_dicts.values()[0].keys())
+      # d_keys = " ".join(str(x) if x != 'estimator' and x != 'simulator' else "" for x in d_keys)
 
-    for graph_dict in graph_dicts:
-      """ data """
-      graph_dict['simulator'] = simulator
+      for label, graph_dict in graph_dicts.items():
+        """ data """
 
-      sub_df = self.results_df.loc[(self.results_df[list(graph_dict)] == pd.Series(graph_dict)).all(axis=1)]
+        sub_df = self.results_df.loc[(self.results_df[list(graph_dict)] == pd.Series(graph_dict)).all(axis=1)]
 
-      metric_values_mean = sub_df.groupby(by='n_observations').mean()[metric]
-      metric_values_std = sub_df.groupby(by='n_observations').std()[metric]
-      n_obs = metric_values_mean.index
+        metric_values_mean = sub_df.groupby(by='n_observations').mean()[metric]
+        metric_values_std = sub_df.groupby(by='n_observations').std()[metric]
+        n_obs = metric_values_mean.index
 
 
-      if keys_of_interest is not None:
-        intersect = graph_dict.keys() & keys_of_interest
-        intersect.add("estimator")
-        intersect.add("simulator")
-        sub_dict = OrderedDict((k, graph_dict[k]) for k in intersect)
-      else:
-        sub_dict = OrderedDict(sorted(graph_dict.items()))
+        if keys_of_interest is not None:
+          intersect = graph_dict.keys() & keys_of_interest
+          intersect.add("estimator")
+          intersect.add("simulator")
+          sub_dict = OrderedDict((k, graph_dict[k]) for k in intersect)
+        else:
+          sub_dict = OrderedDict(sorted(graph_dict.items()))
 
-      label = ', '.join("{}={}".format(k, v) for k, v in sub_dict.items())
+        label = label if label is not None else ', '.join("{}={}".format(k, v) for k, v in sub_dict.items())
 
-      " visual settings "
-      c = next(color)
+        " visual settings "
+        c = next(color_iter)
 
-      plt.plot(n_obs, metric_values_mean, color=c, label=label)
-      plt.fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
+        axarr[i].plot(n_obs, metric_values_mean, color=c, label=label)
+        axarr[i].fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
 
-    plt.xscale('log')
-    plt.xlabel('n_observations')
-    plt.ylabel(metric)
-    plt.title(title)
-    plt.legend()
-    plt.show()
-    print("plot printed")
+      axarr[i].set_xscale('log')
+      axarr[i].set_yscale('log')
+      axarr[i].set_xlabel('n_observations')
+      axarr[i].set_ylabel(metric)
+      axarr[i].set_title(ax_title)
+      axarr[i].legend()
+    return fig
+
 
   def plot_densities(self, selector, configs, metric="hellinger_distance", simulator="EconDensity", mode="pdf", xlim=(-5, 5), ylim=(-5, 5),
                      resolution=100, ):
