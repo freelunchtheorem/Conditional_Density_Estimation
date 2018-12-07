@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import scipy
 from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
 
-#TODO: understand how data normalization scheme affects the methods here
 class ConditionalDensity(BaseEstimator):
+
+  """ MEAN """
 
   def _mean_mc(self, x_cond, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
@@ -34,6 +35,8 @@ class ConditionalDensity(BaseEstimator):
       integral = mc_integration_cauchy(func, ndim=self.ndim_y, n_samples=n_samples)
       means[i] = integral
     return means
+
+  """ COVARIANCE """
 
   def _covariance_pdf(self, x_cond, n_samples=10 ** 6):
     assert hasattr(self, "mean_")
@@ -77,6 +80,8 @@ class ConditionalDensity(BaseEstimator):
       covs[i] = c
     return covs
 
+  """ SKEWNESS """
+
   def _skewness_pdf(self, x_cond, n_samples=10 ** 6):
     assert self.ndim_y == 1, "this function does not support co-skewness - target variable y must be one-dimensional"
     assert hasattr(self, "mean_")
@@ -119,6 +124,51 @@ class ConditionalDensity(BaseEstimator):
       5
     return skewness
 
+  """ KURTOSIS """
+
+  def _kurtosis_pdf(self, x_cond, n_samples=10 ** 6):
+    assert self.ndim_y == 1, "this function does not support co-kurtosis - target variable y must be one-dimensional"
+    assert hasattr(self, "mean_")
+    assert hasattr(self, "pdf")
+    assert hasattr(self, "covariance")
+
+    mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
+    var = np.reshape(self.covariance(x_cond, n_samples=n_samples), (x_cond.shape[0],))
+
+    skewness = np.empty(shape=(x_cond.shape[0],))
+
+    for i in range(x_cond.shape[0]):
+      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+
+      def kurt(y):
+        k = (y - mean[i])**4 / var**2
+        p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
+        res = k * p
+        return res
+
+      integral = mc_integration_cauchy(kurt, ndim=self.ndim_y, n_samples=n_samples)
+      skewness[i] = integral.reshape((self.ndim_y, self.ndim_y))
+
+    return skewness - 3 # excess kurtosis
+
+  def _kurtosis_mc(self, x_cond, n_samples=10 ** 7):
+    if hasattr(self, 'sample'):
+      sample = self.sample
+    elif hasattr(self, 'simulate_conditional'):
+      sample = self.simulate_conditional
+    else:
+      raise AssertionError("Requires sample or simulate_conditional method")
+
+    kurtosis = np.empty(shape=(x_cond.shape[0],))
+    for i in range(x_cond.shape[0]):
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, y_sample = sample(x)
+
+      kurtosis[i] = scipy.stats.kurtosis(y_sample)
+    return kurtosis
+
+  """ QUANTILES / VALUE-AT-RISK """
+
   def _quantile_mc(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
       sample = self.sample
@@ -148,6 +198,8 @@ class ConditionalDensity(BaseEstimator):
     pdf_fun = lambda y: self.pdf(x_cond, y)
 
     return find_root_newton_method(fun=cdf_fun, grad=pdf_fun, x0=np.zeros(x_cond.shape[0]), eps=eps, max_iter=max_iter)
+
+  """ CONDITONAL VALUE-AT-RISK """
 
   def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
@@ -195,6 +247,8 @@ class ConditionalDensity(BaseEstimator):
       CVaRs[i] = np.mean(shortfall_samples)
 
     return CVaRs
+
+  """ OTHER HELPERS """
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)

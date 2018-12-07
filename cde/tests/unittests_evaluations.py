@@ -380,6 +380,33 @@ class TestRiskMeasures(unittest.TestCase):
 
     print("True Skewness value", est.skewness)
 
+  def test_kurtosis1(self):
+    mu = np.array([-0.001])
+    sigma = np.array([[0.02]])
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=1, can_sample=False)
+    est.fit(None, None)
+
+    kurt = est._kurtosis_mc(x_cond=np.array([[0, 1]]), n_samples=10**6)
+    print("Kurtosis sample estimate:", kurt)
+    self.assertAlmostEqual(kurt[0], 0, places=1)
+
+    kurt = est._kurtosis_pdf(x_cond=np.array([[0, 1]]), n_samples=10**6)
+    print("Kurtosis pdf estimate:", kurt)
+    self.assertAlmostEqual(kurt[0], 0, places=1)
+
+  def test_kurtosis2(self):
+    est = SkewNormalDummy(shape=-2, ndim_x=2, ndim_y=1)
+    est.fit(None, None)
+
+    kurt = est._kurtosis_mc(x_cond=np.array([[0, 1]]), n_samples=10**6)
+    print("Kurtosis sample estimate:", kurt)
+    self.assertAlmostEqual(kurt[0], est.kurtosis, places=1)
+
+    kurt = est._kurtosis_pdf(x_cond=np.array([[0, 1]]), n_samples=10**6)
+    print("Kurtosis pdf estimate:", kurt)
+    self.assertAlmostEqual(kurt[0], est.kurtosis, places=1)
+
+    print("True Kurtosis value", est.kurtosis)
 
   def test_conditional_value_at_risk_mixture(self):
     np.random.seed(24)

@@ -94,6 +94,11 @@ class SkewNormalDummy(BaseDensityEstimator):
     skew = ((4-np.pi) / 2) * ((gamma * np.sqrt(2/np.pi))**3 / (1 - 2 * gamma**2 / np.pi )**(3/2))
     return skew
 
+  @property
+  def kurtosis(self):
+    gamma = self.shape / np.sqrt(1 + self.shape ** 2)
+    kurt = 2*(np.pi - 3) * (gamma * np.sqrt(2/np.pi))**4 / (1 - 2*gamma**2 / np.pi)**2
+    return kurt
 
 class SimulationDummy(BaseConditionalDensitySimulation):
   def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, has_pdf=True, can_sample=True):
