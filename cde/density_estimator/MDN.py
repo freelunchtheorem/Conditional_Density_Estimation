@@ -204,7 +204,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:
         self.scales_unnormalized = self.scales * self.std_y_sym
-        self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_x_sym
+        self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_y_sym
       else:
         self.scales_unnormalized = self.scales
         self.locs_unnormalized = self.locs
