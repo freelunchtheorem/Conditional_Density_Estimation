@@ -149,7 +149,7 @@ def mc_integration_cauchy(func, ndim, n_samples=10**7, batch_size=None):
   result = np.mean(np.stack(batch_results, axis=0), axis=0)
   return result
 
-def _multidim_cauchy_pdf(x, loc=0, scale=2):
+def _multidim_cauchy_pdf(x, loc=0, scale=1):
   """ multidimensional cauchy pdf """
 
   p = stats.cauchy.pdf(x, loc=loc, scale=scale)

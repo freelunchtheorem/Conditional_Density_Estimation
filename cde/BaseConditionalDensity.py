@@ -5,8 +5,7 @@ import scipy.stats as stats
 import warnings
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
+import scipy
 from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
 
 #TODO: understand how data normalization scheme affects the methods here
@@ -32,7 +31,7 @@ class ConditionalDensity(BaseEstimator):
     for i in range(x_cond.shape[0]):
       x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
       func = lambda y: y * np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y))
-      integral = mc_integration_cauchy(func, ndim=2, n_samples=n_samples)
+      integral = mc_integration_cauchy(func, ndim=self.ndim_y, n_samples=n_samples)
       means[i] = integral
     return means
 
@@ -51,7 +50,7 @@ class ConditionalDensity(BaseEstimator):
         # compute cov matrices c for sampled instances and weight them with the probability p from the pdf
         c = np.empty((a.shape[0], a.shape[1] ** 2))
         for j in range(a.shape[0]):
-          c[j, :] = np.outer(a[j], a[j]).flatten()
+          c[j, :] = np.reshape(np.outer(a[j], a[j]), (a.shape[1] ** 2,))
 
         p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
         res = c * p
@@ -77,6 +76,48 @@ class ConditionalDensity(BaseEstimator):
       c = np.cov(y_sample, rowvar=False)
       covs[i] = c
     return covs
+
+  def _skewness_pdf(self, x_cond, n_samples=10 ** 6):
+    assert self.ndim_y == 1, "this function does not support co-skewness - target variable y must be one-dimensional"
+    assert hasattr(self, "mean_")
+    assert hasattr(self, "pdf")
+    assert hasattr(self, "covariance")
+
+    mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
+    std = np.reshape(np.sqrt(self.covariance(x_cond, n_samples=n_samples)), (x_cond.shape[0],))
+
+    skewness = np.empty(shape=(x_cond.shape[0],))
+
+    for i in range(x_cond.shape[0]):
+      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+
+      def skew(y):
+        s = ((y - mean[i]) / std[i])**3
+        p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
+        res = s * p
+        return res
+
+      integral = mc_integration_cauchy(skew, ndim=self.ndim_y, n_samples=n_samples)
+      skewness[i] = integral.reshape((self.ndim_y, self.ndim_y))
+
+    return skewness
+
+  def _skewness_mc(self, x_cond, n_samples=10 ** 7):
+    if hasattr(self, 'sample'):
+      sample = self.sample
+    elif hasattr(self, 'simulate_conditional'):
+      sample = self.simulate_conditional
+    else:
+      raise AssertionError("Requires sample or simulate_conditional method")
+
+    skewness = np.empty(shape=(x_cond.shape[0],))
+    for i in range(x_cond.shape[0]):
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, y_sample = sample(x)
+
+      skewness[i] = scipy.stats.skew(y_sample)
+      5
+    return skewness
 
   def _quantile_mc(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     if hasattr(self, 'sample'):

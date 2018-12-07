@@ -32,12 +32,15 @@ class GaussianDummy(BaseDensityEstimator):
     self.fitted = True
 
   def pdf(self, X, Y):
+    X, Y = self._handle_input_dimensionality(X, Y)
     return self.gaussian.pdf(Y)
 
   def cdf(self, X, Y):
+    X, Y = self._handle_input_dimensionality(X, Y)
     return self.gaussian.cdf(Y)
 
   def sample(self, X):
+    X = self._handle_input_dimensionality(X)
     if np.size(X) == 1:
       Y = self.gaussian.rvs(size=1)
     else:
@@ -46,6 +49,51 @@ class GaussianDummy(BaseDensityEstimator):
 
   def __str__(self):
     return str('\nEstimator type: {}\n n_dim_x: {}\n n_dim_y: {}\n mean: {}\n' .format(self.__class__.__name__, self.ndim_x, self.ndim_y, self.mean))
+
+
+class SkewNormalDummy(BaseDensityEstimator):
+
+  def __init__(self, shape=1, ndim_x=1, ndim_y=1, has_cdf=True, has_pdf=True, can_sample=True):
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
+    self.ndim = self.ndim_x + self.ndim_y
+
+    assert ndim_y == 1, "only on-dimensional y supported for skew normal dummy"
+
+    self.shape = shape
+
+    self.distribution = stats.skewnorm(a=shape)
+    self.fitted = False
+
+    self.can_sample = can_sample
+    self.has_pdf = has_pdf
+    self.has_cdf = has_cdf
+
+  def fit(self, X, Y, verbose=False):
+    self.fitted = True
+
+  def pdf(self, X, Y):
+    X, Y = self._handle_input_dimensionality(X, Y)
+    return self.distribution.pdf(Y).flatten()
+
+  def cdf(self, X, Y):
+    X, Y = self._handle_input_dimensionality(X, Y)
+    return self.distribution.cdf(Y).flatten()
+
+  def sample(self, X):
+    X = self._handle_input_dimensionality(X)
+    if np.size(X) == 1:
+      Y = self.distribution.rvs(size=1)
+    else:
+      Y = self.distribution.rvs(size=(X.shape[0]))
+    return X,Y
+
+  @property
+  def skewness(self):
+    gamma = self.shape / np.sqrt(1+self.shape**2)
+    skew = ((4-np.pi) / 2) * ((gamma * np.sqrt(2/np.pi))**3 / (1 - 2 * gamma**2 / np.pi )**(3/2))
+    return skew
+
 
 class SimulationDummy(BaseConditionalDensitySimulation):
   def __init__(self, mean=2, cov=None, ndim_x=1, ndim_y=1, has_cdf=True, has_pdf=True, can_sample=True):
