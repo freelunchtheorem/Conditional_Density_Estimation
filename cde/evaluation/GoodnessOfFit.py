@@ -51,14 +51,14 @@ class GoodnessOfFit:
     self.Y = Y
     self.n_observations = n_observations
 
+    self.estimator = estimator
+
     if task_name is not None:
       self.task_name = task_name
     elif hasattr(self.estimator, 'name'):
       self.task_name = str(self.estimator.name)
     else:
       self.task_name = type(self.estimator).__name__ + '_' + type(self.probabilistic_model).__name__
-
-    self.estimator = estimator
 
   def fit_estimator(self, print_fit_result=True): #todo set to False
     """

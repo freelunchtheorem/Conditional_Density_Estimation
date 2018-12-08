@@ -553,7 +553,8 @@ if __name__ == '__main__':
    'unittests_estimators.TestHelpers',
    'unittests_estimators.TestRiskMeasures',
    'unittests_estimators.TestConditionalDensityEstimators_2d_gaussian',
-   'unittests_estimators.TestConditionalDensityEstimators_fit_by_crossval'
+   'unittests_estimators.TestRegularization',
+   #'unittests_estimators.TestConditionalDensityEstimators_fit_by_crossval'
    ]
   suite = unittest.TestSuite()
   for t in testmodules:

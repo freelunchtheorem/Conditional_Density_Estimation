@@ -5,9 +5,10 @@ import scipy.stats as stats
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+print(sys.path)
 from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump
 from cde.helpers import mc_integration_cauchy
-from .Dummies import SimulationDummy
+from Dummies import SimulationDummy
 
 
 class TestArmaJump(unittest.TestCase):
@@ -223,112 +224,6 @@ class TetsSkewNormal(unittest.TestCase):
     x2 = sim_2.simulate(100)
     self.assertTrue(np.allclose(x1, x2))
 
-
-class TestRiskMeasures(unittest.TestCase):
-  def test_value_at_risk_mc(self):
-    # prepare estimator dummy
-    mu1 = np.array([0])
-    sigma1 = np.identity(n=1)*1
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
-
-    alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
-    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
-    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
-    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
-
-  def test_value_at_risk_cdf(self):
-    # prepare estimator dummy
-    mu1 = np.array([0])
-    sigma1 = np.identity(n=1)*1
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
-
-    alpha = 0.05
-    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
-    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
-    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
-    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
-
-  def test_conditional_value_at_risk_mc(self):
-    # prepare estimator dummy
-    mu = 0
-    sigma = 1
-    mu1 = np.array([mu])
-    sigma1 = np.identity(n=1) * sigma
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
-
-    alpha = 0.02
-
-    CVaR_true = mu - sigma/alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=10**7)
-
-    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
-    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
-
-  def test_conditional_value_at_risk_mc_2dim_xcond(self):
-    # prepare estimator dummy
-    mu = 0
-    sigma = 1
-    mu1 = np.array([mu])
-    sigma1 = np.identity(n=1) * sigma
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=1, has_cdf=False)
-
-    alpha = 0.02
-    # x_cond shape (2,2)
-    CVaR_true = mu - sigma/alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha, n_samples=10**8)
-
-    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
-    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
-
-  def test_conditional_value_at_risk_mc_1dim_xcond_flattend(self):
-    # prepare estimator dummy
-    mu = 0
-    sigma = 1
-    mu1 = np.array([mu])
-    sigma1 = np.identity(n=1) * sigma
-    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
-
-    alpha = 0.02
-
-    # x_cond shape (2,)
-    CVaR_true = mu - sigma / alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
-    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha, n_samples=2*10**7)
-
-    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
-    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
-
-  def test_mean_mc(self):
-    # prepare estimator dummy
-    mu = np.array([0,1])
-    sigma = np.identity(n=2) * 1
-    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, has_cdf=False)
-
-    mean_est = est.mean_(x_cond=np.array([[0, 1]]))
-    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
-    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
-
-  def test_mean_pdf(self):
-    # prepare estimator dummy
-    mu = np.array([0, 1])
-    sigma = np.identity(n=2) * 1
-    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
-
-    mean_est = est.mean_(x_cond=np.array([[0, 1]]))
-    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
-    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
-
-  def test_covariance(self):
-    # prepare estimator dummy
-    mu = np.array([0, 1])
-    sigma = np.array([[1,-0.2],[-0.2,2]])
-    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
-
-    cov_est = est.covariance(x_cond=np.array([[0, 1]]))
-    self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
-    self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
-
-
 class TestJumpDiffusionModel(unittest.TestCase):
 
   def test_simulate_on_skewness(self):
@@ -369,6 +264,113 @@ class TestJumpDiffusionModel(unittest.TestCase):
     VaR = jdm.value_at_risk(x_cond)[0]
     self.assertLessEqual(VaR, -0.01)
 
+class TestRiskMeasures(unittest.TestCase):
+  def test_value_at_risk_mc(self):
+    # prepare estimator dummy
+    mu1 = np.array([0])
+    sigma1 = np.identity(n=1)*1
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.01
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
+    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+
+  def test_value_at_risk_cdf(self):
+    # prepare estimator dummy
+    mu1 = np.array([0])
+    sigma1 = np.identity(n=1)*1
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
+
+    alpha = 0.05
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
+    self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
+    self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
+
+  def test_conditional_value_at_risk_mc(self):
+    # prepare estimator dummy
+    np.random.seed(22)
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=True)
+
+    alpha = 0.02
+
+    CVaR_true = mu - sigma/alpha * stats.norm.pdf(stats.norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=10**7)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+
+  def test_conditional_value_at_risk_mc_2dim_xcond(self):
+    # prepare estimator dummy
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+    # x_cond shape (2,2)
+    CVaR_true = mu - sigma/alpha * stats.norm.pdf(stats.norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha, n_samples=10**8)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+
+  def test_conditional_value_at_risk_mc_1dim_xcond_flattend(self):
+    # prepare estimator dummy
+    np.random.seed(22)
+    mu = 0
+    sigma = 1
+    mu1 = np.array([mu])
+    sigma1 = np.identity(n=1) * sigma
+    est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
+
+    alpha = 0.02
+
+    # x_cond shape (2,)
+    CVaR_true = mu - sigma / alpha * stats.norm.pdf(stats.norm.ppf(alpha, loc=0, scale=1))
+    CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha, n_samples=4*10**7)
+
+    self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
+    self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
+
+  def test_mean_mc(self):
+    # prepare estimator dummy
+    mu = np.array([0,1])
+    sigma = np.identity(n=2) * 1
+    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, has_cdf=False)
+
+    mean_est = est.mean_(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
+    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
+
+  def test_mean_pdf(self):
+    # prepare estimator dummy
+    mu = np.array([0, 1])
+    sigma = np.identity(n=2) * 1
+    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+
+    mean_est = est.mean_(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
+    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
+
+  def test_covariance(self):
+    # prepare estimator dummy
+    mu = np.array([0, 1])
+    sigma = np.array([[1,-0.2],[-0.2,2]])
+    est = SimulationDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+
+    cov_est = est.covariance(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
+    self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
+
+
 def mean_pdf(density, x_cond, n_samples=10 ** 6):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
   for i in range(x_cond.shape[0]):
@@ -402,12 +404,13 @@ def covariance_pdf(density, x_cond, n_samples=10 ** 6):
 
 
 if __name__ == '__main__':
-  #pytest.main('--html=unittest_report.html --self-contained-html')
-  if __name__ == '__main__':
-
 
     testmodules = [
-      'unittests_simulations.TestJumpDiffusionModel'
+      'unittests_simulations.TestArmaJump',
+      'unittests_simulations.TestGaussianMixture',
+      'unittests_simulations.TestEconDensity',
+      'unittests_simulations.TestJumpDiffusionModel',
+      'unittests_simulations.TestRiskMeasures'
                    ]
     suite = unittest.TestSuite()
     for t in testmodules:

@@ -137,7 +137,7 @@ def find_root_by_bounding(fun, left, right, eps=1e-8, max_iter=1e4):
         middle = (right + left)/2
         f = fun(middle)
 
-        left_of_zero = f < 0
+        left_of_zero = (f < 0).flatten()
         left[left_of_zero] = middle[left_of_zero]
         right[np.logical_not(left_of_zero)] = middle[np.logical_not(left_of_zero)]
 
