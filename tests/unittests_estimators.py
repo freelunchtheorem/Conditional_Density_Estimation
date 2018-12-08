@@ -3,10 +3,15 @@ from scipy.stats import norm
 import warnings
 import pickle
 import tensorflow as tf
+import sys
+import os
+import numpy as np
+import scipy.stats as stats
 
-from cde.helpers import *
-from cde.density_estimator import *
-from cde.tests.Dummies import *
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from cde.helpers import sample_center_points, mc_integration_cauchy, norm_along_axis_1
+from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, \
+  ConditionalKernelDensityEstimation, LSConditionalDensityEstimation, NeighborKernelDensityEstimation
 
 class TestHelpers(unittest.TestCase):
 
@@ -468,14 +473,12 @@ class TestRegularization(unittest.TestCase):
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
-    with tf.Session() as sess:
+    with tf.Session():
       model = KernelMixtureNetwork("kmn_data_normalization_2", 2, 2, n_centers=5, x_noise_std=None, y_noise_std=None,
                                     data_normalization=True, n_training_epochs=2000, random_seed=22, keep_edges=False,
                                    train_scales=True, weight_normalization=True, init_scales=np.array([1.0]))
 
       model.fit(X, Y)
-      # y_mean, y_std = sess.run([model.mean_y_sym, model.std_y_sym])
-      # print(y_mean, y_std)
       cond_mean = model.mean_(Y)
       print(np.mean(cond_mean))
       mean_diff = np.abs(mean - np.mean(cond_mean))
@@ -539,9 +542,8 @@ class TestRegularization(unittest.TestCase):
 def suite():
   suite = unittest.TestSuite()
   suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
-  suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
+  #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
   suite.addTest(TestHelpers())
-  suite.addTest(TestRiskMeasures())
   return suite
 
 if __name__ == '__main__':

@@ -1,15 +1,15 @@
-from cde.helpers import *
-from cde.evaluation.ConfigRunner import ConfigRunner
-from ml_logger import logger
-from cde.evaluation_runs.question1_noise_reg_xy import question1
-
 import random
-import os
 import unittest
 import config
 import shutil
 import tensorflow as tf
+import sys
+import os
+from ml_logger import logger
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from cde.evaluation.ConfigRunner import ConfigRunner
+from cde.evaluation_runs.question1_noise_reg_xy import question1
 
 NUM_CONFIGS_TO_TEST = 1
 

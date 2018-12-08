@@ -1,8 +1,14 @@
 import unittest
-from cde.density_simulation import *
-from cde.helpers import *
-from cde.tests import SimulationDummy
-from scipy.stats import norm
+import sys
+import os
+import scipy.stats as stats
+import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump
+from cde.helpers import mc_integration_cauchy
+from .Dummies import SimulationDummy
+
 
 class TestArmaJump(unittest.TestCase):
 
@@ -146,8 +152,8 @@ class TestEconDensity(unittest.TestCase):
 
     diff = np.sum(np.abs(VaR_cdf - VaR))
 
-    self.assertAlmostEqual(VaR[0], norm.ppf(0.05, loc=0, scale=1), places=4)
-    self.assertAlmostEqual(VaR[1], norm.ppf(0.05, loc=1, scale=2), places=4)
+    self.assertAlmostEqual(VaR[0], stats.norm.ppf(0.05, loc=0, scale=1), places=4)
+    self.assertAlmostEqual(VaR[1], stats.norm.ppf(0.05, loc=1, scale=2), places=4)
     self.assertAlmostEqual(diff, 0, places=4)
 
   def test_conditional_value_at_risk(self):
@@ -227,7 +233,7 @@ class TestRiskMeasures(unittest.TestCase):
 
     alpha = 0.01
     VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
-    VaR_true = norm.ppf(alpha, loc=0, scale=1)
+    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
 
@@ -239,7 +245,7 @@ class TestRiskMeasures(unittest.TestCase):
 
     alpha = 0.05
     VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
-    VaR_true = norm.ppf(alpha, loc=0, scale=1)
+    VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)
 
@@ -253,7 +259,7 @@ class TestRiskMeasures(unittest.TestCase):
 
     alpha = 0.02
 
-    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_true = mu - sigma/alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
     CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=10**7)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
@@ -269,7 +275,7 @@ class TestRiskMeasures(unittest.TestCase):
 
     alpha = 0.02
     # x_cond shape (2,2)
-    CVaR_true = mu - sigma/alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_true = mu - sigma/alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
     CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0, 1], [0, 1]]), alpha=alpha, n_samples=10**8)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
@@ -286,7 +292,7 @@ class TestRiskMeasures(unittest.TestCase):
     alpha = 0.02
 
     # x_cond shape (2,)
-    CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha, loc=0, scale=1))
+    CVaR_true = mu - sigma / alpha * stats.norm.pdf(norm.ppf(alpha, loc=0, scale=1))
     CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]).flatten(), alpha=alpha, n_samples=2*10**7)
 
     self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)

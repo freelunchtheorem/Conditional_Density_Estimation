@@ -1,16 +1,17 @@
-import sys
-
-sys.path.append('tmp/pycharm_project_112')
-
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
-from cde.tests.Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
-from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
-
-from scipy.stats import norm
 import unittest
 import warnings
-import scipy.stats as stats
 import numpy as np
+import sys
+import os
+import scipy.stats as stats
+from scipy.stats import norm
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
+from .Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
+from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
+
+
 
 alpha = 0.05
 
