@@ -11,9 +11,27 @@ from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
 from Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
 
+from cde.utils.importance_sampling import monte_carlo_integration
 
 
 alpha = 0.05
+
+class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
+
+  def test_adaptive_importance_sampling(self):
+    skew = lambda x: x ** 3
+    log_prob =  lambda x: stats.norm.logpdf(x).flatten()
+
+    result = monte_carlo_integration(skew, log_prob, ndim=1, n_samples=10**6, adaptive=True)
+    print("skew", result)
+    self.assertAlmostEqual(result, 0.0, places=1)
+
+    kurt = lambda x: x**4
+
+    result = monte_carlo_integration(kurt, log_prob, ndim=1, n_samples=10**6, adaptive=True)
+    print("kurt", result)
+    self.assertAlmostEqual(result, 3, places=1)
+
 
 class TestGoodnessOfFitTests(unittest.TestCase):
 
@@ -184,6 +202,7 @@ class TestGoodnessOfFitTests(unittest.TestCase):
     func = lambda y, x: stats.multivariate_normal.pdf(y, mean=[0,0], cov=np.diag([2,2]))
     integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
     self.assertAlmostEqual(1.0, integral[0], places=2)
+
 
 class TestRiskMeasures(unittest.TestCase):
 
@@ -427,13 +446,14 @@ class TestRiskMeasures(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  #pytest.main('--html=unittest_report.html --self-contained-html')
   if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
 
     testmodules = [
-      'unittests_evaluations.TestGoodnessOfFitTests'
+      'unittests_evaluations.TestAdaptiveMonteCarloIntegration',
+      'unittests_evaluations.TestGoodnessOfFitTests',
+      'unittests_evaluations.TestRiskMeasures',
                    ]
     suite = unittest.TestSuite()
     for t in testmodules:
