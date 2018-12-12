@@ -1,17 +1,22 @@
-from cde.utils.io import load_time_series_csv
 import numpy as np
+import os
 import pandas as pd
 from scipy.interpolate import InterpolatedUnivariateSpline
 
+from cde.utils.io import load_time_series_csv
 
-EURO_OIS_CSV = "../../data/2_Eurostoxx50/eur_ois.csv"
-EUROSTOXX_CSV = "../../data/2_Eurostoxx50/eurostoxx50_prices_eod.csv"
-EURO_TAIL_VARIATION_CSV = "../../data/2_Eurostoxx50/eurostoxx50_exp_tail_variation_measures.csv"
-REALIZED_VOL_CSV = "../../data/2_Eurostoxx50/eurostoxx50_realized_volmeasures.csv"
-RISKNEUTRAL_CSV = "../../data/2_Eurostoxx50/eurostoxx50_riskneutralmeasures.csv"
-VRP_CSV = "../../data/2_Eurostoxx50/eurostoxx50_vrp.csv"
-FAMA_FRENCH_CSV = "../../data/2_Eurostoxx50/FamaFrench_Europe_3_Factors_Daily.csv"
-FAMA_FRENCH_MOMENTUM_CSV = "../../data/2_Eurostoxx50/FamaFrench_Europe_MOM_Factor_Daily.csv"
+
+
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data'))
+
+EURO_OIS_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eur_ois.csv")
+EUROSTOXX_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eurostoxx50_prices_eod.csv")
+EURO_TAIL_VARIATION_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eurostoxx50_exp_tail_variation_measures.csv")
+REALIZED_VOL_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eurostoxx50_realized_volmeasures.csv")
+RISKNEUTRAL_CSV = os.path.join(DATA_DIR,"2_Eurostoxx50/eurostoxx50_riskneutralmeasures.csv")
+VRP_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eurostoxx50_vrp.csv")
+FAMA_FRENCH_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/FamaFrench_Europe_3_Factors_Daily.csv")
+FAMA_FRENCH_MOMENTUM_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/FamaFrench_Europe_MOM_Factor_Daily.csv")
 
 
 """ HELPER METHODS """

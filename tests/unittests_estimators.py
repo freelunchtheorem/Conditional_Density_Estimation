@@ -69,12 +69,12 @@ class TestHelpers(unittest.TestCase):
 
   """ monte carlo integration """
 
-  def test_mc_intrgration_chauchy_1(self):
+  def test_mc_integration_chauchy_1(self):
     func = lambda y: np.expand_dims(stats.multivariate_normal.pdf(y, mean=[0, 0], cov=np.diag([2, 2])), axis=1)
     integral = mc_integration_cauchy(func, ndim=2, n_samples=10 ** 7, batch_size=10**6)
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
-  def test_mc_intrgration_chauchy_2(self):
+  def test_mc_integration_chauchy_2(self):
     func = lambda y: y * np.tile(np.expand_dims(stats.multivariate_normal.pdf(y, mean=[1, 2], cov=np.diag([2, 2])), axis=1), (1,2))
     integral = mc_integration_cauchy(func, ndim=2, n_samples=10 ** 7, batch_size=10**6)
     self.assertAlmostEqual(1, integral[0], places=2)

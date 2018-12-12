@@ -135,21 +135,21 @@ class ConditionalDensity(BaseEstimator):
     mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
     var = np.reshape(self.covariance(x_cond, n_samples=n_samples), (x_cond.shape[0],))
 
-    skewness = np.empty(shape=(x_cond.shape[0],))
+    kurtosis = np.empty(shape=(x_cond.shape[0],))
 
     for i in range(x_cond.shape[0]):
       x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
 
       def kurt(y):
-        k = (y - mean[i])**4 / var**2
+        k = (y - mean[i])**4 / var[i]**2
         p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
         res = k * p
         return res
 
       integral = mc_integration_cauchy(kurt, ndim=self.ndim_y, n_samples=n_samples)
-      skewness[i] = integral.reshape((self.ndim_y, self.ndim_y))
+      kurtosis[i] = integral.reshape((self.ndim_y, self.ndim_y))
 
-    return skewness - 3 # excess kurtosis
+    return kurtosis - 3 # excess kurtosis
 
   def _kurtosis_mc(self, x_cond, n_samples=10 ** 7):
     if hasattr(self, 'sample'):
