@@ -32,6 +32,18 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     print("kurt", result)
     self.assertAlmostEqual(result, 3, places=1)
 
+  def test_adaptive_importance_sampling_seed(self):
+    var = lambda x: x ** 2
+    log_prob = lambda x: stats.norm.logpdf(x).flatten()
+
+    rng1 = np.random.RandomState(22)
+    result1 = monte_carlo_integration(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng1)
+
+    rng2 = np.random.RandomState(22)
+    result2 = monte_carlo_integration(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng2)
+
+    self.assertAlmostEqual(result1, result2)
+
 
 class TestGoodnessOfFitTests(unittest.TestCase):
 

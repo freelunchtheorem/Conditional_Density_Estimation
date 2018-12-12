@@ -7,7 +7,9 @@ from pypmc.tools import History as _History
 from pypmc.mix_adapt.pmc import student_t_pmc
 from pypmc.density.mixture import create_t_mixture
 
-def multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
+""" Some Helper Functions for the Adaptive Monte Carlo Integration"""
+
+def _multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
     ''' generates random variables of multivariate t distribution
         Parameters
 
@@ -34,7 +36,6 @@ def multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
     z = random_state.multivariate_normal(np.zeros(d), cov, (n,))
     return loc + z / np.sqrt(x)[:, None]
 
-
 class _Student_t_Mixture_Density_Sampler():
   def __init__(self, student_t_mixture):
     assert student_t_mixture.dim == 1
@@ -43,7 +44,7 @@ class _Student_t_Mixture_Density_Sampler():
     self.comps = student_t_mixture.components
 
   def propose(self, N, rng=None, trace=False):
-    t_samples = np.stack([multivariate_t_rvs(comp.mu, comp.sigma, dof=comp.dof, n=N, random_state=rng) for comp in self.comps])
+    t_samples = np.stack([_multivariate_t_rvs(comp.mu, comp.sigma, dof=comp.dof, n=N, random_state=rng) for comp in self.comps])
 
     mask = stats.bernoulli.rvs(self.weights[0], size=N, random_state=rng)
     mask_array = np.stack([mask, np.logical_not(mask)])
@@ -161,6 +162,9 @@ class _ImportanceSamplerTMixture(object):
             this_run[:] = sampler.propose(N, self.rng)
             return this_run
 
+
+""" The actual monte_carlo_integration function"""
+
 def monte_carlo_integration(fun, log_prob, ndim, n_samples, adaptive=True, n_em_steps=10,
                             n_comps=2, random_state=None):
     """
@@ -190,7 +194,7 @@ def monte_carlo_integration(fun, log_prob, ndim, n_samples, adaptive=True, n_em_
     covs = [np.eye(ndim) for _ in range(n_comps)]
     initial_proposal_dist = create_t_mixture(means, covs, dofs, weights)
 
-    sampler = _ImportanceSamplerTMixture(log_target_adaptation, initial_proposal_dist)
+    sampler = _ImportanceSamplerTMixture(log_target_adaptation, initial_proposal_dist, rng=random_state)
 
     # adapt proposal distribution
     if adaptive:
