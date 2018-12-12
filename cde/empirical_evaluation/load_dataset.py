@@ -103,7 +103,7 @@ def make_overall_eurostoxx_df(return_period=1):
   df = _compute_frama_french_factor_risk(df, [10])
   return df
 
-def target_feature_split(df, target_col, filter_nan=True):
+def target_feature_split(df, target_col, filter_nan=True, return_features=False):
   assert target_col in df.columns
 
   if filter_nan:
@@ -115,7 +115,11 @@ def target_feature_split(df, target_col, filter_nan=True):
   X = df.loc[:, df.columns != target_col]
 
   assert X.shape[0] == Y.shape[0]
-  return X, Y
+  if return_features:
+    features = df.columns[df.columns != target_col]
+    return X, Y, features
+  else:
+     return X, Y
 
 if __name__ == '__main__':
   df = make_overall_eurostoxx_df()
