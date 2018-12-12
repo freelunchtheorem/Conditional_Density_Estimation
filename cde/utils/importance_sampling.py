@@ -38,10 +38,10 @@ def _multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
 
 class _Student_t_Mixture_Density_Sampler():
   def __init__(self, student_t_mixture):
-    assert student_t_mixture.dim == 1
     assert len(student_t_mixture.components)
     self.weights = student_t_mixture.weights
     self.comps = student_t_mixture.components
+    assert np.size(self.weights) == 2, "only supports mixture of two dists"
 
   def propose(self, N, rng=None, trace=False):
     t_samples = np.stack([_multivariate_t_rvs(comp.mu, comp.sigma, dof=comp.dof, n=N, random_state=rng) for comp in self.comps])
@@ -49,7 +49,7 @@ class _Student_t_Mixture_Density_Sampler():
     mask = stats.bernoulli.rvs(self.weights[0], size=N, random_state=rng)
     mask_array = np.stack([mask, np.logical_not(mask)])
     mask_array = np.tile(np.expand_dims(mask_array, axis=-1), (1, 1, t_samples.shape[-1]))
-    mixture_samples = np.reshape(np.sum(np.multiply(t_samples, mask_array), axis=0), (N, 1))
+    mixture_samples = np.reshape(np.sum(np.multiply(t_samples, mask_array), axis=0), (N, t_samples.shape[-1]))
     origin = np.logical_not(mask).astype(np.int)
     if trace is True:
         return mixture_samples, origin
@@ -165,14 +165,14 @@ class _ImportanceSamplerTMixture(object):
 
 """ The actual monte_carlo_integration function"""
 
-def monte_carlo_integration(fun, log_prob, ndim, n_samples, adaptive=True, n_em_steps=10,
+def monte_carlo_integration(fun, log_prob, ndim, n_samples, adaptive=True, n_em_steps=4,
                             n_comps=2, random_state=None):
     """
     Estimates the integral $\int f(x) * p(x) dx = E_p[f(x)]$ with (adaptive) importance sampling.
     The proposal distribution is a mixture of student-t distributions and is adapted with PMC
     (https://link.springer.com/article/10.1007/s11222-008-9059-)
     Args:
-        fun: (callable)
+        fun: (callable) function that receives a numpy array and returns a numpy array with one dimension
         log_prob: (callable) log_probability log p(x)
         ndim: (int) number of dimensions of x
         n_samples: (int) number of samples
@@ -192,22 +192,21 @@ def monte_carlo_integration(fun, log_prob, ndim, n_samples, adaptive=True, n_em_
     weights = weights / np.mean(weights)
     means = [random_state.normal(loc=np.zeros(ndim), scale=0.01) for _ in range(n_comps)]
     covs = [np.eye(ndim) for _ in range(n_comps)]
-    initial_proposal_dist = create_t_mixture(means, covs, dofs, weights)
+    proposal_dist = create_t_mixture(means, covs, dofs, weights)
 
-    sampler = _ImportanceSamplerTMixture(log_target_adaptation, initial_proposal_dist, rng=random_state)
+    sampler = _ImportanceSamplerTMixture(log_target_adaptation, proposal_dist, rng=random_state)
 
     # adapt proposal distribution
     if adaptive:
         generating_components = []
         for i in range(n_em_steps):
-            generating_components.append(sampler.run(10 ** 3, trace_sort=True))
+            generating_components.append(sampler.run(10 ** 4, trace_sort=True))
             samples, weights = sampler.samples[-1], sampler.weights[-1].flatten()
+            print(proposal_dist.weights, [comp.mu for comp in proposal_dist.components], [comp.sigma for comp in proposal_dist.components])
             proposal_dist = student_t_pmc(samples, sampler.proposal,
                                     weights,
                                     latent=generating_components[-1],
                                     mincount=20, rb=True, copy=False)
-    else:
-        proposal_dist = initial_proposal_dist
 
     # monte carlo integration with importance sampling from proposal distribution
     log_target = lambda x: log_prob(x).flatten()

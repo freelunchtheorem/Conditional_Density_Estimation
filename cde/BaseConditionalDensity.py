@@ -121,7 +121,6 @@ class ConditionalDensity(BaseEstimator):
       _, y_sample = sample(x)
 
       skewness[i] = scipy.stats.skew(y_sample)
-      5
     return skewness
 
   """ KURTOSIS """
