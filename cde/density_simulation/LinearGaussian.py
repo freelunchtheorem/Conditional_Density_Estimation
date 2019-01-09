@@ -3,25 +3,30 @@ import numpy as np
 from .BaseConditionalDensitySimulation import BaseConditionalDensitySimulation
 from scipy.stats import norm
 
-class EconDensity(BaseConditionalDensitySimulation):
+class LinearGaussian(BaseConditionalDensitySimulation):
   """
-  A simple, economically inspired distribution with the data generation process
-  x = |N(0,1)|
-  y = x^2 + N(0,std)
+  A simple, Gaussian conditional distribution where
+
+  x = U(-1,1)
+  y = N(y | mean = ax+b, scale = cx+d)
 
   Args:
-    std: standard deviation of the Gaussian noise in y
-    heteroscedastic: boolean indicating whether std is fixed or a function of x
+    mu:
+    mu_slope:
+    std:
+    std_slope:
     random_seed: seed for the random_number generator
   """
 
-  def __init__(self, std=1, heteroscedastic=True, random_seed=None):
+  def __init__(self, mu=0.0, mu_slope=0.0, std=1.0, std_slope=0.0, random_seed=None):
     assert std > 0
-    self.heteroscedastic = heteroscedastic
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
 
+    self.mu = mu
     self.std = std
+    self.mu_slope = mu_slope
+    self.std_slope = std_slope
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
@@ -41,8 +46,8 @@ class EconDensity(BaseConditionalDensitySimulation):
       p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )
     """
     X, Y = self._handle_input_dimensionality(X, Y)
-    mean = X**2
-    return np.where(X<0, 0, stats.norm.pdf((Y-mean)/self._std(X))) / self._std(X)
+    mean = self._mean(X)
+    return stats.norm.pdf((Y-mean)/self._std(X))
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
@@ -55,8 +60,8 @@ class EconDensity(BaseConditionalDensitySimulation):
         P(Y < y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )
     """
     X, Y = self._handle_input_dimensionality(X, Y)
-    mean = X ** 2
-    return np.where(X<0, 0, stats.norm.cdf((Y-mean)/self._std(X)))
+    mean = self._mean(X)
+    return stats.norm.cdf((Y-mean)/self._std(X))
 
   def simulate_conditional(self, X):
     """ Draws random samples from the conditional distribution
@@ -72,9 +77,8 @@ class EconDensity(BaseConditionalDensitySimulation):
     assert X.ndim == 1
 
     n_samples = X.shape[0]
-    Y = X ** 2 + self._std(X) * self.random_state.normal(size=n_samples)
-    X = np.expand_dims(X, axis=1)
-    Y = np.expand_dims(Y, axis=1)
+    Y = self._mean(X) + self._std(X) * self.random_state.normal(size=n_samples)
+    X, Y = X.reshape((n_samples, self.ndim_x)), Y.reshape((n_samples, self.ndim_y))
     return X, Y
 
   def simulate(self, n_samples=1000):
@@ -86,8 +90,8 @@ class EconDensity(BaseConditionalDensitySimulation):
       (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
     assert n_samples > 0
-    X = np.abs(self.random_state.standard_normal(size=[n_samples]))
-    Y = X ** 2 + self._std(X) * self.random_state.normal(size=n_samples)
+    X = self.random_state.uniform(-1,1, size=n_samples)
+    Y = self._mean(X) + self._std(X) * self.random_state.normal(size=n_samples)
     X, Y = X.reshape((n_samples, self.ndim_x)), Y.reshape((n_samples, self.ndim_y))
     return X, Y
 
@@ -101,7 +105,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     """
     assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
 
-    return x_cond**2
+    return self._mean()
 
   def covariance(self, x_cond, n_samples=None):
     """ Covariance of the distribution conditioned on x_cond
@@ -130,7 +134,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     assert self.ndim_y == 1, "Value at Risk can only be computed when ndim_y = 1"
     assert x_cond.ndim == 2
 
-    VaR = norm.ppf(alpha, loc=x_cond, scale=self._std(x_cond))[:,0]
+    VaR = norm.ppf(alpha, loc=self._mean(x_cond), scale=self._std(x_cond))[:,0]
     assert VaR.shape == (x_cond.shape[0],)
     return VaR
 
@@ -149,9 +153,9 @@ class EconDensity(BaseConditionalDensitySimulation):
     x_cond = self._handle_input_dimensionality(x_cond)
     assert x_cond.ndim == 2
 
-    mu = x_cond**2
+    mean = self._mean(x_cond)
     sigma = self._std(x_cond)
-    CVaR = (mu - sigma * (1/alpha) * norm.pdf(norm.ppf(alpha)))[:,0]
+    CVaR = (mean - sigma * (1/alpha) * norm.pdf(norm.ppf(alpha)))[:,0]
     assert CVaR.shape == (x_cond.shape[0],)
     return CVaR
 
@@ -174,12 +178,11 @@ class EconDensity(BaseConditionalDensitySimulation):
     CVaRs = self.conditional_value_at_risk(x_cond, alpha=alpha, n_samples=n_samples)
     return VaRs, CVaRs
 
+  def _mean(self, X):
+    return self.mu + self.mu_slope * X
+
   def _std(self, X):
-    if self.heteroscedastic:
-      std = self.std * (1 + X)
-    else:
-      std = self.std * np.ones(X.shape)
-    return std
+    return self.std + self.std_slope * X
 
   def __str__(self):
     return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
