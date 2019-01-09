@@ -116,11 +116,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    # setup inference procedure
-    self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
-    self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), n_iter=self.n_training_epochs)
-    tf.global_variables_initializer().run()
-    self.sess = tf.get_default_session()
+    self._setup_inference_and_initialize()
 
     # data normalization if desired
     if self.data_normalization:  # this must happen after the initialization

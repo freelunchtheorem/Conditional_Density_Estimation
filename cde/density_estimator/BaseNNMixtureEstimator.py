@@ -8,6 +8,7 @@ from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
 import cde.utils.tf_utils.layers as L
+from cde.utils.tf_utils.map_inference import MAP_inference
 
 
 class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
@@ -354,6 +355,20 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
 
     return layer_in_x, layer_in_y
+
+  def _setup_inference_and_initialize(self):
+    # setup inference procedure
+    with tf.variable_scope(self.name):
+      # setup inference procedure
+      self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
+      optimizer = tf.train.AdamOptimizer(5e-3)
+      self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
+
+    self.sess = tf.get_default_session()
+
+    # initialize variables in scope
+    var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
+    tf.initializers.variables(var_list, name='init').run()
 
   def __getstate__(self):
     state = LayersPowered.__getstate__(self)

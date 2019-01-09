@@ -86,21 +86,11 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         verbose: (boolean) controls the verbosity (console output)
 
     """
-
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
-    with tf.variable_scope(self.name):
-      # setup inference procedure
-      self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
-      optimizer = tf.train.AdamOptimizer(5e-3)
-      self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
+    self._setup_inference_and_initialize()
 
-    self.sess = tf.get_default_session()
-    tf.global_variables_initializer().run()
-
-    self.can_sample = True
-    self.has_cdf = True
-
+    # data normalization if desired
     if self.data_normalization: # this must happen after the initialization
       self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
 
