@@ -232,10 +232,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
 
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:
-        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) * self.std_y_sym
+        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) * self.std_y_sym # shape = (n_scales, ndim_y)
         self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_y_sym
       else:
-        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales))
+        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) # shape = (n_scales, ndim_y)
         self.locs_unnormalized = self.locs
 
   def _param_grid(self):
