@@ -111,8 +111,8 @@ def target_feature_split(df, target_col, filter_nan=True, return_features=False)
     df = df.dropna()
     print("Dropping %i rows from frame"%(nrows-df.shape[0]))
 
-  Y = df[target_col]
-  X = df.loc[:, df.columns != target_col]
+  Y = np.array(df[target_col])
+  X = np.array(df.loc[:, df.columns != target_col])
 
   assert X.shape[0] == Y.shape[0]
   if return_features:
