@@ -55,6 +55,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
                n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
 
     Serializable.quick_init(self, locals())
+    self._check_uniqueness_of_scope(name)
 
     self.name = name
     self.ndim_x = ndim_x

@@ -379,3 +379,8 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     LayersPowered.__setstate__(self, state)
     self.fitted = state['fitted']
     self.sess = tf.get_default_session()
+
+  def _check_uniqueness_of_scope(self, name):
+    current_scope = tf.get_variable_scope().name
+    scopes = set([variable.name.split('/')[0] for variable in tf.global_variables(scope=current_scope)])
+    assert name not in scopes, "%s is already in use for a tensorflow scope - please choose another estimator name"%name
