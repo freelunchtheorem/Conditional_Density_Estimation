@@ -18,7 +18,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     random_seed: seed for the random_number generator
   """
 
-  def __init__(self, mu=0.0, mu_slope=0.0, std=1.0, std_slope=0.0, random_seed=None):
+  def __init__(self, mu=0.0, ndim_x=1, mu_slope=0.0, std=1.0, std_slope=0.0, random_seed=None):
     assert std > 0
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
@@ -27,7 +27,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     self.std = std
     self.mu_slope = mu_slope
     self.std_slope = std_slope
-    self.ndim_x = 1
+    self.ndim_x = ndim_x
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
 
@@ -72,9 +72,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     Returns:
       Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
-    if X.ndim == 2 and X.shape[1]:
-      X = X.flatten()
-    assert X.ndim == 1
+    X = self._handle_input_dimensionality(X)
 
     n_samples = X.shape[0]
     Y = self._mean(X) + self._std(X) * self.random_state.normal(size=n_samples)
@@ -90,7 +88,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
       (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
     assert n_samples > 0
-    X = self.random_state.uniform(-1,1, size=n_samples)
+    X = self.random_state.uniform(-1,1, size=(n_samples, self.ndim_x))
     Y = self._mean(X) + self._std(X) * self.random_state.normal(size=n_samples)
     X, Y = X.reshape((n_samples, self.ndim_x)), Y.reshape((n_samples, self.ndim_y))
     return X, Y
@@ -104,8 +102,8 @@ class LinearGaussian(BaseConditionalDensitySimulation):
       Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
     """
     assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
-
-    return self._mean()
+    x_cond = self._handle_input_dimensionality(x_cond)
+    return self._mean(x_cond)
 
   def covariance(self, x_cond, n_samples=None):
     """ Covariance of the distribution conditioned on x_cond
@@ -117,8 +115,8 @@ class LinearGaussian(BaseConditionalDensitySimulation):
         Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
     assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
-
-    covs = self._std(x_cond)
+    x_cond = self._handle_input_dimensionality(x_cond)
+    covs = self._std(x_cond)**2
     return covs.reshape((covs.shape[0],self.ndim_y, self.ndim_y))
 
   def value_at_risk(self, x_cond, alpha=0.01, **kwargs):
@@ -179,10 +177,10 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     return VaRs, CVaRs
 
   def _mean(self, X):
-    return self.mu + self.mu_slope * X
+    return self.mu + np.mean(self.mu_slope * X, axis=-1)
 
   def _std(self, X):
-    return self.std + self.std_slope * X
+    return self.std + np.mean(self.std_slope * X)
 
   def __str__(self):
     return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
