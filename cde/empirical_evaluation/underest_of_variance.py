@@ -16,14 +16,14 @@ from cde.utils.async_executor import AsyncExecutor
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-seeds = [30] # TODO [30, 31, 32, 33, 34, 35, 36, 38, 39, 40]
+seeds = [30, 31, 32, 33, 34, 35, 36, 38, 39, 40]
 std = 0.01
 x_noise = 0.1
 y_noise = 0.1
 epochs = 2000
 ndims = range(1, 20, 1)
 
-n_workers = 8
+n_workers = 6
 
 manager = Manager()
 result_list = manager.list()
@@ -48,14 +48,17 @@ def estimate_cov(i, j):
                                init_scales=[1.0, 0.5],
                                n_training_epochs=epochs, random_seed=round_seed, x_noise_std=x_noise,
                                y_noise_std=y_noise,
-                               data_normalization=True, keep_edges=False, hidden_sizes=(16, 16))
+                               data_normalization=True, keep_edges=True, hidden_sizes=(16, 16))
     kmn.fit(X, Y)
 
     x_cond = np.array([np.zeros(ndim_x)])
 
     # estimate standard deviation
-    estimated_stds_mdn[i, j] = np.sqrt(mdn.covariance(x_cond)).flatten()
-    estimated_stds_kmn[i, j] = np.sqrt(kmn.covariance(x_cond)).flatten()
+    std_est_mdn = np.sqrt(mdn.covariance(x_cond)).flatten()
+    std_est_kmn = np.sqrt(kmn.covariance(x_cond)).flatten()
+
+    result_list.append(('MDN',i, j, std_est_mdn))
+    result_list.append(('KMN', i, j, std_est_kmn))
 
 
 indices = list(zip(*itertools.product(range(len(ndims)), range(len(seeds)))))
