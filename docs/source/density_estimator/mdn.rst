@@ -8,7 +8,7 @@ our implementation specified as X_ph (placeholder) and X). This approach therefo
 arbitrary conditional distributions.
 
 The following example develops a model for Gaussian components with isotropic component covariances, while :math:`K`
-being the number of components of a single mixture (our model currently currently allows to choose an arbitrary number of (global) mixture components, see
+being the number of components of a single mixture (our model currently allows to choose an arbitrary number of (global) mixture components, see
 parameter L below) and :math:`\pi(x)` denoting the mixing coefficients:
 
 .. math:: p(t|x) = \sum_{k=1}^K \pi_{k}(x) \mathcal{N}(t|\mu_{k}(x), \sigma_{k}^2(x))
@@ -31,10 +31,10 @@ ensuring the constraint that :math:`\pi_k(x)` over :math:`K` must sum to 1. Simi
 
 .. math::  \sigma_k(x) = exp(a_k^{\sigma})
 
-For the :math:`K \times L` means we directly use the network outputs: :math:`\mu_k(x) = a_{kj}^{\sigma}.
+For the :math:`K \times L` means we directly use the network outputs: :math:`\mu_k(x) = a_{kj}^{\sigma}`.
 
 
-The weights and biases :math:`w` of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over :math:`N
+The weights and biases :math:`w` of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over :math:`N`
 data points:
 
 .. math:: E(w) = - \sum_{n=1}^N \ln \bigg\{\sum_{k=1}^k \pi_k(x_n, w) \mathcal{N} (t_n|\mu_k(x_n, w), \sigma_k^2(x_n,w)) \bigg\}
