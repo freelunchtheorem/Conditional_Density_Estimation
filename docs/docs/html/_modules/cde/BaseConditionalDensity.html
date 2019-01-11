@@ -1,0 +1,554 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cde.BaseConditionalDensity &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="Conditional Density Estimation 0.1 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>cde.BaseConditionalDensity</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cde.BaseConditionalDensity</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="k">import</span> <span class="n">BaseEstimator</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.helpers</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">cde.utils.optimizers</span> <span class="k">import</span> <span class="n">find_root_newton_method</span><span class="p">,</span> <span class="n">find_root_by_bounding</span>
+
+<span class="k">class</span> <span class="nc">ConditionalDensity</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">):</span>
+
+  <span class="sd">&quot;&quot;&quot; MEAN &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_mean_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+      <span class="n">means</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">means</span>
+
+  <span class="k">def</span> <span class="nf">_mean_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="n">y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+      <span class="n">integral</span> <span class="o">=</span> <span class="n">mc_integration_cauchy</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)</span>
+      <span class="n">means</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">integral</span>
+    <span class="k">return</span> <span class="n">means</span>
+
+  <span class="sd">&quot;&quot;&quot; COVARIANCE &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_covariance_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">6</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;mean_&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">)</span>
+
+    <span class="n">covs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">(</span><span class="n">x_cond</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">cov</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># compute cov matrices c for sampled instances and weight them with the probability p from the pdf</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+          <span class="n">c</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,))</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+      <span class="n">integral</span> <span class="o">=</span> <span class="n">mc_integration_cauchy</span><span class="p">(</span><span class="n">cov</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)</span>
+      <span class="n">covs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">integral</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">covs</span>
+
+  <span class="k">def</span> <span class="nf">_covariance_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="n">covs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">y_sample</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+      <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">y_sample</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">covs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
+    <span class="k">return</span> <span class="n">covs</span>
+
+  <span class="sd">&quot;&quot;&quot; SKEWNESS &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_skewness_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">6</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;this function does not support co-skewness - target variable y must be one-dimensional&quot;</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;mean_&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;covariance&quot;</span><span class="p">)</span>
+
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">),</span> <span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+    <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)),</span> <span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+
+    <span class="n">skewness</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">skew</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">std</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">3</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">s</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+      <span class="n">integral</span> <span class="o">=</span> <span class="n">mc_integration_cauchy</span><span class="p">(</span><span class="n">skew</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)</span>
+      <span class="n">skewness</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">integral</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">skewness</span>
+
+  <span class="k">def</span> <span class="nf">_skewness_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="n">skewness</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">y_sample</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+      <span class="n">skewness</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">y_sample</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">skewness</span>
+
+  <span class="sd">&quot;&quot;&quot; KURTOSIS &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_kurtosis_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">6</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;this function does not support co-kurtosis - target variable y must be one-dimensional&quot;</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;mean_&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;pdf&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;covariance&quot;</span><span class="p">)</span>
+
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mean_</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">),</span> <span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">covariance</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">),</span> <span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+
+    <span class="n">kurtosis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">kurt</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">4</span> <span class="o">/</span> <span class="n">var</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+      <span class="n">integral</span> <span class="o">=</span> <span class="n">mc_integration_cauchy</span><span class="p">(</span><span class="n">kurt</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)</span>
+      <span class="n">kurtosis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">integral</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">kurtosis</span> <span class="o">-</span> <span class="mi">3</span> <span class="c1"># excess kurtosis</span>
+
+  <span class="k">def</span> <span class="nf">_kurtosis_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="n">kurtosis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">y_sample</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+      <span class="n">kurtosis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">kurtosis</span><span class="p">(</span><span class="n">y_sample</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kurtosis</span>
+
+  <span class="sd">&quot;&quot;&quot; QUANTILES / VALUE-AT-RISK &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_quantile_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">VaRs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x_cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,:])</span>
+      <span class="n">VaRs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">VaRs</span>
+
+  <span class="k">def</span> <span class="nf">_quantile_cdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">init_bound</span><span class="o">=</span><span class="mf">1e3</span><span class="p">):</span>
+    <span class="c1"># finds the alpha quantile of the distribution through root finding by bounding</span>
+
+    <span class="n">cdf_fun</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">alpha</span>
+    <span class="n">init_bound</span> <span class="o">=</span> <span class="n">init_bound</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">find_root_by_bounding</span><span class="p">(</span><span class="n">cdf_fun</span><span class="p">,</span> <span class="n">left</span><span class="o">=-</span><span class="n">init_bound</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">init_bound</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_quantile_cdf_old</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="o">-</span><span class="mi">8</span><span class="p">):</span>
+    <span class="c1"># Newton Method for finding the alpha quantile of a conditional distribution -&gt; slower than bounding method</span>
+    <span class="n">cdf_fun</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="n">alpha</span>
+    <span class="n">pdf_fun</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x_cond</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">find_root_newton_method</span><span class="p">(</span><span class="n">fun</span><span class="o">=</span><span class="n">cdf_fun</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">pdf_fun</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">)</span>
+
+  <span class="sd">&quot;&quot;&quot; CONDITONAL VALUE-AT-RISK &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_conditional_value_at_risk_mc_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">VaRs</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">VaRs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;same number of x_cond must match the number of values_at_risk provided&quot;</span>
+    <span class="k">assert</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+
+    <span class="n">CVaRs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># preparations for importance sampling from exponential distribtution</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="c1"># 1 \ lambda</span>
+    <span class="n">sampling_dist</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">expon</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+    <span class="n">exp_samples</span> <span class="o">=</span> <span class="n">sampling_dist</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n_samples</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">exp_f</span> <span class="o">=</span> <span class="n">sampling_dist</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">exp_samples</span><span class="p">)</span>  <span class="c1">#1 / scale * np.exp(-exp_samples/scale)</span>
+
+    <span class="c1"># check shapes</span>
+    <span class="k">assert</span> <span class="n">exp_samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">exp_f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_samples</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="c1"># flip the normal exponential distribution by negating it &amp; placing it&#39;s mode at the VaR value</span>
+      <span class="n">y_samples</span> <span class="o">=</span> <span class="n">VaRs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">exp_samples</span>
+
+      <span class="n">x_cond_tiled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">,:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="k">assert</span> <span class="n">x_cond_tiled</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">)</span>
+
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x_cond_tiled</span><span class="p">,</span> <span class="n">y_samples</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+      <span class="n">q</span> <span class="o">=</span> <span class="n">exp_f</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+      <span class="n">importance_weights</span> <span class="o">=</span> <span class="n">p</span> <span class="o">/</span> <span class="n">q</span>
+      <span class="n">cvar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_samples</span> <span class="o">*</span> <span class="n">importance_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">alpha</span>
+      <span class="n">CVaRs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvar</span>
+
+    <span class="k">return</span> <span class="n">CVaRs</span>
+
+  <span class="k">def</span> <span class="nf">_conditional_value_at_risk_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">VaRs</span><span class="p">,</span> <span class="n">x_cond</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">7</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;sample&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;simulate_conditional&#39;</span><span class="p">):</span>
+      <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate_conditional</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Requires sample or simulate_conditional method&quot;</span><span class="p">)</span>
+
+    <span class="n">CVaRs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x_cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_cond</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">samples</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:])</span>
+      <span class="n">shortfall_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">VaRs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">samples</span><span class="p">,</span> <span class="n">samples</span><span class="p">)</span>
+      <span class="n">CVaRs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">shortfall_samples</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">CVaRs</span>
+
+  <span class="sd">&quot;&quot;&quot; OTHER HELPERS &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_handle_input_dimensionality</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># assert that both X an Y are 2D arrays with shape (n_samples, n_dim)</span>
+
+    <span class="k">if</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">Y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;X and Y must have the same length along axis 0&quot;</span>
+      <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="n">Y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;X and Y must be matrices&quot;</span>
+
+    <span class="k">if</span> <span class="n">fitting</span><span class="p">:</span>  <span class="c1"># store n_dim of training data</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">,</span> <span class="s2">&quot;X must have shape (?, </span><span class="si">%i</span><span class="s2">) but provided X has shape </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="s2">&quot;Y must have shape (?, </span><span class="si">%i</span><span class="s2">) but provided Y has shape </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">X</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span>
+
+  <span class="k">def</span> <span class="nf">plot2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cond</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pdf&#39;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">numpyfig</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">          xlim: 2-tuple specifying the x axis limits</span>
+<span class="sd">          ylim: 2-tuple specifying the y axis limits</span>
+<span class="sd">          resolution: integer specifying the resolution of plot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Can only plot two dimensional distributions&quot;</span>
+    <span class="c1"># prepare mesh</span>
+
+    <span class="c1"># turn off interactive mode is show is set to False</span>
+    <span class="k">if</span> <span class="n">show</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">mpl</span><span class="o">.</span><span class="n">is_interactive</span><span class="p">():</span>
+      <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+      <span class="n">mpl</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Agg&#39;</span><span class="p">)</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_cond</span><span class="p">)):</span>
+      <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ylim</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ylim</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">resolution</span><span class="p">)</span>
+      <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">resolution</span><span class="p">)])</span>
+    <span class="c1"># calculate values of distribution</span>
+
+      <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;pdf&quot;</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cdf&quot;</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;joint_pdf&quot;</span><span class="p">:</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+
+      <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;x=&quot;</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;x=</span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">x_cond</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+
+      <span class="n">plt_out</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">label</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+      <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">numpyfig</span><span class="p">:</span>
+      <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">pad</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+      <span class="n">numpy_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">tostring_rgb</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+      <span class="n">numpy_img</span> <span class="o">=</span> <span class="n">numpy_img</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+      <span class="k">return</span> <span class="n">numpy_img</span>
+
+    <span class="k">return</span> <span class="n">fig</span>
+
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Least-Squares Density Ratio Estimation &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Conditional Density Estimation 0.1 documentation" href="../index.html"/>
+        <link rel="up" title="Conditional Density Estimators" href="density_estimator.html"/>
+        <link rel="next" title="Mixture Density Network" href="mdn.html"/>
+        <link rel="prev" title="Kernel Mixture Network" href="kmn.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="density_estimator.html">Conditional Density Estimators</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#base-density-estimation-interface">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="density_estimator.html">Conditional Density Estimators</a> &raquo;</li>
+        
+      <li>Least-Squares Density Ratio Estimation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_estimator/lscde.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="least-squares-density-ratio-estimation">
+<h1>Least-Squares Density Ratio Estimation<a class="headerlink" href="#least-squares-density-ratio-estimation" title="Permalink to this headline">¶</a></h1>
+<p>Implementation of Least-Squares Density Ratio Estimation
+(LS-CDE) method introduced in <a class="reference internal" href="#sug2010" id="id1">[SUG2010]</a> with some extra features.</p>
+<p>This approach estimates the conditional density of multi-dimensional
+inputs/outputs by expressing the conditional density in terms of the ratio of
+unconditional densities r(x,y):</p>
+<div class="math">
+\[p(y|x) = \frac{p(x,y)}{p(x)} = r(x,y)\]</div>
+<p>Instead of estimating both unconditional densities separately, the density ratio function r(x,y) is directly estimated from
+samples. The density ratio function is modelled by the following linear model:</p>
+<div class="math">
+\[\widehat{r_{\alpha}}(x,y) := \alpha^T \phi(x,y)\]</div>
+<p>where <span class="math">\(\alpha=(\alpha_1, \alpha_2,...,\alpha_b)^T\)</span>
+are the parameters learned from samples and <span class="math">\(\phi(x,y) = (\phi_{1}(x,
+y),\phi_{2}(x,y),...,\phi_{b}(x,y))^T\)</span> are kernel functions such that
+<span class="math">\(\phi_{l}(x,y) \geq 0\)</span> for all <span class="math">\((x,y)\in D_{X} \times D_{Y}\)</span> and <span class="math">\(l = 1, ..., b\)</span>.</p>
+<p>The parameters <span class="math">\(\alpha\)</span> are learned by minimizing the
+a integrated squared error.</p>
+<div class="math">
+\[J(\alpha) = \int\int ( \widehat{r_{\alpha}}(x,y) - r(x,y))^2 p(x)dxdy.\]</div>
+<p>After having obtained <span class="math">\(\widehat{\alpha} = argmin_{\alpha} ~ J(\alpha)\)</span> through training, the conditional density can be computed as follows:</p>
+<div class="math" id="equation-quotient">
+<span class="eqno">(1)<a class="headerlink" href="#equation-quotient" title="Permalink to this equation">¶</a></span>\[\widehat{p}(y|x=\tilde{x}) = \frac{\widehat{\alpha}^T\phi(\tilde{x},y)}{\int\widehat{\alpha}^T\phi(\tilde{x},y)dy}\]</div>
+<p><a class="reference internal" href="#sug2010" id="id2">[SUG2010]</a> propose to use a Gaussian kernel with width <span class="math">\(\sigma\)</span>
+(bandwidth parameter), which is also the choice for this implementation:</p>
+<div class="math">
+\[\phi_{l}(x,y) = exp \left( \frac{||x-u_{l}||^2}{2 \sigma^2} \right)  exp \left( \frac{||y-v_{l}||^2}{2 \sigma^2} \right)\]</div>
+<p>where <span class="math">\(\{(u_{l},v_{l})\}_{l=1}^b\)</span> are center points that are chosen from the training data set.
+By using Gaussian kernels the optimization problem <span class="math">\(argmin_{\alpha} ~ J(\alpha)\)</span> can be solved analytically.
+Also, the denominator in <a class="reference internal" href="#equation-quotient">(1)</a> is traceable and can be computed analytically.
+The fact that training does not require numerical optimization and the solution can be computed fully analytically is the key advantage of LS-CDE.</p>
+<p>While <a class="reference internal" href="#sug2010" id="id3">[SUG2010]</a> propose to select center points for the kernel functions randomly from the training set, our implementation offers further center sampling methods:</p>
+<ul class="simple">
+<li><strong>all:</strong> use all data points in the train set as kernel centers</li>
+<li><strong>random:</strong> randomly selects k points as kernel centers</li>
+<li><strong>k_means:</strong> uses k-means clustering to determine k kernel centers</li>
+<li><strong>agglomorative:</strong> uses agglomorative clustering to determine k kernel centers</li>
+</ul>
+<table class="docutils citation" frame="void" id="sug2010" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[SUG2010]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id2">2</a>, <a class="fn-backref" href="#id3">3</a>)</em> Sugiyama et al. (2010). Conditional Density Estimation via Least-Squares Density Ratio Estimation, in PMLR 9:781-788 (<a class="reference external" href="http://proceedings.mlr.press/v9/sugiyama10a.html">http://proceedings.mlr.press/v9/sugiyama10a.html</a>)</td></tr>
+</tbody>
+</table>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="mdn.html" class="btn btn-neutral float-right" title="Mixture Density Network" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="kmn.html" class="btn btn-neutral" title="Kernel Mixture Network" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

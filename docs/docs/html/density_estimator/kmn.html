@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Kernel Mixture Network &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Conditional Density Estimation 0.1 documentation" href="../index.html"/>
+        <link rel="up" title="Conditional Density Estimators" href="density_estimator.html"/>
+        <link rel="next" title="Least-Squares Density Ratio Estimation" href="lscde.html"/>
+        <link rel="prev" title="Conditional Density Estimators" href="density_estimator.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="density_estimator.html">Conditional Density Estimators</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Kernel Mixture Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#base-density-estimation-interface">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="density_estimator.html">Conditional Density Estimators</a> &raquo;</li>
+        
+      <li>Kernel Mixture Network</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_estimator/kmn.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="kernel-mixture-network">
+<h1>Kernel Mixture Network<a class="headerlink" href="#kernel-mixture-network" title="Permalink to this headline">¶</a></h1>
+<p>Implementation of Kernel Mixture Network introduced in <a class="reference internal" href="#amb2017" id="id1">[AMB2017]</a> with some extra features.</p>
+<p>The approach combines unconditional kernel density estimation with a (softmax) neural network,
+obtaining a conditional kernel density estimator.
+Comparable to unconditional kernel density estimation, kernels are placed in each of the training samples or a subset of
+the samples. A neural network predicts the weights of the kernels based on the x (value to condition on) which
+it receives as an input. Overall the the conditional probability density function is modeled as follows:</p>
+<div class="math">
+\[f(y|x) = \frac{1}{\sum_{p,j} w_{pj}(x; W)} \sum_{p,j} w_{pj}(x; W) \mathcal{K}_j(y,y^{(p)})\]</div>
+<p>This implementation uses Gaussian Kernels:</p>
+<div class="math">
+\[\mathcal{K}(y,y';\sigma)=\frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{\left\Vert y-y'\right\Vert^2}{2\sigma^2}}\]</div>
+<p>In addition to the approach described in the paper, the implementation has the following extensions:</p>
+<ul class="simple">
+<li><strong>Trainable scales/bandwiths:</strong> The scales of the Gaussian kernels can be either be fixed or jointly trained with
+the neural network weights. This property is controlled by the boolean train_scales in the constructor.</li>
+<li><dl class="first docutils">
+<dt>Center Sampling Methods:</dt>
+<dd><ul class="first last">
+<li><strong>all:</strong> use all data points in the train set as kernel centers</li>
+<li><strong>random:</strong> randomly selects k points as kernel centers</li>
+<li><strong>k_means:</strong> uses k-means clustering to determine k kernel centers</li>
+<li><strong>agglomorative:</strong> uses agglomorative clustering to determine k kernel centers</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The core of the Kernel Mixture Network implementation is originally written by <a class="reference internal" href="#veg2017" id="id2">[VEG2017]</a>.
+In addition to the original implementation of Jan van der Vegt and Alexander Backus we added support for
+mulivariate distributions p(y|x) as well as automated hyperparameter search via cross-validation.</p>
+<table class="docutils citation" frame="void" id="amb2017" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[AMB2017]</a></td><td>Luca Ambrogioni, Umut Güçlü, Marcel A. J. van Gerven, Eric Maris (2017). The Kernel Mixture Network: A Nonparametric Method for
+Conditional Density Estimation of Continuous Random Variables (<a class="reference external" href="https://arxiv.org/abs/1705.07111">https://arxiv.org/abs/1705.07111</a>)</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="veg2017" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[VEG2017]</a></td><td><a class="reference external" href="https://github.com/janvdvegt/KernelMixtureNetwork">https://github.com/janvdvegt/KernelMixtureNetwork</a></td></tr>
+</tbody>
+</table>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lscde.html" class="btn btn-neutral float-right" title="Least-Squares Density Ratio Estimation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="density_estimator.html" class="btn btn-neutral" title="Conditional Density Estimators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,459 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Conditional Density Simulation &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Conditional Density Estimation 0.1 documentation" href="../index.html"/>
+        <link rel="next" title="ARMA-Jump Time Series Model" href="arma_jump.html"/>
+        <link rel="prev" title="Neighborhood Kernel Density Estimation" href="../density_estimator/nkde.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Conditional Density Simulation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="arma_jump.html">ARMA-Jump Time Series Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="econ_density.html">ECON Toy Density Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gmm.html">Gaussian Mixture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jump_diff.html">Jump-Diffusion Time Series Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-cde.density_simulation">Conditional Density Simulation Interface</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Conditional Density Simulation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_simulation/density_simulation.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="conditional-density-simulation">
+<h1>Conditional Density Simulation<a class="headerlink" href="#conditional-density-simulation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="arma_jump.html">ARMA-Jump Time Series Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="econ_density.html">ECON Toy Density Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gmm.html">Gaussian Mixture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="jump_diff.html">Jump-Diffusion Time Series Model</a></li>
+</ul>
+</div>
+<div class="section" id="module-cde.density_simulation">
+<span id="conditional-density-simulation-interface"></span><h2>Conditional Density Simulation Interface<a class="headerlink" href="#module-cde.density_simulation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation">
+<em class="property">class </em><code class="descclassname">cde.density_simulation.</code><code class="descname">BaseConditionalDensitySimulation</code><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.cdf">
+<code class="descname">cdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.cdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.cdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conditional cumulated probability density function P(Y &lt; y | x) of the underlying probability model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – x to be conditioned on - numpy array of shape (n_points, ndim_x)</li>
+<li><strong>Y</strong> – y target values for witch the cdf shall be evaluated - numpy array of shape (n_points, ndim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">P(Y &lt; y | x) cumulated density values for the provided X and Y - numpy array of shape (n_points, )</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.conditional_value_at_risk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.covariance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the fitted distribution conditioned on x_cond</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.mean_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the fitted distribution conditioned on x_cond
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conditional probability density function p(y|x) of the underlying probability model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – x to be conditioned on - numpy array of shape (n_points, ndim_x)</li>
+<li><strong>Y</strong> – y target values for witch the pdf shall be evaluated - numpy array of shape (n_points, ndim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">p(X|Y) conditional density values for the provided X and Y - numpy array of shape (n_points, )</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-5</em>, <em>5)</em>, <em>resolution=100</em>, <em>mode='pdf'</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution specified in mode if x and y are 1-dimensional each</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xlim</strong> – 2-tuple specifying the x axis limits</li>
+<li><strong>ylim</strong> – 2-tuple specifying the y axis limits</li>
+<li><strong>resolution</strong> – integer specifying the resolution of plot</li>
+<li><strong>mode</strong> – spefify which dist to plot [“pdf”, “cdf”, “joint_pdf”]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.simulate">
+<code class="descname">simulate</code><span class="sig-paren">(</span><em>n_samples</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.simulate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.simulate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws random samples from the unconditional distribution p(x,y)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>n_samples</strong> – (int) number of samples to be drawn from the conditional distribution</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.simulate_conditional">
+<code class="descname">simulate_conditional</code><span class="sig-paren">(</span><em>X</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.simulate_conditional"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.simulate_conditional" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws random samples from the conditional distribution</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>X</strong> – x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.tail_risk_measures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>VaR values for each x to condition on - numpy array of shape (n_values)</li>
+<li>CVaR values for each x to condition on - numpy array of shape (n_values)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.BaseConditionalDensitySimulation.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/BaseConditionalDensitySimulation.html#BaseConditionalDensitySimulation.value_at_risk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.BaseConditionalDensitySimulation.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="arma_jump.html" class="btn btn-neutral float-right" title="ARMA-Jump Time Series Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../density_estimator/nkde.html" class="btn btn-neutral" title="Neighborhood Kernel Density Estimation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
