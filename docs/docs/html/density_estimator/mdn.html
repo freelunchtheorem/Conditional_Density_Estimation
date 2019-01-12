@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Mixture Density Network &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="Conditional Density Estimation 0.1 documentation" href="../index.html"/>
+        <link rel="up" title="Conditional Density Estimators" href="density_estimator.html"/>
+        <link rel="next" title="Neighborhood Kernel Density Estimation" href="nkde.html"/>
+        <link rel="prev" title="Least-Squares Density Ratio Estimation" href="lscde.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="density_estimator.html">Conditional Density Estimators</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Mixture Density Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#base-density-estimation-interface">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="density_estimator.html">Conditional Density Estimators</a> &raquo;</li>
+        
+      <li>Mixture Density Network</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_estimator/mdn.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="mixture-density-network">
+<h1>Mixture Density Network<a class="headerlink" href="#mixture-density-network" title="Permalink to this headline">¶</a></h1>
+<p>The Mixture Density Network (MDN) <a class="reference internal" href="#bishop1994" id="id1">[BISHOP1994]</a> combines a conventional neural network (in our implementation specified as <span class="math">\(estimator\)</span>) with a mixture
+density model for modeling conditional probability distributions <span class="math">\(p(t|x)\)</span>. Given a sufficiently flexible network and considering a parametric mixture
+model, the parameters of the distribution <span class="math">\(t\)</span> can be determined by the outputs of the neural network provided the input to the network is <span class="math">\(x\)</span> (in
+our implementation specified as X_ph (placeholder) and X). This approach therefore constitutes as a framework capable of approximating
+arbitrary conditional distributions.</p>
+<p>The following example develops a model for Gaussian components with isotropic component covariances, while <span class="math">\(K\)</span>
+being the number of components of a single mixture (our model currently currently allows to choose an arbitrary number of (global) mixture components, see
+parameter L below) and <span class="math">\(\pi(x)\)</span> denoting the mixing coefficients:</p>
+<div class="math">
+\[p(t|x) = \sum_{k=1}^K \pi_{k}(x) \mathcal{N}(t|\mu_{k}(x), \sigma_{k}^2(x))\]</div>
+<p>It is both feasible to replace the components by components of other distributions and extending the MDN to arbitrary covariance matrices.
+Although the later is generally much more difficult, it has been shown by <a class="reference internal" href="#tansey2016" id="id2">[TANSEY2016]</a> that, for example one can have the MDN output the lower
+triangular entries in the Cholesky decomposition.</p>
+<p>Using <span class="math">\(x\)</span> as input, the mixing coefficients <span class="math">\(\pi_{k}(x)\)</span>, the means <span class="math">\(\mu_{k}(x)\)</span>, and the variances <span class="math">\(\sigma_{k}^2(x)\)</span> can be
+governed by the outputs of neural network. Assuming the mixture model has L mixture components (in our implementation specified as n_centers), the total number
+of network outputs is given by <span class="math">\((K+2)L\)</span>.</p>
+<p>The mixing coefficients are computed as a set of <span class="math">\(L\)</span> softmax outputs, where <span class="math">\(a_k^{\pi}\)</span> determine the mixing coefficients emitted by the network:</p>
+<div class="math">
+\[\pi_k(x) = \frac{exp(a_k^{\pi})}{\sum_{l=1}^K exp(a_k^{\pi})}\]</div>
+<p>ensuring the constraint that <span class="math">\(\pi_k(x)\)</span> over <span class="math">\(K\)</span> must sum to 1. Similarly, the variances must me larger or equal to zero. Due to isotropy we have
+<span class="math">\(L\)</span> kernel widths <span class="math">\(\sigma_k(x)\)</span> which are determined by the network output <span class="math">\(a_k^{\sigma}\)</span> and can be represented as exponentials:</p>
+<div class="math">
+\[\sigma_k(x) = exp(a_k^{\sigma})\]</div>
+<p>For the <span class="math">\(K \times L\)</span> means we directly use the network outputs: :math:<a href="#id3"><span class="problematic" id="id4">`</span></a>mu_k(x) = a_{kj}^{sigma}.</p>
+<p>The weights and biases <span class="math">\(w\)</span> of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over :math:<a href="#id5"><span class="problematic" id="id6">`</span></a>N
+data points:</p>
+<div class="math">
+\[E(w) = - \sum_{n=1}^N \ln \bigg\{\sum_{k=1}^k \pi_k(x_n, w) \mathcal{N} (t_n|\mu_k(x_n, w), \sigma_k^2(x_n,w)) \bigg\}\]</div>
+<p>This can be executed via the standard backpropagation algorithm, given that suitable expressions for the derivations can be obtained.</p>
+<table class="docutils citation" frame="void" id="bishop1994" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[BISHOP1994]</a></td><td>Bishop (1994). Mixture Density Networks, Technical Report, Aston University (<a class="reference external" href="http://publications.aston.ac.uk/373/">http://publications.aston.ac.uk/373/</a>)</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="tansey2016" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[TANSEY2016]</a></td><td>Tansey et al. (2016). Better Conditional Density Estimation for Neural Networks (<a class="reference external" href="https://arxiv.org/abs/1606.02321">https://arxiv.org/abs/1606.02321</a>)</td></tr>
+</tbody>
+</table>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="nkde.html" class="btn btn-neutral float-right" title="Neighborhood Kernel Density Estimation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lscde.html" class="btn btn-neutral" title="Least-Squares Density Ratio Estimation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
