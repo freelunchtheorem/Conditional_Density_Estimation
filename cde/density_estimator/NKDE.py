@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
+from scipy import optimize
 
 from cde.helpers import norm_along_axis_1
 from .BaseDensityEstimator import BaseDensityEstimator
@@ -13,20 +14,27 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
   Epsilon-Neighbor Kernel Density Estimation (lazy learner) with Gaussian Kernels
 
   Args:
-    epsilon: size of the neighborhood region
-    bandwidth: scale of the Gaussians
+    epsilon: size of the (normalized) neighborhood region
+    bandwidth: bandwidth selection method or bandwidth parameter
     weighted: if true - the neighborhood Gaussians are weighted according to their distance to the query point,
               if false - all neighborhood Gaussians are weighted equally
     random_seed: (optional) seed (int) of the random number generators used
 
   """
 
-  def __init__(self, epsilon=0.3, bandwidth='normal_reference', weighted=True, random_seed=None):
+  def __init__(self, name='NKDE', ndim_x=None, ndim_y=None, epsilon=0.3, bandwidth='normal_reference', weighted=True, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
 
+    self.name = name
+    self.ndim_x =ndim_x
+    self.ndim_y = ndim_y
     self.epsilon = epsilon
     self.weighted = weighted
-    self.bandwidth = bandwidth
+    self.bw = bandwidth
+
+    assert bandwidth is 'normal_reference' \
+           or isinstance(self.bw, (int, float)) \
+           or isinstance(bandwidth, np.ndarray)
 
     self.fitted = False
 
@@ -64,13 +72,16 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.Y_train = Y
 
     # if desired determine bandwidth via normal reference
-    if self.bandwidth == 'normal_reference':
-      self.bandwidth = self._normal_reference()
+    if self.bw == 'normal_reference':
+      self.bw = self._normal_reference()
+    elif isinstance(self.bw, (int, float)):
+      self.bw = np.ones(self.ndim_y) * self.bw
+    elif isinstance(self.bw, np.ndarray):
+      assert self.bw.shape[0] == (self.ndim_y,)
 
     # prepare Gaussians centered in the Y points
     self.locs_array = np.vsplit(Y, self.n_train_points)
-    self.scales = np.diag(self.bandwidth**2 * np.ones(self.ndim_y))
-    self.components = [multivariate_normal(mean=loc, cov=self.scales) for loc in self.locs_array]
+    self.kernel = multivariate_normal(mean=np.ones(self.ndim_y)).pdf
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -86,13 +97,46 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-    X_normalized = self._normalize_x(X)
 
     """ 1. Determine weights of the Gaussians """
-    X_dist = norm_along_axis_1(X_normalized, self.X_train)
+    X_normalized = self._normalize_x(X)
+    kernel_weights = self._kernel_weights(X_normalized, self.epsilon)
 
-    # filter out all points that are not in a epsilon region of x
-    mask = X_dist > self.epsilon
+    """ 2. Calculate the conditional densities """
+    n_samples = X.shape[0]
+
+    conditional_densities = np.zeros(n_samples)
+    for i in range(n_samples):
+      conditional_densities[i] = self._density(self.bw, kernel_weights[i, :], Y[i, :])
+
+    return conditional_densities
+
+  def sample(self, X):
+    raise NotImplementedError("Neighbor Kernel Density Estimation is a lazy learner and does not support sampling")
+
+  def loo_likelihood(self, bw, epsilon):
+    """
+    calculates the negative leave-one-out log-likelihood of the training data
+
+    Args:
+      bw: bandwidth parameter
+      epsilon: size of the (normalized) neighborhood region
+    """
+    kernel_weights = self._kernel_weights(self.X_train, epsilon)
+
+    # remove kenel of query x and re-normalize weights
+    np.fill_diagonal(kernel_weights, 0.0)
+    kernel_weights_loo = kernel_weights / np.sum(kernel_weights, axis=-1, keepdims=True)
+
+    conditional_log_densities = np.zeros(self.n_train_points)
+    for i in range(self.n_train_points):
+      conditional_log_densities[i] = np.log(self._density(bw, kernel_weights_loo[i, :], self.Y_train[i, :]))
+
+    return np.sum(conditional_log_densities)
+
+  def _kernel_weights(self, X_normalized, epsilon):
+    X_dist = norm_along_axis_1(X_normalized, self.X_train)
+    mask = X_dist > epsilon
     neighbor_distances = np.ma.masked_where(mask, X_dist)
     num_neighbors = neighbor_distances.count(axis=1)
 
@@ -102,27 +146,15 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     else:
       # all neighbors are weighted equally
       with warnings.catch_warnings():
-        warnings.simplefilter("ignore") # don't print division by zero warning
+        warnings.simplefilter("ignore")  # don't print division by zero warning
         weights = 1 / num_neighbors
       neighbor_weights = neighbor_distances.copy()
       neighbor_weights[:] = weights[:, None]
-      neighbor_weights = np.ma.masked_where(mask, neighbor_weights)
+      neighbor_weights = np.ma.masked_where(mask, neighbor_weights).filled(fill_value=0)
 
-      neighbor_weights = neighbor_weights.filled(fill_value=0)
+    return neighbor_weights
 
-    """ 2. Calculate the conditional densities """
-    n_samples = X.shape[0]
-
-    conditional_densities = np.zeros(n_samples)
-    for i in range(n_samples):
-      conditional_densities[i] = self._density(neighbor_weights[i, :], Y[i, :])
-
-    return conditional_densities
-
-  def sample(self, X):
-    raise NotImplementedError("Neighbor Kernel Density Estimation is a lazy learner and does not support sampling")
-
-  def _density(self, neighbor_weights, y):
+  def _density(self, bw, neighbor_weights, y):
     assert neighbor_weights.shape[0] == self.n_train_points
     assert y.shape[0] == self.ndim_y
     kernel_ids = np.arange(self.n_train_points)
@@ -131,13 +163,13 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     single_densities = np.vectorize(self._single_density, otypes=[np.float])
 
     # call vectorized function
-    single_den = single_densities(neighbor_weights, kernel_ids, y)
+    single_den = single_densities(bw, neighbor_weights, kernel_ids, y)
 
     return np.sum(single_den)
 
-  def _single_density(self, neighbor_weight, kernel_id, y):
+  def _single_density(self, bw, neighbor_weight, kernel_id, y):
     if neighbor_weight > 0:
-      return neighbor_weight * self.components[kernel_id].pdf(y)
+      return neighbor_weight * self.kernel((y - self.Y_train[kernel_id, :])/bw) / bw**self.ndim_y
     else:
       return 0
 
@@ -158,7 +190,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     X_dist = norm_along_axis_1(self.X_train, self.X_train)
 
     # filter out all points that are not in a epsilon region of x
-    avg_num_neighbors = np.mean(np.ma.masked_where(X_dist > self.epsilon, X_dist).count(axis=1))
+    avg_num_neighbors = np.mean(np.ma.masked_where(X_dist > self.epsilon, X_dist).count(axis=1)) - 1
 
     return 1.06 * self.y_std * avg_num_neighbors ** (- 1. / (4 + self.ndim_y))
 
@@ -169,7 +201,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
   def __str__(self):
     return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
-                                                                                             self.bandwidth)
+                                                                                         self.bw)
 
   def __unicode__(self):
     return self.__str__()

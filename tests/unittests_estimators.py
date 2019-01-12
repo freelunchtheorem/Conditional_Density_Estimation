@@ -90,15 +90,41 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     return X, Y
 
   def test_NKDE_with_2d_gaussian(self):
-    X, Y = self.get_samples()
+    mu = 5
+    std = 2.0
+    X = np.random.normal(loc=mu, scale=std, size=(4000, 2))
+    Y = np.random.normal(loc=mu, scale=std, size=(4000, 2))
 
-    model = NeighborKernelDensityEstimation(epsilon=0.1)
+    model = NeighborKernelDensityEstimation(epsilon=0.3)
     model.fit(X, Y)
 
-    y = np.arange(-1, 5, 0.5)
-    x = np.asarray([2 for i in range(y.shape[0])])
+    y = np.random.uniform(low=[1.0, 1.0], high=[9.0, 9.0], size=(500, 2))
+    x = np.ones(shape=(500,2)) * mu
+
     p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=2, scale=1)
+    p_true = norm.pdf(y, loc=mu, scale=std)
+
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_NKDE_with_2d_gaussian(self):
+    X = np.random.uniform(-1, 1, size=4000)
+    Y = (2 + X) * np.random.normal(size=4000) + 2*X
+
+    model = NeighborKernelDensityEstimation(epsilon=0.3)
+    model.fit(X, Y)
+
+    y = np.linspace(-5, 5, num=100)
+    x = np.ones(100) * 0
+
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=0, scale=2)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    y = np.linspace(-5, 5, num=100)
+    x = - np.ones(100) * 0.5
+
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=-1, scale=1.5)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_LSCD_with_2d_gaussian(self):
