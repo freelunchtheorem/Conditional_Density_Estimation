@@ -21,7 +21,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
   """
 
-  def __init__(self, epsilon=5.0, bandwidth=1.0, weighted=True, random_seed=None):
+  def __init__(self, epsilon=0.3, bandwidth='normal_reference', weighted=True, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
 
     self.epsilon = epsilon
@@ -51,23 +51,26 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     self.fitted = True
 
-
   def _build_model(self, X, Y):
-    # save variance of data
+    # save mean and std of data for normalization
     self.x_std = np.std(X, axis=0)
+    self.x_mean = np.mean(X, axis=0)
     self.y_std = np.std(Y, axis=0)
 
     self.n_train_points = X.shape[0]
 
     # lazy learner - just store training data
-    self.X_train = X
+    self.X_train = self._normalize_x(X)
     self.Y_train = Y
+
+    # if desired determine bandwidth via normal reference
+    if self.bandwidth == 'normal_reference':
+      self.bandwidth = self._normal_reference()
 
     # prepare Gaussians centered in the Y points
     self.locs_array = np.vsplit(Y, self.n_train_points)
-    self.scales = np.diag(self.bandwidth * np.ones(self.ndim_y))
+    self.scales = np.diag(self.bandwidth**2 * np.ones(self.ndim_y))
     self.components = [multivariate_normal(mean=loc, cov=self.scales) for loc in self.locs_array]
-
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -83,11 +86,10 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-    assert X.shape[1] == self.ndim_x
-    assert Y.shape[1] == self.ndim_y
+    X_normalized = self._normalize_x(X)
 
     """ 1. Determine weights of the Gaussians """
-    X_dist = norm_along_axis_1(X, self.X_train)
+    X_dist = norm_along_axis_1(X_normalized, self.X_train)
 
     # filter out all points that are not in a epsilon region of x
     mask = X_dist > self.epsilon
@@ -133,7 +135,6 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     return np.sum(single_den)
 
-
   def _single_density(self, neighbor_weight, kernel_id, y):
     if neighbor_weight > 0:
       return neighbor_weight * self.components[kernel_id].pdf(y)
@@ -153,6 +154,18 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     }
     return param_grid
 
+  def _normal_reference(self):
+    X_dist = norm_along_axis_1(self.X_train, self.X_train)
+
+    # filter out all points that are not in a epsilon region of x
+    avg_num_neighbors = np.mean(np.ma.masked_where(X_dist > self.epsilon, X_dist).count(axis=1))
+
+    return 1.06 * self.y_std * avg_num_neighbors ** (- 1. / (4 + self.ndim_y))
+
+  def _normalize_x(self, X):
+    X_normalized = (X - self.x_mean) / self.x_std
+    assert X_normalized.shape == X.shape
+    return X_normalized
 
   def __str__(self):
     return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
