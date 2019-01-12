@@ -110,22 +110,23 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     X = np.random.uniform(-1, 1, size=4000)
     Y = (2 + X) * np.random.normal(size=4000) + 2*X
 
-    model = NeighborKernelDensityEstimation(epsilon=0.3)
-    model.fit(X, Y)
+    for weighted in [True, False]:
+      model = NeighborKernelDensityEstimation(epsilon=0.3, weighted=weighted)
+      model.fit(X, Y)
 
-    y = np.linspace(-5, 5, num=100)
-    x = np.ones(100) * 0
+      y = np.linspace(-5, 5, num=100)
+      x = np.ones(100) * 0
 
-    p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=0, scale=2)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=0, scale=2)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-    y = np.linspace(-5, 5, num=100)
-    x = - np.ones(100) * 0.5
+      y = np.linspace(-5, 5, num=100)
+      x = - np.ones(100) * 0.5
 
-    p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=-1, scale=1.5)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+      p_est = model.pdf(x, y)
+      p_true = norm.pdf(y, loc=-1, scale=1.5)
+      self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
   def test_LSCD_with_2d_gaussian(self):
     X, Y = self.get_samples()
