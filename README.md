@@ -1,18 +1,18 @@
 # Conditional_Density_Estimation
 
-# Description
+## Description
 <todo>
 
-# Installation
+## Installation
 ```
 pip install cde
 ```
-# Documentation
+## Documentation
 ```
 https://jonasrothfuss.github.io/Nonparametric_Density_Estimation/
 ```
 
-# Citing
+## Citing
 If you use CDE in your research, you can cite it as follows:
 
 ```
