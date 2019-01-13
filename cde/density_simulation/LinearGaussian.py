@@ -47,7 +47,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self._mean(X)
-    return stats.norm.pdf((Y-mean)/self._std(X))
+    return stats.norm.pdf((Y-mean)/self._std(X)) / self._std(X)
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
