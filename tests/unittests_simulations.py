@@ -197,7 +197,7 @@ class TetsSkewNormal(unittest.TestCase):
   def test_cdf(self):
     X = np.linspace(-1, 1, num=1000)
     Y = np.linspace(-1, 1, num=1000)
-    p = self.dist.pdf(X, Y)
+    p = self.dist.cdf(X, Y)
     self.assertEqual(p.shape, (1000,))
 
   def test_simulate_conditional_skew(self):

@@ -44,60 +44,6 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
 
     self.assertAlmostEqual(result1, result2)
 
-
-class TestGoodnessOfFitTests(unittest.TestCase):
-
-  """ --- plausibility checks with dummy (gaussian) estimators and simulators --- """
-
-  # def test_gaussian_dummy_kolmogorov_cdf_1(self):
-  #   est = GaussianDummy(mean=2, ndim_x=1, ndim_y=1)
-  #   prob_model = SimulationDummy(mean=2, ndim_x=1, ndim_y=1)
-  #   gof = GoodnessOfFit(est, prob_model, n_observations=10000)
-  #   gof_results = gof.compute_results()
-  #   print("cdf-based KS test (t, p): ", gof_results.mean_ks_stat, gof_results.mean_ks_pval, "alpha: ", alpha)
-  #   print(gof)
-  #   self.assertGreater(gof_results.mean_ks_pval, alpha)
-  #   self.assertLess(gof_results.kl_divergence, 0.01)
-  #
-  #
-  # def test_gaussian_dummy_kolmogorov_cdf_2(self):
-  #   est = GaussianDummy(mean=2)
-  #   prob_model = SimulationDummy(mean=6)
-  #   gof = GoodnessOfFit(est, prob_model, n_observations=10000)
-  #   gof_results = gof.compute_results()
-  #   print("cdf-based KS test (t, p): ", gof_results.mean_ks_stat, gof_results.mean_ks_pval, "alpha: ", alpha)
-  #   print(gof)
-  #   self.assertLess(gof_results.mean_ks_pval, alpha)
-  #
-  #
-  # def test_gaussian_dummy_kl_divergence1(self):
-  #   est = GaussianDummy(mean=2)
-  #   prob_model = SimulationDummy(mean=2)
-  #   gof = GoodnessOfFit(est, prob_model, n_observations=10000)
-  #   kl = gof.kl_divergence()
-  #   print("KL-Divergence:", kl)
-  #   self.assertLess(kl, 0.2)
-  #
-  # def test_gaussian_dummy_kl_divergence(self):
-  #   est = GaussianDummy(mean=2)
-  #   prob_model = SimulationDummy(mean=4)
-  #   gof = GoodnessOfFit(est, prob_model, n_observations=10000)
-  #   gof_results = gof.compute_results()
-  #   print("KL-Divergence:", gof_results.kl_divergence)
-  #   print(gof)
-  #   self.assertGreater(gof_results.kl_divergence, 0.01)
-  #
-  # def test_gaussian_dummy_kl_divergence2(self):
-  #   est = GaussianDummy(mean=2)
-  #   prob_model1 = SimulationDummy(mean=4)
-  #   gof1 = GoodnessOfFit(est, prob_model1, n_observations=10000)
-  #   gof_results1 = gof1.compute_results()
-  #
-  #   prob_model2 = SimulationDummy(mean=3)
-  #   gof2 = GoodnessOfFit(est, prob_model2, n_observations=10000)
-  #   gof_results2 = gof2.compute_results()
-  #   self.assertLess(gof_results2.kl_divergence, gof_results1.kl_divergence)
-
   def test_gaussian_dummy_hellinger_distance_mc(self):
     mu1 = np.array([0, 0])
     mu2 = np.array([0, 0])
