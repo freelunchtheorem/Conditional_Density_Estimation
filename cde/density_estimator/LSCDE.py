@@ -7,8 +7,9 @@ from .BaseDensityEstimator import BaseDensityEstimator
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
 
-  def __init__(self, center_sampling_method='k_means', bandwidth=1.0, n_centers=50, regularization=0.1,
-               keep_edges=False, random_seed=None):
+  def __init__(self, name='LSCDE', ndim_x=None, ndim_y=None, center_sampling_method='k_means',
+               bandwidth=0.5, n_centers=500, regularization=1.0,
+               keep_edges=True, random_seed=None):
     """ Least-Squares Density Ratio Estimator
 
       http://proceedings.mlr.press/v9/sugiyama10a.html
@@ -21,13 +22,15 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
           keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
           random_seed: (optional) seed (int) of the random number generators used
       """
+    self.name = name
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
     self.random_state = np.random.RandomState(seed=random_seed)
-
 
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
     self.keep_edges = keep_edges
-    self.bandwidth = bandwidth
+    self.bw = bandwidth
     self.regularization = regularization
 
     self.fitted = False
@@ -36,22 +39,24 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.has_cdf = False
 
   def _build_model(self, X, Y):
-    # save variance of data
-    self.x_std = np.std(X, axis=0)
-    self.y_std = np.std(Y, axis=0)
+    # save mean and variance of data for normalization
+    self.x_mean, self.y_mean = np.mean(X, axis=0), np.mean(Y, axis=0)
+    self.x_std, self.y_std = np.std(X, axis=0),  np.std(Y, axis=0)
 
     # get locations of the gaussian kernel centers
     if self.center_sampling_method == 'all':
       self.n_centers = X.shape[0]
+    else:
+      self.n_centers = min(self.n_centers, X.shape[0])
 
     n_locs = self.n_centers
-    X_Y = np.concatenate([X,Y], axis=1)
-    centroids = sample_center_points(X_Y, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
-    self.centr_x = centroids[:,0:self.ndim_x]
-    self.centr_y = centroids[:,self.ndim_x:]
+    X_Y_normalized = np.concatenate(list(self._normalize(X, Y)), axis=1)
+    centroids = sample_center_points(X_Y_normalized, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
+    self.centr_x = centroids[:, 0:self.ndim_x]
+    self.centr_y = centroids[:, self.ndim_x:]
 
     #prepare gaussians for sampling
-    self.gaussians_y = [stats.multivariate_normal(mean=center, cov=self.bandwidth) for center in self.centr_y]
+    self.gaussians_y = [stats.multivariate_normal(mean=center, cov=self.bw) for center in self.centr_y]
 
     assert self.centr_x.shape == (n_locs, self.ndim_x) and self.centr_y.shape == (n_locs, self.ndim_y)
 
@@ -63,28 +68,27 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
     """
     # assert that both X an Y are 2D arrays with shape (n_samples, n_dim)
+
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
     self.ndim_y, self.ndim_x = Y.shape[1], X.shape[1]
 
-    # define the full model
     self._build_model(X, Y)
 
-    # determine the kernel weights alpha
-    self.h = np.mean(self._gaussian_kernel(X, Y), axis=0)
+    X_normalized, Y_normalized = self._normalize(X, Y)
 
-    a = np.mean(norm_along_axis_1(X,self.centr_x),axis=0)
+    # determine the kernel weights alpha
+    self.h = np.mean(self._gaussian_kernel(X_normalized, Y_normalized), axis=0)
+
+    a = np.mean(norm_along_axis_1(X_normalized,self.centr_x),axis=0)
     b = norm_along_axis_1(self.centr_y, self.centr_y)
     eta = 2 * np.add.outer(a,a) + b
 
-    self.H = (np.sqrt(np.pi)*self.bandwidth) ** self.ndim_y * np.exp( - eta / (5 * self.bandwidth**2))
+    self.H = (np.sqrt(np.pi) * self.bw) ** self.ndim_y * np.exp(- eta / (5 * self.bw ** 2))
 
     self.alpha = np.linalg.solve(self.H + self.regularization * np.identity(self.n_centers), self.h)
     self.alpha[self.alpha < 0] = 0
 
     self.fitted = True
-
-  def _loss_fun(self, alpha):
-    return 0.5 * alpha.T.dot(self.H).dot(alpha) - self.h.T.dot(alpha) + self.regularization * alpha.T.dot(alpha)
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -101,10 +105,12 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
-    p = np.dot(self.alpha.T, self._gaussian_kernel(X, Y).T)
-    p_normalization = (np.sqrt(2*np.pi)*self.bandwidth)**self.ndim_y * np.dot(self.alpha.T, self._gaussian_kernel(X).T)
+    X_normalized, Y_normalized = self._normalize(X, Y)
 
-    return p / p_normalization
+    p = np.dot(self.alpha.T, self._gaussian_kernel(X_normalized, Y_normalized).T)
+    p_normalization = (np.sqrt(2*np.pi) * self.bw) ** self.ndim_y * np.dot(self.alpha.T, self._gaussian_kernel(X_normalized).T)
+
+    return np.squeeze(p / p_normalization / np.product(self.y_std))
 
   def predict_density(self, X, Y=None, resolution=50):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
@@ -126,7 +132,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       y_max = np.max(self.centr_y, axis=0)
       linspaces = []
       for d in range(self.ndim_y):
-        x = np.linspace(y_min[d] - 2.5 * self.bandwidth, y_max[d] + 2.5 * self.bandwidth, num=resolution)
+        x = np.linspace(y_min[d] - 2.5 * self.bw, y_max[d] + 2.5 * self.bw, num=resolution)
         linspaces.append(x)
       Y = np.asmatrix(list(itertools.product(linspaces[0], linspaces[1])))
     assert Y.ndim == 1 or Y.shape[1] == self.ndim_y
@@ -162,6 +168,11 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     return X, Y
 
+  def _normalize(self, X, Y):
+    X_normalized = (X - self.x_mean) / self.x_std
+    Y_normalized = (Y - self.y_mean) / self.y_std
+    return X_normalized, Y_normalized
+
   def _gaussian_kernel(self, X, Y=None):
     """
     if Y is set returns the product of the gaussian kernels for X and Y, else only the gaussian kernel for X
@@ -178,33 +189,27 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
         sq_d_y = np.sum(np.square(Y - self.centr_y[i, :]), axis=1)
 
-        phi[:, i] = np.exp( - sq_d_x / (2 * self.bandwidth**2)) * np.exp( - sq_d_y / (2 * self.bandwidth**2))
+        phi[:, i] = np.exp(- sq_d_x / (2 * self.bw ** 2)) * np.exp(- sq_d_y / (2 * self.bw ** 2))
     else:
       for i in range(phi.shape[1]):
         # suqared distances from center point i
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
-        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2))
+        phi[:, i] = np.exp(- sq_d_x / (2 * self.bw ** 2))
 
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
 
   def _param_grid(self):
-    mean_var = np.mean(self.y_std)
-    bandwidths = np.asarray([0.01, 0.1, 0.5, 1, 2, 3]) * mean_var
-
-    n_centers = [int(self.n_samples/2), int(self.n_samples/4), int(self.n_samples/10), 50, 20, 10, 5]
+    params = np.asarray([0.01, 0.05, 0.2, 0.5, 0.7, 1, 2])
 
     param_grid = {
-      "bandwidth": bandwidths,
-      "n_centers": n_centers,
-      "regularization": [0.01, 0.1],
-      "keep_edges": [True, False]
+      "bandwidth": params,
     }
     return param_grid
 
   def __str__(self):
     return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n".format(
-      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bandwidth, self.regularization)
+      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bw, self.regularization)
 
   def __unicode__(self):
     return self.__str__()

@@ -26,14 +26,14 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.random_state = np.random.RandomState(seed=random_seed)
 
     self.name = name
-    self.ndim_x =ndim_x
+    self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.epsilon = epsilon
     self.weighted = weighted
     self.bw = bandwidth
 
     assert bandwidth is 'normal_reference' \
-           or isinstance(self.bw, (int, float)) \
+           or isinstance(bandwidth, (int, float)) \
            or isinstance(bandwidth, np.ndarray)
 
     self.fitted = False
@@ -160,7 +160,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     kernel_ids = np.arange(self.n_train_points)
 
     # vectorized function
-    single_densities = np.vectorize(self._single_density, otypes=[np.float])
+    single_densities = np.vectorize(self._single_density, excluded=[0, 3])
 
     # call vectorized function
     single_den = single_densities(bw, neighbor_weights, kernel_ids, y)
@@ -169,7 +169,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
   def _single_density(self, bw, neighbor_weight, kernel_id, y):
     if neighbor_weight > 0:
-      return neighbor_weight * self.kernel((y - self.Y_train[kernel_id, :])/bw) / bw**self.ndim_y
+      return neighbor_weight * self.kernel((y - self.Y_train[kernel_id, :])/bw) / np.product(bw)
     else:
       return 0
 

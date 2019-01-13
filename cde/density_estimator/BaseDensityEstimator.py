@@ -154,7 +154,7 @@ class BaseDensityEstimator(ConditionalDensity):
     else:
       raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
 
-  def fit_by_cv(self, X, Y, n_folds=5, param_grid=None):
+  def fit_by_cv(self, X, Y, n_folds=5, param_grid=None, verbose=True):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
 
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
@@ -187,14 +187,14 @@ class BaseDensityEstimator(ConditionalDensity):
       param_grid = self._param_grid()
 
     cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=-1, refit=True, cv=n_folds,
-                 verbose=1)
+                 verbose=verbose)
     with warnings.catch_warnings():
       warnings.simplefilter("ignore")  # don't print division by zero warning
       cv_model.fit(X,Y)
     best_params = cv_model.best_params_
-    print("Cross-Validation terminated")
-    print("Best likelihood score: %.4f"%cv_model.best_score_)
-    print("Best params:", best_params)
+    if verbose: print("Cross-Validation terminated")
+    if verbose: print("Best likelihood score: %.4f"%cv_model.best_score_)
+    if verbose: print("Best params:", best_params)
     self.set_params(**cv_model.best_params_)
     self.fit(X,Y)
 
