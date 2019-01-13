@@ -8,7 +8,7 @@ from scipy.stats import norm
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
-from Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
+from .Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
 
 from cde.utils.importance_sampling import monte_carlo_integration
