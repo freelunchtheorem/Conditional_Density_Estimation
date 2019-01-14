@@ -4,6 +4,7 @@ from .EconDensity import EconDensity
 from .ArmaJump import ArmaJump
 from .JumpDiffusionModel import JumpDiffusionModel
 from .SkewNormal import SkewNormal
+from .LinearGaussian import LinearGaussian
 import inspect, sys
 import numpy as np
 

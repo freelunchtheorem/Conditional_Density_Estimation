@@ -1,4 +1,5 @@
-from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensityEstimation, MixtureDensityNetwork
+from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensityEstimation, MixtureDensityNetwork, \
+  NeighborKernelDensityEstimation, LSConditionalDensityEstimation
 from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 import numpy as np
@@ -118,8 +119,10 @@ if __name__ == '__main__':
                                                                 bandwidth_selection='normal_reference'),
     'CKDE cv_ml': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y,
                                                                 bandwidth_selection='cv_ml'),
-    'CKDE cv_ls': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y,
-                                                     bandwidth_selection='cv_ls'),
+    'NKDE': NeighborKernelDensityEstimation('NKDE', ndim_x, ndim_y),
+
+    'LSCDE': LSConditionalDensityEstimation('CKDE', ndim_x, ndim_y),
+
   }
 
   result_dict = logli_benchmark(model_dict)
