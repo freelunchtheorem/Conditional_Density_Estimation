@@ -57,7 +57,7 @@ def main():
     n += 1
 
   axes[0][0].set_xlabel('log return')
-  axes[0][0].set_ylabel('density')
+  axes[0][0].set_ylabel('probability density log-returns')
 
   # make top right plot disappear
   axes[0, 2].tick_params(colors='white')
