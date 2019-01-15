@@ -4,7 +4,7 @@ from cde.density_simulation.BaseConditionalDensitySimulation import BaseConditio
 
 
 class SkewNormal(BaseConditionalDensitySimulation):
-  """ Conditional skew normal distribution
+  """ This model represents a univariate skewed normal distribution.
 
   """
 
@@ -46,7 +46,7 @@ class SkewNormal(BaseConditionalDensitySimulation):
 
   def pdf(self, X, Y):
     """ Conditional probability density function p(y|x) of the underlying probability model
-
+(
     Args:
       X: x to be conditioned on - numpy array of shape (n_points, ndim_x)
       Y: y target values for witch the pdf shall be evaluated - numpy array of shape (n_points, ndim_y)

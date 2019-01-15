@@ -6,8 +6,11 @@ from sklearn.mixture import GaussianMixture as GMM
 
 class GaussianMixture(BaseConditionalDensitySimulation):
   """
-  A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the
-  ConditionDensity class.
+  This model allows to fit and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices.
+  The mixture model is composed by a linear combination of an arbitrary number of components n_kernels. Means, covariances and weights are
+  estimated by Maximum-Likelihood for each component. It is possible to specify the number of kernels to define the modality of the
+  distribution and also dimensionality for both x and y. The component means are initialized randomly according to given standard
+  deviation. Also the weights are initialized randomly.
 
   Args:
     n_kernels: number of mixture components

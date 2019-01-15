@@ -8,13 +8,13 @@ class LinearGaussian(BaseConditionalDensitySimulation):
   A simple, Gaussian conditional distribution where
 
   x = U(-1,1)
-  y = N(y | mean = ax+b, scale = cx+d)
+  y = N(y | mean = mu_slope*x+mu, scale = std_slope*x+std)
 
   Args:
-    mu:
-    mu_slope:
-    std:
-    std_slope:
+    mu: the intercept of the mean line
+    mu_slope: the slope of the mean line
+    std: the intercept of the std dev. line
+    std_slope: the slope of the std. dev. line
     random_seed: seed for the random_number generator
   """
 

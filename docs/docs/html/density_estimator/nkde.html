@@ -97,7 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Neighborhood Kernel Density Estimation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#base-density-estimation-interface">Base Density Estimation Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#module-cde.density_estimator">Base Density Estimation Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
@@ -183,6 +183,356 @@ This implementation currently supports two types of weighting:</p>
 <li>equal weights: <span class="math">\(w_j = \frac{1}{|\mathcal{I}_{x, \epsilon}|}\)</span></li>
 <li>weights <span class="math">\(w_j\)</span> proportional to <span class="math">\(||x_j - x||_2\)</span>, the euclidean distance w.r.t. to x</li>
 </ul>
+<span class="target" id="module-cde.density_estimator"></span><dl class="class">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation">
+<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">NeighborKernelDensityEstimation</code><span class="sig-paren">(</span><em>name='NKDE'</em>, <em>ndim_x=None</em>, <em>ndim_y=None</em>, <em>epsilon=0.3</em>, <em>bandwidth='normal_reference'</em>, <em>weighted=True</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NKDE.html#NeighborKernelDensityEstimation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Epsilon-Neighbor Kernel Density Estimation (lazy learner) with Gaussian Kernels</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>epsilon</strong> – size of the (normalized) neighborhood region</li>
+<li><strong>bandwidth</strong> – bandwidth selection method or bandwidth parameter</li>
+<li><strong>weighted</strong> – if true - the neighborhood Gaussians are weighted according to their distance to the query point,
+if false - all neighborhood Gaussians are weighted equally</li>
+<li><strong>random_seed</strong> – (optional) seed (int) of the random number generators used</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the fitted distribution conditioned on x_cond</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NKDE.html#NeighborKernelDensityEstimation.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Since NKDE is a lazy learner, fit just stores the provided training data (X,Y)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.fit_by_cv">
+<code class="descname">fit_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_folds=5</em>, <em>param_grid=None</em>, <em>verbose=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.fit_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with hyperparameter search and cross-validation.</p>
+<ul class="simple">
+<li>Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+the conditional log-likelihood is used for evaluation_runs.</li>
+<li>Fits the model with the previously selected hyperparameter configuration</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+<li><strong>n_folds</strong> – number of cross-validation folds (positive integer)</li>
+<li><strong>param_grid</strong> – <p>(optional) a dictionary with the hyperparameters of the model as key and and a list of respective                   parametrizations as value. The hyperparameter search is performed over the cartesian product of                   the provided lists.</p>
+<p>Example:
+{“n_centers”: [20, 50, 100, 200],</p>
+<blockquote>
+<div>”center_sampling_method”: [“agglomerative”, “k_means”, “random”],
+“keep_edges”: [True, False]</div></blockquote>
+<p>}</p>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.get_configuration">
+<code class="descname">get_configuration</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.get_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter configuration for this estimator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> – boolean, optional If True, will return the parameters for this estimator and              contained subobjects that are estimators.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">params - mapping of string to any Parameter names mapped to their values.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.get_params">
+<code class="descname">get_params</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.get_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameters for this estimator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, will return the parameters for this estimator and
+contained subobjects that are estimators.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>params</strong> – Parameter names mapped to their values.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">mapping of string to any</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.loo_likelihood">
+<code class="descname">loo_likelihood</code><span class="sig-paren">(</span><em>bw</em>, <em>epsilon</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NKDE.html#NeighborKernelDensityEstimation.loo_likelihood"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.loo_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates the negative leave-one-out log-likelihood of the training data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>bw</strong> – bandwidth parameter</li>
+<li><strong>epsilon</strong> – size of the (normalized) neighborhood region</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the fitted distribution conditioned on x_cond
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NKDE.html#NeighborKernelDensityEstimation.pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional likelihood p(y|x). Requires the model to be fitted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.plot2d">
+<code class="descname">plot2d</code><span class="sig-paren">(</span><em>x_cond=[0, 1, 2], ylim=(-8, 8), resolution=100, mode='pdf', show=True, prefix='', numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xlim</strong> – 2-tuple specifying the x axis limits</li>
+<li><strong>ylim</strong> – 2-tuple specifying the y axis limits</li>
+<li><strong>resolution</strong> – integer specifying the resolution of plot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.plot3d">
+<code class="descname">plot3d</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-8</em>, <em>8)</em>, <em>resolution=100</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xlim</strong> – 2-tuple specifying the x axis limits</li>
+<li><strong>ylim</strong> – 2-tuple specifying the y axis limits</li>
+<li><strong>resolution</strong> – integer specifying the resolution of plot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.predict_density">
+<code class="descname">predict_density</code><span class="sig-paren">(</span><em>X</em>, <em>Y=None</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.predict_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes conditional density p(y|x) over a predefined grid of y target values</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – values/vectors to be conditioned on - shape: (n_instances, n_dim_x)</li>
+<li><strong>Y</strong> – (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution</li>
+<li><strong>resulution</strong> – integer specifying the resolution of evaluation_runs grid</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Returns: tuple (P, Y)</dt>
+<dd><ul class="first last simple">
+<li>P - density p(y|x) - shape (n_instances, resolution**n_dim_y)</li>
+<li>Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y            in case it was provided as argument</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.score">
+<code class="descname">score</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mean conditional log-likelihood of the provided data (X, Y)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_query_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_query_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">negative log likelihood of data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.set_params">
+<code class="descname">set_params</code><span class="sig-paren">(</span><em>**params</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.set_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the parameters of this estimator.</p>
+<p>The method works on simple estimators as well as on nested objects
+(such as pipelines). The latter have parameters of the form
+<code class="docutils literal"><span class="pre">&lt;component&gt;__&lt;parameter&gt;</span></code> so that it’s possible to update each
+component of a nested object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>VaR values for each x to condition on - numpy array of shape (n_values)</li>
+<li>CVaR values for each x to condition on - numpy array of shape (n_values)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NeighborKernelDensityEstimation.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NeighborKernelDensityEstimation.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

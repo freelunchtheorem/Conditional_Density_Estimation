@@ -164,8 +164,11 @@
 
 <div class="viewcode-block" id="GaussianMixture"><a class="viewcode-back" href="../../../density_simulation/gmm.html#cde.density_simulation.GaussianMixture">[docs]</a><span class="k">class</span> <span class="nc">GaussianMixture</span><span class="p">(</span><span class="n">BaseConditionalDensitySimulation</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">  A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the</span>
-<span class="sd">  ConditionDensity class.</span>
+<span class="sd">  This model allows to fit and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices.</span>
+<span class="sd">  The mixture model is composed by a linear combination of an arbitrary number of components n_kernels. Means, covariances and weights are</span>
+<span class="sd">  estimated by Maximum-Likelihood for each component. It is possible to specify the number of kernels to define the modality of the</span>
+<span class="sd">  distribution and also dimensionality for both x and y. The component means are initialized randomly according to given standard</span>
+<span class="sd">  deviation. Also the weights are initialized randomly.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    n_kernels: number of mixture components</span>

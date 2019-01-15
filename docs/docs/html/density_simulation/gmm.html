@@ -98,6 +98,8 @@
 <li class="toctree-l2"><a class="reference internal" href="econ_density.html">ECON Toy Density Model</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Gaussian Mixture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="jump_diff.html">Jump-Diffusion Time Series Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linear_gaussian.html">Linear Gaussian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="skew_normal.html">Skew Normal</a></li>
 <li class="toctree-l2"><a class="reference internal" href="density_simulation.html#module-cde.density_simulation">Conditional Density Simulation Interface</a></li>
 </ul>
 </li>
@@ -168,12 +170,21 @@
             
   <div class="section" id="gaussian-mixture">
 <h1>Gaussian Mixture<a class="headerlink" href="#gaussian-mixture" title="Permalink to this headline">¶</a></h1>
-<p>Gaussian Mixture Model with diagonal covariance matrices</p>
+<p>Fit a and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices. For the multivariate case the distribution is given by</p>
+<div class="math">
+\[G(X | \mu, \Sigma) = \frac{1}{\sqrt{2\pi\left|\Sigma\right|}} \exp^{(-\frac{1}{2} (X-\mu)^T\Sigma^{-1}(X-\mu))}\]</div>
+<p>The mixture model is then composed of a linear combination of an arbitrary number of components <span class="math">\(K\)</span>:</p>
+<div class="math">
+\[p(X) = \sum_{k=1}^K \pi_k G(X|\mu_k, \Sigma_k).\]</div>
+<p>Where <span class="math">\(\pi_k\)</span> is the mixing coefficient for the <span class="math">\(k\)</span>-th distribution. <span class="math">\(\mu\)</span>, <span class="math">\(\Sigma\)</span> and <span class="math">\(\pi\)</span> are estimated by Maximum-Likelihood for each <span class="math">\(k\)</span>. It is possible to specify the number of kernels to define the modality of the distribution and also dimensionality for both <span class="math">\(x\)</span> and <span class="math">\(y\)</span>. The component means are initialized randomly according to given standard deviation. Also the weights are initialized randomly.</p>
 <span class="target" id="module-cde.density_simulation"></span><dl class="class">
 <dt id="cde.density_simulation.GaussianMixture">
 <em class="property">class </em><code class="descclassname">cde.density_simulation.</code><code class="descname">GaussianMixture</code><span class="sig-paren">(</span><em>n_kernels=5</em>, <em>ndim_x=1</em>, <em>ndim_y=1</em>, <em>means_std=1.5</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture" title="Permalink to this definition">¶</a></dt>
-<dd><p>A gaussian mixture model for drawing conditional samples from its mixture distribution. Implements the
-ConditionDensity class.</p>
+<dd><p>This model allows to fit and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices.
+The mixture model is composed by a linear combination of an arbitrary number of components n_kernels. Means, covariances and weights are
+estimated by Maximum-Likelihood for each component. It is possible to specify the number of kernels to define the modality of the
+distribution and also dimensionality for both x and y. The component means are initialized randomly according to given standard
+deviation. Also the weights are initialized randomly.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

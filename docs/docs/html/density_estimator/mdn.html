@@ -97,7 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Mixture Density Network</a></li>
 <li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#base-density-estimation-interface">Base Density Estimation Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#module-cde.density_estimator">Base Density Estimation Interface</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
@@ -174,7 +174,7 @@ model, the parameters of the distribution <span class="math">\(t\)</span> can be
 our implementation specified as X_ph (placeholder) and X). This approach therefore constitutes as a framework capable of approximating
 arbitrary conditional distributions.</p>
 <p>The following example develops a model for Gaussian components with isotropic component covariances, while <span class="math">\(K\)</span>
-being the number of components of a single mixture (our model currently currently allows to choose an arbitrary number of (global) mixture components, see
+being the number of components of a single mixture (our model currently allows to choose an arbitrary number of (global) mixture components, see
 parameter L below) and <span class="math">\(\pi(x)\)</span> denoting the mixing coefficients:</p>
 <div class="math">
 \[p(t|x) = \sum_{k=1}^K \pi_{k}(x) \mathcal{N}(t|\mu_{k}(x), \sigma_{k}^2(x))\]</div>
@@ -191,12 +191,391 @@ of network outputs is given by <span class="math">\((K+2)L\)</span>.</p>
 <span class="math">\(L\)</span> kernel widths <span class="math">\(\sigma_k(x)\)</span> which are determined by the network output <span class="math">\(a_k^{\sigma}\)</span> and can be represented as exponentials:</p>
 <div class="math">
 \[\sigma_k(x) = exp(a_k^{\sigma})\]</div>
-<p>For the <span class="math">\(K \times L\)</span> means we directly use the network outputs: :math:<a href="#id3"><span class="problematic" id="id4">`</span></a>mu_k(x) = a_{kj}^{sigma}.</p>
-<p>The weights and biases <span class="math">\(w\)</span> of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over :math:<a href="#id5"><span class="problematic" id="id6">`</span></a>N
+<p>For the <span class="math">\(K \times L\)</span> means we directly use the network outputs: <span class="math">\(\mu_k(x) = a_{kj}^{\sigma}\)</span>.</p>
+<p>The weights and biases <span class="math">\(w\)</span> of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over <span class="math">\(N\)</span>
 data points:</p>
 <div class="math">
 \[E(w) = - \sum_{n=1}^N \ln \bigg\{\sum_{k=1}^k \pi_k(x_n, w) \mathcal{N} (t_n|\mu_k(x_n, w), \sigma_k^2(x_n,w)) \bigg\}\]</div>
 <p>This can be executed via the standard backpropagation algorithm, given that suitable expressions for the derivations can be obtained.</p>
+<span class="target" id="module-cde.density_estimator"></span><dl class="class">
+<dt id="cde.density_estimator.MixtureDensityNetwork">
+<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">MixtureDensityNetwork</code><span class="sig-paren">(</span><em>name</em>, <em>ndim_x</em>, <em>ndim_y</em>, <em>n_centers=20</em>, <em>hidden_sizes=(16</em>, <em>16)</em>, <em>hidden_nonlinearity=&lt;function tanh&gt;</em>, <em>n_training_epochs=1000</em>, <em>x_noise_std=None</em>, <em>y_noise_std=None</em>, <em>entropy_reg_coef=0.0</em>, <em>weight_normalization=True</em>, <em>data_normalization=True</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/MDN.html#MixtureDensityNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mixture Density Network Estimator</p>
+<p>See “Mixture Density networks”, Bishop 1994</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> – (str) name space of MDN (should be unique in code, otherwise tensorflow namespace collitions may arise)</li>
+<li><strong>ndim_x</strong> – (int) dimensionality of x variable</li>
+<li><strong>ndim_y</strong> – (int) dimensionality of y variable</li>
+<li><strong>n_centers</strong> – Number of Gaussian mixture components</li>
+<li><strong>hidden_sizes</strong> – (tuple of int) sizes of the hidden layers of the neural network</li>
+<li><strong>hidden_nonlinearity</strong> – (tf function) nonlinearity of the hidden layers</li>
+<li><strong>n_training_epochs</strong> – Number of epochs for training</li>
+<li><strong>x_noise_std</strong> – (optional) standard deviation of Gaussian noise over the the training data X -&gt; regularization through noise</li>
+<li><strong>y_noise_std</strong> – (optional) standard deviation of Gaussian noise over the the training data Y -&gt; regularization through noise</li>
+<li><strong>entropy_reg_coef</strong> – (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution</li>
+<li><strong>weight_normalization</strong> – (boolean) whether weight normalization shall be used</li>
+<li><strong>data_normalization</strong> – (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std</li>
+<li><strong>random_seed</strong> – (optional) seed (int) of the random number generators used</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.cdf">
+<code class="descname">cdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.cdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional cumulative probability p(Y&lt;=y|X=x). Requires the model to be fitted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">conditional cumulative probability p(Y&lt;=y|X=x) - numpy array of shape (n_query_samples, )</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of a GMM. Only if ndim_y = 1</p>
+<blockquote>
+<div>Based on formulas from section 2.3.2 in “Expected shortfall for distributions in finance”,
+Simon A. Broda, Marc S. Paolella, 2011</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=None</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the fitted distribution conditioned on x_cond</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>random_seed=None</em>, <em>verbose=True</em>, <em>eval_set=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/MDN.html#MixtureDensityNetwork.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with provided data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+<li><strong>n_folds</strong> – number of cross-validation folds (positive integer)</li>
+<li><strong>verbose</strong> – (boolean) controls the verbosity (console output)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.fit_by_cv">
+<code class="descname">fit_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_folds=3</em>, <em>param_grid=None</em>, <em>random_state=None</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.fit_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with hyperparameter search and cross-validation.</p>
+<ul class="simple">
+<li>Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+the conditional log-likelihood is used for evaluation_runs.</li>
+<li>Fits the model with the previously selected hyperparameter configuration</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+<li><strong>n_folds</strong> – number of cross-validation folds (positive integer)</li>
+<li><strong>param_grid</strong> – <p>(optional) a dictionary with the hyperparameters of the model as key and and a list of respective                     parametrizations as value. The hyperparameter search is performed over the cartesian product of                     the provided lists.</p>
+<p>Example:
+{“n_centers”: [20, 50, 100, 200],</p>
+<blockquote>
+<div>”center_sampling_method”: [“agglomerative”, “k_means”, “random”],
+“keep_edges”: [True, False]</div></blockquote>
+<p>}</p>
+</li>
+<li><strong>random_state</strong> – (int) seed used by the random number generator for shuffeling the data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.get_configuration">
+<code class="descname">get_configuration</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.get_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter configuration for this estimator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>deep</strong> – boolean, optional If True, will return the parameters for this estimator and              contained subobjects that are estimators.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">params - mapping of string to any Parameter names mapped to their values.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.get_params">
+<code class="descname">get_params</code><span class="sig-paren">(</span><em>**tags</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.get_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the list of parameters, filtered by the provided tags.
+Some common tags include ‘regularizable’ and ‘trainable’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the fitted distribution conditioned on x_cond
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional likelihood p(y|x). Requires the model to be fitted.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.plot2d">
+<code class="descname">plot2d</code><span class="sig-paren">(</span><em>x_cond=[0, 1, 2], ylim=(-8, 8), resolution=100, mode='pdf', show=True, prefix='', numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xlim</strong> – 2-tuple specifying the x axis limits</li>
+<li><strong>ylim</strong> – 2-tuple specifying the y axis limits</li>
+<li><strong>resolution</strong> – integer specifying the resolution of plot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.plot3d">
+<code class="descname">plot3d</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-8</em>, <em>8)</em>, <em>resolution=100</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xlim</strong> – 2-tuple specifying the x axis limits</li>
+<li><strong>ylim</strong> – 2-tuple specifying the y axis limits</li>
+<li><strong>resolution</strong> – integer specifying the resolution of plot</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.predict_density">
+<code class="descname">predict_density</code><span class="sig-paren">(</span><em>X</em>, <em>Y=None</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.predict_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes conditional density p(y|x) over a predefined grid of y target values</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> – values/vectors to be conditioned on - shape: (n_instances, n_dim_x)</li>
+<li><strong>Y</strong> – (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution</li>
+<li><strong>resolution</strong> – <p>integer specifying the resolution of evaluation_runs grid</p>
+<dl class="docutils">
+<dt>Returns: tuple (P, Y)</dt>
+<dd><ul class="first last">
+<li>P - density p(y|x) - shape (n_instances, resolution**n_dim_y)</li>
+<li>Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y             in case it was provided as argument</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.sample">
+<code class="descname">sample</code><span class="sig-paren">(</span><em>X</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>sample from the conditional mixture distributions - requires the model to be fitted</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>X</strong> – values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Returns: tuple (X, Y)</dt>
+<dd><ul class="first last simple">
+<li>X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)</li>
+<li>Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.score">
+<code class="descname">score</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mean conditional log-likelihood of the provided data (X, Y)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> – numpy array to be conditioned on - shape: (n_query_samples, n_dim_x)</li>
+<li><strong>Y</strong> – numpy array of y targets - shape: (n_query_samples, n_dim_y)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">negative log likelihood of data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.set_params">
+<code class="descname">set_params</code><span class="sig-paren">(</span><em>**params</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.set_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the parameters of this estimator.</p>
+<p>The method works on simple estimators as well as on nested objects
+(such as pipelines). The latter have parameters of the form
+<code class="docutils literal"><span class="pre">&lt;component&gt;__&lt;parameter&gt;</span></code> so that it’s possible to update each
+component of a nested object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+<li><strong>n_samples</strong> – number of samples for monte carlo evaluation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li>VaR values for each x to condition on - numpy array of shape (n_values)</li>
+<li>CVaR values for each x to condition on - numpy array of shape (n_values)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.MixtureDensityNetwork.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=10000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.MixtureDensityNetwork.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</li>
+<li><strong>alpha</strong> – quantile percentage of the distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <table class="docutils citation" frame="void" id="bishop1994" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">

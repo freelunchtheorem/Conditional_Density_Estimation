@@ -161,9 +161,13 @@
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#J"><strong>J</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -184,6 +188,10 @@
       <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation">BaseConditionalDensitySimulation (class in cde.density_simulation)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator">BaseDensityEstimator (class in cde.density_estimator)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
@@ -191,33 +199,67 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.can_sample">can_sample (cde.density_simulation.GaussianMixture attribute)</a>
 </li>
-      <li><a href="density_simulation/arma_jump.html#module-cde.density_simulation">cde.density_simulation (module)</a>, <a href="density_simulation/density_simulation.html#module-cde.density_simulation">[1]</a>, <a href="density_simulation/econ_density.html#module-cde.density_simulation">[2]</a>, <a href="density_simulation/gmm.html#module-cde.density_simulation">[3]</a>, <a href="density_simulation/jump_diff.html#module-cde.density_simulation">[4]</a>
+      <li><a href="density_estimator/density_estimator.html#module-cde.density_estimator">cde.density_estimator (module)</a>, <a href="density_estimator/kmn.html#module-cde.density_estimator">[1]</a>, <a href="density_estimator/lscde.html#module-cde.density_estimator">[2]</a>, <a href="density_estimator/mdn.html#module-cde.density_estimator">[3]</a>, <a href="density_estimator/nkde.html#module-cde.density_estimator">[4]</a>
 </li>
-      <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.cdf">cdf() (cde.density_simulation.ArmaJump method)</a>
+      <li><a href="density_simulation/arma_jump.html#module-cde.density_simulation">cde.density_simulation (module)</a>, <a href="density_simulation/density_simulation.html#module-cde.density_simulation">[1]</a>, <a href="density_simulation/econ_density.html#module-cde.density_simulation">[2]</a>, <a href="density_simulation/gmm.html#module-cde.density_simulation">[3]</a>, <a href="density_simulation/jump_diff.html#module-cde.density_simulation">[4]</a>, <a href="density_simulation/linear_gaussian.html#module-cde.density_simulation">[5]</a>, <a href="density_simulation/skew_normal.html#module-cde.density_simulation">[6]</a>
+</li>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.cdf">cdf() (cde.density_estimator.KernelMixtureNetwork method)</a>
 
       <ul>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.cdf">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.cdf">(cde.density_simulation.ArmaJump method)</a>
+</li>
         <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.cdf">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
 </li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.cdf">(cde.density_simulation.EconDensity method)</a>
 </li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.cdf">(cde.density_simulation.GaussianMixture method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.cdf">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.cdf">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
-      <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.conditional_value_at_risk">conditional_value_at_risk() (cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.conditional_value_at_risk">conditional_value_at_risk() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.conditional_value_at_risk">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.conditional_value_at_risk">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.conditional_value_at_risk">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.conditional_value_at_risk">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.conditional_value_at_risk">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+</li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.conditional_value_at_risk">(cde.density_simulation.EconDensity method)</a>
 </li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.conditional_value_at_risk">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.conditional_value_at_risk">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.conditional_value_at_risk">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.conditional_value_at_risk">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.covariance">covariance() (cde.density_simulation.ArmaJump method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.covariance">covariance() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.covariance">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.covariance">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.covariance">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.covariance">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.covariance">(cde.density_simulation.ArmaJump method)</a>
+</li>
         <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.covariance">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
 </li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.covariance">(cde.density_simulation.EconDensity method)</a>
@@ -225,6 +267,10 @@
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.covariance">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.covariance">(cde.density_simulation.JumpDiffusionModel method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.covariance">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.covariance">(cde.density_simulation.SkewNormal method)</a>
 </li>
       </ul></li>
       <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.covariances_y">covariances_y (cde.density_simulation.GaussianMixture attribute)</a>
@@ -240,6 +286,38 @@
   </ul></td>
 </tr></table>
 
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.fit">fit() (cde.density_estimator.BaseDensityEstimator method)</a>
+
+      <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.fit">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.fit">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.fit">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.fit">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.fit_by_cv">fit_by_cv() (cde.density_estimator.BaseDensityEstimator method)</a>
+
+      <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.fit_by_cv">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.fit_by_cv">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.fit_by_cv">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.fit_by_cv">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -247,14 +325,36 @@
 </li>
       <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture">GaussianMixture (class in cde.density_simulation)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.get_params">get_params() (cde.density_simulation.EconDensity method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.get_configuration">get_configuration() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.get_configuration">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.get_configuration">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.get_configuration">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.get_configuration">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      </ul></li>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.get_params">get_params() (cde.density_estimator.KernelMixtureNetwork method)</a>
+
+      <ul>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.get_params">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.get_params">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.get_params">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.get_params">(cde.density_simulation.EconDensity method)</a>
+</li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.get_params">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.get_params">(cde.density_simulation.JumpDiffusionModel method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.get_params">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.get_params">(cde.density_simulation.SkewNormal method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -272,12 +372,44 @@
   </ul></td>
 </tr></table>
 
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork">KernelMixtureNetwork (class in cde.density_estimator)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian">LinearGaussian (class in cde.density_simulation)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.loo_likelihood">loo_likelihood() (cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation">LSConditionalDensityEstimation (class in cde.density_estimator)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.mean_">mean_() (cde.density_simulation.ArmaJump method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.mean_">mean_() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.mean_">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.mean_">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.mean_">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.mean_">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.mean_">(cde.density_simulation.ArmaJump method)</a>
+</li>
         <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.mean_">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
 </li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.mean_">(cde.density_simulation.EconDensity method)</a>
@@ -286,10 +418,24 @@
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.mean_">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.mean_">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.mean_">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.means">means (cde.density_simulation.GaussianMixture attribute)</a>
+</li>
+      <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork">MixtureDensityNetwork (class in cde.density_estimator)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation">NeighborKernelDensityEstimation (class in cde.density_estimator)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -297,14 +443,28 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.pdf">pdf() (cde.density_simulation.ArmaJump method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.pdf">pdf() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.pdf">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.pdf">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.pdf">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.pdf">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.pdf">(cde.density_simulation.ArmaJump method)</a>
+</li>
         <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.pdf">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
 </li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.pdf">(cde.density_simulation.EconDensity method)</a>
 </li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.pdf">(cde.density_simulation.GaussianMixture method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.pdf">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.pdf">(cde.density_simulation.SkewNormal method)</a>
 </li>
       </ul></li>
       <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.plot">plot() (cde.density_simulation.BaseConditionalDensitySimulation method)</a>
@@ -316,15 +476,55 @@
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.plot">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.plot">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.plot">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.plot2d">plot2d() (cde.density_simulation.EconDensity method)</a>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.plot2d">plot2d() (cde.density_estimator.KernelMixtureNetwork method)</a>
 
       <ul>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.plot2d">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.plot2d">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.plot2d">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.plot2d">(cde.density_simulation.EconDensity method)</a>
+</li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.plot2d">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.plot2d">(cde.density_simulation.JumpDiffusionModel method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.plot2d">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.plot2d">(cde.density_simulation.SkewNormal method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.plot3d">plot3d() (cde.density_estimator.BaseDensityEstimator method)</a>
+
+      <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.plot3d">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.plot3d">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.plot3d">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.plot3d">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      </ul></li>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.predict_density">predict_density() (cde.density_estimator.BaseDensityEstimator method)</a>
+
+      <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.predict_density">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.predict_density">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.predict_density">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.predict_density">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -333,14 +533,48 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.set_params">set_params() (cde.density_simulation.EconDensity method)</a>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.sample">sample() (cde.density_estimator.KernelMixtureNetwork method)</a>
 
       <ul>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.sample">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.sample">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+      </ul></li>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.score">score() (cde.density_estimator.BaseDensityEstimator method)</a>
+
+      <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.score">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.score">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.score">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.score">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+      </ul></li>
+      <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.set_params">set_params() (cde.density_estimator.KernelMixtureNetwork method)</a>
+
+      <ul>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.set_params">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.set_params">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.set_params">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.set_params">(cde.density_simulation.EconDensity method)</a>
+</li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.set_params">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.set_params">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.set_params">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.set_params">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.simulate">simulate() (cde.density_simulation.ArmaJump method)</a>
 
       <ul>
@@ -352,9 +586,11 @@
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.simulate">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.simulate">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.simulate">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="density_simulation/arma_jump.html#cde.density_simulation.ArmaJump.simulate_conditional">simulate_conditional() (cde.density_simulation.ArmaJump method)</a>
 
       <ul>
@@ -366,21 +602,41 @@
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.simulate_conditional">(cde.density_simulation.JumpDiffusionModel method)</a>
 </li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.simulate_conditional">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.simulate_conditional">(cde.density_simulation.SkewNormal method)</a>
+</li>
       </ul></li>
+      <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal">SkewNormal (class in cde.density_simulation)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.tail_risk_measures">tail_risk_measures() (cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.tail_risk_measures">tail_risk_measures() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.tail_risk_measures">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.tail_risk_measures">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.tail_risk_measures">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.tail_risk_measures">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.tail_risk_measures">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+</li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.tail_risk_measures">(cde.density_simulation.EconDensity method)</a>
 </li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.tail_risk_measures">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.tail_risk_measures">(cde.density_simulation.JumpDiffusionModel method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.tail_risk_measures">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.tail_risk_measures">(cde.density_simulation.SkewNormal method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -389,14 +645,28 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.value_at_risk">value_at_risk() (cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+      <li><a href="density_estimator/density_estimator.html#cde.density_estimator.BaseDensityEstimator.value_at_risk">value_at_risk() (cde.density_estimator.BaseDensityEstimator method)</a>
 
       <ul>
+        <li><a href="density_estimator/kmn.html#cde.density_estimator.KernelMixtureNetwork.value_at_risk">(cde.density_estimator.KernelMixtureNetwork method)</a>
+</li>
+        <li><a href="density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.value_at_risk">(cde.density_estimator.LSConditionalDensityEstimation method)</a>
+</li>
+        <li><a href="density_estimator/mdn.html#cde.density_estimator.MixtureDensityNetwork.value_at_risk">(cde.density_estimator.MixtureDensityNetwork method)</a>
+</li>
+        <li><a href="density_estimator/nkde.html#cde.density_estimator.NeighborKernelDensityEstimation.value_at_risk">(cde.density_estimator.NeighborKernelDensityEstimation method)</a>
+</li>
+        <li><a href="density_simulation/density_simulation.html#cde.density_simulation.BaseConditionalDensitySimulation.value_at_risk">(cde.density_simulation.BaseConditionalDensitySimulation method)</a>
+</li>
         <li><a href="density_simulation/econ_density.html#cde.density_simulation.EconDensity.value_at_risk">(cde.density_simulation.EconDensity method)</a>
 </li>
         <li><a href="density_simulation/gmm.html#cde.density_simulation.GaussianMixture.value_at_risk">(cde.density_simulation.GaussianMixture method)</a>
 </li>
         <li><a href="density_simulation/jump_diff.html#cde.density_simulation.JumpDiffusionModel.value_at_risk">(cde.density_simulation.JumpDiffusionModel method)</a>
+</li>
+        <li><a href="density_simulation/linear_gaussian.html#cde.density_simulation.LinearGaussian.value_at_risk">(cde.density_simulation.LinearGaussian method)</a>
+</li>
+        <li><a href="density_simulation/skew_normal.html#cde.density_simulation.SkewNormal.value_at_risk">(cde.density_simulation.SkewNormal method)</a>
 </li>
       </ul></li>
   </ul></td>
