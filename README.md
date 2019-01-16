@@ -1,4 +1,4 @@
-# Conditional_Density_Estimation
+# Conditional Density Estimation (CDE)
 
 ## Description
 <todo>
