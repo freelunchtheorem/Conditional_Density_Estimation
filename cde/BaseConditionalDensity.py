@@ -38,9 +38,13 @@ class ConditionalDensity(BaseEstimator):
 
   """ COVARIANCE """
 
-  def _covariance_pdf(self, x_cond, n_samples=10 ** 6):
+  def _covariance_pdf(self, x_cond, n_samples=10 ** 6, mean=None):
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
+    assert mean is None or mean.shape == (x_cond.shape[0], self.ndim_y)
+
+    if mean is None:
+      mean = self._mean_mc(x_cond, n_samples=n_samples)
 
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
     mean = self.mean_(x_cond)

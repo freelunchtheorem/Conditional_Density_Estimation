@@ -87,12 +87,13 @@ class BaseDensityEstimator(ConditionalDensity):
       Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
     """
     assert self.fitted, "model must be fitted"
+    x_cond = self._handle_input_dimensionality(x_cond)
     assert x_cond.ndim == 2
 
     if self.can_sample:
       return self._mean_mc(x_cond, n_samples=n_samples)
     else:
-      return self._mean_pdf(x_cond)
+      return self._mean_pdf(x_cond, n_samples=n_samples)
 
   def covariance(self, x_cond, n_samples=10**7):
     """ Covariance of the fitted distribution conditioned on x_cond
@@ -104,7 +105,23 @@ class BaseDensityEstimator(ConditionalDensity):
       Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
     """
     assert self.fitted, "model must be fitted"
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
     return self._covariance_pdf(x_cond, n_samples=n_samples)
+
+  def mean_covariance(self, x_cond, n_samples=10 ** 7):
+    """ Computes Mean and Covariance of the fitted distribution conditioned on x_cond.
+        Computationally more efficient than calling mean and covariance computatio separately
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Means E[y|x] and Covariances Cov[y|x]
+    """
+    mean = self.mean_(x_cond, n_samples=10 ** 7)
+    cov = self._covariance_pdf(x_cond, n_samples=n_samples, mean=mean)
+    return mean, cov
 
   def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
@@ -264,9 +281,6 @@ class BaseDensityEstimator(ConditionalDensity):
       return numpy_img
 
     return fig
-
-
-
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
     """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)

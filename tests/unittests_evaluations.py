@@ -292,6 +292,18 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
+  def test_mean_covariance(self):
+    mu = np.array([0, 1])
+    sigma = np.array([[1, -0.2], [-0.2, 2]])
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+    est.fit(None, None)
+
+    mean_est, cov_est = est.mean_covariance(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
+    self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
+    self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
+    self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
+
   def test_covariance_mixture(self):
     np.random.seed(24)
     from tensorflow import set_random_seed
