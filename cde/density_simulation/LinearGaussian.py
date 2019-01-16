@@ -47,6 +47,8 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self._mean(X)
+    mean = self._handle_input_dimensionality(mean)
+    assert mean.ndim == X.ndim and X.ndim == Y.ndim
     return stats.norm.pdf((Y-mean)/self._std(X)) / self._std(X)
 
   def cdf(self, X, Y):
