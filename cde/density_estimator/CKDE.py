@@ -1,26 +1,51 @@
 import numpy as np
-from .BaseDensityEstimator import BaseDensityEstimator
-
 import statsmodels.api as sm
 
+from cde.utils.async_executor import execute_batch_async_pdf
+from .BaseDensityEstimator import BaseDensityEstimator
+
+MULTIPROC_THRESHOLD = 10**4
 
 class ConditionalKernelDensityEstimation(BaseDensityEstimator):
+  """ ConditionalKernelDensityEstimation (CKDE): Nonparametric conditional density estimator that
+      models the joint probability p(x,y) and marginal probability p(x) via kernel density estimation
+      and computes the conditional density as p(y|x) = p(x, y) / p(x). This implementation wraps
+      functionality of the statsmodels.nonparametric module.
 
+      Args:
+          name: (str) name / identifier of estimator
+          ndim_x: (int) dimensionality of x variable
+          ndim_y: (int) dimensionality of y variable
+          bandwidth: (array_like or str)
+            If an array, it is a fixed user-specified bandwidth.  If a string,
+            should be one of:
 
-  def __init__(self, name, ndim_x, ndim_y, bandwidth_selection='cv_ml', random_seed=None):
+            - normal_reference: normal reference rule of thumb (default)
+            - cv_ml: cross validation maximum likelihood
+            - cv_ls: cross validation least squares
+          n_jobs: (int) number of jobs to launch for calls with large batch sizes
+          random_seed: (optional) seed (int) of the random number generators used
+
+      References:
+          Racine, J., Li, Q. Nonparametric econometrics: theory and practice.
+          Princeton University Press. (2007)
+  """
+
+  def __init__(self, name='CKDE', ndim_x=None, ndim_y=None, bandwidth='cv_ml', n_jobs=-1, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.name = name
+    self.ndim_x = ndim_x
+    self.ndim_y = ndim_y
+    self.n_jobs = n_jobs
 
-    assert bandwidth_selection in ['normal_reference', 'cv_ml', 'cv_ls']
-    self.bandwidth_selection = bandwidth_selection
+    assert bandwidth in ['normal_reference', 'cv_ml', 'cv_ls']
+    self.bandwidth = bandwidth
 
     self.fitted = False
     self.can_sample = False
     self.has_pdf = True
     self.has_cdf = True
 
-    self.name = name
-    self.ndim_x = ndim_x
-    self.ndim_y = ndim_y
 
   def fit(self, X, Y, **kwargs):
     """ Since CKDE is a lazy learner, fit just stores the provided training data (X,Y)
@@ -34,7 +59,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
     dep_type = 'c' * self.ndim_y
     indep_type = 'c' * self.ndim_x
-    self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type=dep_type, indep_type=indep_type, bw=self.bandwidth_selection)
+    self.sm_kde = sm.nonparametric.KDEMultivariateConditional(endog=[Y], exog=[X], dep_type=dep_type, indep_type=indep_type, bw=self.bandwidth)
 
     self.fitted = True
     self.can_sample = False
@@ -52,7 +77,12 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
      """
     X,Y = self._handle_input_dimensionality(X, Y)
-    return self.sm_kde.pdf(endog_predict=Y, exog_predict=X)
+
+    n_samples = X.shape[0]
+    if n_samples > MULTIPROC_THRESHOLD:
+      return execute_batch_async_pdf(self.sm_kde.pdf, Y, X, n_jobs=self.n_jobs)
+    else:
+      return self.sm_kde.pdf(endog_predict=Y, exog_predict=X)
 
   def cdf(self, X, Y):
     """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
@@ -67,7 +97,11 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     """
     assert self.fitted, "model must be fitted to compute likelihood score"
     X, Y = self._handle_input_dimensionality(X, Y)
-    return self.sm_kde.cdf(endog_predict=Y, exog_predict=X)
+    n_samples = X.shape[0]
+    if n_samples > MULTIPROC_THRESHOLD:
+      execute_batch_async_pdf(self.sm_kde.cdf, Y, X, n_jobs=self.n_jobs)
+    else:
+      return self.sm_kde.cdf(endog_predict=Y, exog_predict=X)
 
   def sample(self, X):
     raise NotImplementedError("Conditional Kernel Density Estimation is a lazy learner and does not support sampling")

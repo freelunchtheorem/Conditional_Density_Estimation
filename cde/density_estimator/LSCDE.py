@@ -4,24 +4,32 @@ import scipy.stats as stats
 
 from cde.helpers import sample_center_points, norm_along_axis_1
 from .BaseDensityEstimator import BaseDensityEstimator
+from cde.utils.async_executor import execute_batch_async_pdf
+
+MULTIPROC_THRESHOLD = 10**4
 
 class LSConditionalDensityEstimation(BaseDensityEstimator):
+  """ Least-Squares Density Ratio Estimator
+
+  http://proceedings.mlr.press/v9/sugiyama10a.html
+
+  Args:
+      name: (str) name / identifier of estimator
+      ndim_x: (int) dimensionality of x variable
+      ndim_y: (int) dimensionality of y variable
+      center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
+                            [all, random, distance, k_means, agglomerative]
+      bandwidth: scale / bandwith of the gaussian kernels
+      n_centers: Number of kernels to use in the output
+      keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
+      n_jobs: (int) number of jobs to launch for calls with large batch sizes
+      random_seed: (optional) seed (int) of the random number generators used
+    """
 
   def __init__(self, name='LSCDE', ndim_x=None, ndim_y=None, center_sampling_method='k_means',
                bandwidth=0.5, n_centers=500, regularization=1.0,
-               keep_edges=True, random_seed=None):
-    """ Least-Squares Density Ratio Estimator
+               keep_edges=True, n_jobs=-1, random_seed=None):
 
-      http://proceedings.mlr.press/v9/sugiyama10a.html
-
-      Args:
-          center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
-                                [all, random, distance, k_means, agglomerative]
-          bandwidth: scale / bandwith of the gaussian kernels
-          n_centers: Number of kernels to use in the output
-          keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
-          random_seed: (optional) seed (int) of the random number generators used
-      """
     self.name = name
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
@@ -32,6 +40,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.keep_edges = keep_edges
     self.bw = bandwidth
     self.regularization = regularization
+    self.n_jobs = n_jobs
 
     self.fitted = False
     self.can_sample = True
@@ -91,26 +100,25 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.fitted = True
 
   def pdf(self, X, Y):
-    """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+    """ Predicts the conditional density p(y|x). Requires the model to be fitted.
 
        Args:
          X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
 
        Returns:
-          conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+          conditional probability density p(y|x) - numpy array of shape (n_query_samples, )
 
      """
     assert self.fitted, "model must be fitted for predictions"
 
-    X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+    X, Y = self._handle_input_dimensionality(X, Y)
 
-    X_normalized, Y_normalized = self._normalize(X, Y)
-
-    p = np.dot(self.alpha.T, self._gaussian_kernel(X_normalized, Y_normalized).T)
-    p_normalization = (np.sqrt(2*np.pi) * self.bw) ** self.ndim_y * np.dot(self.alpha.T, self._gaussian_kernel(X_normalized).T)
-
-    return np.squeeze(p / p_normalization / np.product(self.y_std))
+    n_samples = X.shape[0]
+    if n_samples > MULTIPROC_THRESHOLD:
+      return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
+    else:
+      return self._pdf(X, Y)
 
   def predict_density(self, X, Y=None, resolution=50):
     """ Computes conditional density p(y|x) over a predefined grid of y target values
@@ -167,6 +175,15 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       Y[i, :] = self.gaussians_y[idx].rvs()
 
     return X, Y
+
+  def _pdf(self, X, Y):
+    X_normalized, Y_normalized = self._normalize(X, Y)
+
+    p = np.dot(self.alpha.T, self._gaussian_kernel(X_normalized, Y_normalized).T)
+    p_normalization = (np.sqrt(2 * np.pi) * self.bw) ** self.ndim_y * np.dot(self.alpha.T,
+                                                                             self._gaussian_kernel(X_normalized).T)
+
+    return np.squeeze(p / p_normalization / np.product(self.y_std))
 
   def _normalize(self, X, Y):
     X_normalized = (X - self.x_mean) / self.x_std

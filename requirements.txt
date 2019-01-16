@@ -11,3 +11,4 @@ scikit_learn==0.19.1
 git+https://github.com/jonasrothfuss/ml_logger.git@2d373835ea159587fc323140ed0e8a8ea1bf9843
 statsmodels
 pypmc
+sphinx_rtd_theme
