@@ -10,7 +10,7 @@ import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.helpers import sample_center_points, mc_integration_cauchy, norm_along_axis_1
-
+from cde.utils.async_executor import execute_batch_async_pdf
 
 
 class TestHelpers(unittest.TestCase):
@@ -81,7 +81,37 @@ class TestHelpers(unittest.TestCase):
     self.assertAlmostEqual(2, integral[1], places=2)
 
 class TestExecAsyncBatch(unittest.TestCase):
-  pass
+
+  def test_batch_exec_1(self):
+    def pdf(X, Y):
+      return Y[:, 0]
+
+    n_queries = 10**3
+    X = np.ones((n_queries, 2)) * 2
+    Y = np.stack([np.linspace(-3, 3, num=n_queries), np.linspace(-3, 3, num=n_queries)], axis=-1)
+    p_true = pdf(X, Y)
+
+    p_batched = execute_batch_async_pdf(pdf, X, Y, batch_size=10000)
+
+    self.assertLessEqual(np.mean((p_true - p_batched)**2), 0.00001)
+
+  def test_batch_exec_2(self):
+    from scipy.stats import multivariate_normal
+
+    def pdf(X, Y):
+      std = 1
+      ndim_y = Y.shape[1]
+      return multivariate_normal.pdf(Y, mean=np.zeros(ndim_y), cov=np.eye(ndim_y)*std**2)
+
+    n_queries = 8*10 ** 4
+    X = np.ones((n_queries, 2)) * 2
+    Y = np.stack([np.linspace(-3, 3, num=n_queries), np.linspace(-3, 3, num=n_queries)], axis=-1)
+    p_true = pdf(X, Y)
+
+    p_batched = execute_batch_async_pdf(pdf, X, Y, batch_size=10000, n_jobs=8)
+
+    self.assertLessEqual(np.mean((p_true - p_batched) ** 2), 0.00001)
+
 
 def suite():
   suite = unittest.TestSuite()

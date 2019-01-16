@@ -267,7 +267,7 @@ class TestRiskMeasures(unittest.TestCase):
     model = MixtureDensityNetwork("mdn_mean", 2, 2, n_centers=3)
     model.fit(X, Y)
 
-    mean_est = model.mean_(x_cond=np.array([[1,2]]))
+    mean_est = model.mean_(x_cond=np.array([[1,2]]), n_samples=10**7)
     self.assertAlmostEqual(mean_est[0][0], 7, places=0)
     self.assertAlmostEqual(mean_est[0][1], -2, places=1)
 

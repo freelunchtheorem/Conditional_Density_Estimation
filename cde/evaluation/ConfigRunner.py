@@ -206,7 +206,7 @@ class ConfigRunner():
     iters = range(len(tasks))
 
     if multiprocessing:
-      exec = AsyncExecutor(num_workers=n_workers)
+      exec = AsyncExecutor(n_jobs=n_workers)
       exec.run(self._run_single_task, iters, tasks)
 
     else:

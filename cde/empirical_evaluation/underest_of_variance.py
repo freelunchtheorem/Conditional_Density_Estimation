@@ -62,7 +62,7 @@ def estimate_cov(i, j):
 
 
 indices = list(zip(*itertools.product(range(len(ndims)), range(len(seeds)))))
-exec = AsyncExecutor(num_workers=n_workers)
+exec = AsyncExecutor(n_jobs=n_workers)
 exec.run(estimate_cov, indices[0], indices[1])
 
 result_dict = {'MDN': np.zeros((len(ndims), len(seeds))), 'KMN': np.zeros((len(ndims), len(seeds)))}

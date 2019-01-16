@@ -12,7 +12,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ MEAN """
 
-  def _mean_mc(self, x_cond, n_samples=10 ** 7):
+  def _mean_mc(self, x_cond, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -27,7 +27,7 @@ class ConditionalDensity(BaseEstimator):
       means[i, :] = np.mean(samples, axis=0)
     return means
 
-  def _mean_pdf(self, x_cond, n_samples=10 ** 7):
+  def _mean_pdf(self, x_cond, n_samples=10 ** 6):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
       x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
@@ -67,7 +67,7 @@ class ConditionalDensity(BaseEstimator):
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
 
-  def _covariance_mc(self, x_cond, n_samples=10 ** 7):
+  def _covariance_mc(self, x_cond, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -111,7 +111,7 @@ class ConditionalDensity(BaseEstimator):
 
     return skewness
 
-  def _skewness_mc(self, x_cond, n_samples=10 ** 7):
+  def _skewness_mc(self, x_cond, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -154,7 +154,7 @@ class ConditionalDensity(BaseEstimator):
 
     return kurtosis - 3 # excess kurtosis
 
-  def _kurtosis_mc(self, x_cond, n_samples=10 ** 7):
+  def _kurtosis_mc(self, x_cond, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -172,7 +172,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ QUANTILES / VALUE-AT-RISK """
 
-  def _quantile_mc(self, x_cond, alpha=0.01, n_samples=10 ** 7):
+  def _quantile_mc(self, x_cond, alpha=0.01, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -200,11 +200,11 @@ class ConditionalDensity(BaseEstimator):
     cdf_fun = lambda y: self.cdf(x_cond, y) - alpha
     pdf_fun = lambda y: self.pdf(x_cond, y)
 
-    return find_root_newton_method(fun=cdf_fun, grad=pdf_fun, x0=np.zeros(x_cond.shape[0]), eps=eps, max_iter=max_iter)
+    return find_root_newton_method(fun=cdf_fun, grad=pdf_fun, x0=np.zeros(x_cond.shape[0]), eps=eps)
 
   """ CONDITONAL VALUE-AT-RISK """
 
-  def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 7):
+  def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 6):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
     assert x_cond.ndim == 2
 
@@ -234,7 +234,7 @@ class ConditionalDensity(BaseEstimator):
 
     return CVaRs
 
-  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, n_samples=10 ** 7):
+  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, n_samples=10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
