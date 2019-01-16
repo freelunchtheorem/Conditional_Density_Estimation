@@ -47,9 +47,9 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self._mean(X)
-    mean = self._handle_input_dimensionality(mean)
-    assert mean.ndim == X.ndim and X.ndim == Y.ndim
-    return stats.norm.pdf((Y-mean)/self._std(X)) / self._std(X)
+    p = np.squeeze(stats.norm.pdf((Y-mean)/self._std(X)) / self._std(X))
+    assert p.shape == (X.shape[0],)
+    return p
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
@@ -63,7 +63,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self._mean(X)
-    return stats.norm.cdf((Y-mean)/self._std(X))
+    return np.squeeze(stats.norm.cdf((Y-mean)/self._std(X)))
 
   def simulate_conditional(self, X):
     """ Draws random samples from the conditional distribution
@@ -179,10 +179,10 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     return VaRs, CVaRs
 
   def _mean(self, X):
-    return self.mu + np.mean(self.mu_slope * X, axis=-1)
+    return np.expand_dims(self.mu + np.mean(self.mu_slope * X), axis=-1)
 
   def _std(self, X):
-    return self.std + np.mean(self.std_slope * X)
+    return np.expand_dims(self.std + np.mean(self.std_slope * X), axis=-1)
 
   def __str__(self):
     return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
