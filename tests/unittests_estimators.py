@@ -476,6 +476,68 @@ class TestRegularization(unittest.TestCase):
       self.assertGreaterEqual(cond_cov[1][1], std**2 * 0.7)
       self.assertLessEqual(cond_cov[1][1], std**2 * 1.3)
 
+class TestLogProbability(unittest.TestCase):
+
+  def test_KMN_log_pdf(self):
+    X, Y = np.random.normal(size=(1000, 3)), np.random.normal(size=(1000, 2))
+
+    for data_norm in [True, False]:
+      with tf.Session() as sess:
+        model = KernelMixtureNetwork("kmn_logprob"+str(data_norm), 3, 2, n_centers=5,
+                                     hidden_sizes=(8, 8), init_scales=np.array([0.5]), n_training_epochs=10, data_normalization=data_norm)
+        model.fit(X, Y)
+
+        x, y = np.random.normal(size=(1000, 3)), np.random.normal(size=(1000, 2))
+        prob = model.pdf(x,y)
+        log_prob = model.log_pdf(x,y)
+        self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
+
+  def test_MDN_log_pdf(self):
+    X, Y = np.random.normal(size=(1000, 3)), np.random.normal(size=(1000, 2))
+
+    for data_norm in [True, False]:
+      with tf.Session() as sess:
+        model = MixtureDensityNetwork("mdn_logprob"+str(data_norm), 3, 2, n_centers=1,
+                                     hidden_sizes=(8, 8), n_training_epochs=10, data_normalization=data_norm)
+        model.fit(X, Y)
+
+        x, y = np.random.normal(size=(1000, 3)), np.random.normal(size=(1000, 2))
+        prob = model.pdf(x,y)
+        log_prob = model.log_pdf(x,y)
+        self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
+
+  def test_CKDE_log_pdf(self):
+    X, Y = np.random.normal(size=(500, 2)), np.random.normal(size=(500, 2))
+
+    model = ConditionalKernelDensityEstimation(bandwidth='normal_reference')
+    model.fit(X, Y)
+
+    x, y = np.random.normal(size=(100, 2)), np.random.normal(size=(100, 2))
+    prob = model.pdf(x, y)
+    log_prob = model.log_pdf(x, y)
+    self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
+
+  def test_NKDE_log_pdf(self):
+    X, Y = np.random.normal(size=(500, 2)), np.random.normal(size=(500, 2))
+
+    model = NeighborKernelDensityEstimation()
+    model.fit(X, Y)
+
+    x, y = np.random.normal(size=(100, 2)), np.random.normal(size=(100, 2))
+    prob = model.pdf(x, y)
+    log_prob = model.log_pdf(x, y)
+    self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
+
+  def test_LSCDE_log_pdf(self):
+    X, Y = np.random.normal(size=(500, 2)), np.random.normal(size=(500, 2))
+
+    model = LSConditionalDensityEstimation()
+    model.fit(X, Y)
+
+    x, y = np.random.normal(size=(100, 2)), np.random.normal(size=(100, 2))
+    prob = model.pdf(x, y)
+    log_prob = model.log_pdf(x, y)
+    self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
 
 #
 # class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):

@@ -189,8 +189,10 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       # tensor to compute probabilities
       if self.data_normalization:
         self.pdf_ = mixture.prob(self.y_input) / tf.reduce_prod(self.std_y_sym)
+        self.log_pdf_ = mixture.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym))
       else:
         self.pdf_ = mixture.prob(self.y_input)
+        self.log_pdf_ = mixture.log_prob(self.y_input)
 
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:

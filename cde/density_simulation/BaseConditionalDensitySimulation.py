@@ -2,6 +2,7 @@ import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import warnings
 from mpl_toolkits.mplot3d import Axes3D
 from cde import ConditionalDensity
 
@@ -21,6 +22,23 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     """
 
     raise NotImplementedError
+
+  def log_pdf(self, X, Y):
+    """ Conditional log-probability log p(y|x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+          conditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
+
+     """
+    # This method is numerically unfavorable and should be overwritten with a numerically stable method
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      log_prob = np.log(self.pdf(X, Y))
+    return log_prob
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model

@@ -24,9 +24,8 @@ logging.getLogger("tensorflow").setLevel(logging.ERROR)
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 
-class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore pass its unittests - find out what's the problem
+class KernelMixtureNetwork(BaseNNMixtureEstimator):
 
-  # noinspection PyPackageRequirements
   """ Kernel Mixture Network Estimator
 
       https://arxiv.org/abs/1705.07111
@@ -228,8 +227,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator): #TODO: KMN doesn not anymore
       # tensor to compute probabilities
       if self.data_normalization:
         self.pdf_ = mixture.prob(self.y_input) / tf.reduce_prod(self.std_y_sym)
+        self.log_pdf_ = mixture.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym))
       else:
         self.pdf_ = mixture.prob(self.y_input)
+        self.log_pdf_ = mixture.log_prob(self.y_input)
 
       # symbolic tensors for getting the unnormalized mixture components
       if self.data_normalization:

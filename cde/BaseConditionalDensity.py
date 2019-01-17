@@ -7,6 +7,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy
 from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
+from cde.utils.importance_sampling import monte_carlo_integration
 
 class ConditionalDensity(BaseEstimator):
 
@@ -33,6 +34,19 @@ class ConditionalDensity(BaseEstimator):
       x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
       func = lambda y: y * np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y))
       integral = mc_integration_cauchy(func, ndim=self.ndim_y, n_samples=n_samples)
+      means[i] = integral
+    return means
+
+  def _mean_pdf_adapt(self, x_cond, n_samples=10 ** 6):
+    means = np.zeros((x_cond.shape[0], self.ndim_y))
+    for i in range(x_cond.shape[0]):
+      func = lambda y: y
+
+      def log_prob(y):
+        x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (y.shape[0], 1))
+        return np.tile(np.expand_dims(np.log(self.pdf(x, y)), axis=1), (1, self.ndim_y))
+
+      integral = monte_carlo_integration(func, log_prob, ndim=self.ndim_y, n_samples=n_samples)
       means[i] = integral
     return means
 

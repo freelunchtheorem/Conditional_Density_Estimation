@@ -83,14 +83,14 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       return self._sample_rows_individually(X)
 
   def pdf(self, X, Y):
-      """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+      """ Predicts the conditional probability p(y|x). Requires the model to be fitted.
 
          Args:
            X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
            Y: numpy array of y targets - shape: (n_samples, n_dim_y)
 
          Returns:
-            conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+            conditional probability p(y|x) - numpy array of shape (n_query_samples, )
 
        """
       assert self.fitted, "model must be fitted to compute likelihood score"
@@ -98,6 +98,26 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
 
       p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
+
+      assert p.ndim == 1 and p.shape[0] == X.shape[0]
+      return p
+
+  def log_pdf(self, X, Y):
+      """ Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.
+
+         Args:
+           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+         Returns:
+            onditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
+
+       """
+      assert self.fitted, "model must be fitted to compute likelihood score"
+
+      X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+
+      p = self.sess.run(self.log_pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
 
       assert p.ndim == 1 and p.shape[0] == X.shape[0]
       return p
