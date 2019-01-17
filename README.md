@@ -9,7 +9,7 @@ To use the library, either clone the GitHub repository and import it into your p
 pip install cde
 ```
 ## Documentation
-See the documentation [here](https://jonasrothfuss.github.io/Conditional_Density_Estimation)
+See the documentation [here](https://jonasrothfuss.github.io/Conditional_Density_Estimation).
 
 
 ## Citing
