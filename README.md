@@ -1,16 +1,16 @@
-# Conditional_Density_Estimation
+# Conditional Density Estimation (CDE)
 
 ## Description
 <todo>
 
 ## Installation
+To use the library, either clone the GitHub repository and import it into your projects or install the pip package:
 ```
 pip install cde
 ```
 ## Documentation
-```
-https://jonasrothfuss.github.io/Nonparametric_Density_Estimation/
-```
+Access the docs [here](https://jonasrothfuss.github.io/Nonparametric_Density_Estimation/)
+
 
 ## Citing
 If you use CDE in your research, you can cite it as follows:
