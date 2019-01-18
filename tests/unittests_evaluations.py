@@ -24,13 +24,13 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
 
     result = monte_carlo_integration(skew, log_prob, ndim=1, n_samples=10**6, adaptive=True)
     print("skew", result)
-    self.assertAlmostEqual(result, 0.0, places=1)
+    self.assertAlmostEqual(float(result), 0.0, places=1)
 
     kurt = lambda x: x**4
 
     result = monte_carlo_integration(kurt, log_prob, ndim=1, n_samples=10**6, adaptive=True)
     print("kurt", result)
-    self.assertAlmostEqual(result, 3, places=1)
+    self.assertAlmostEqual(float(result), 3, places=1)
 
   def test_adaptive_importance_sampling_seed(self):
     var = lambda x: x ** 2
@@ -42,7 +42,7 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     rng2 = np.random.RandomState(22)
     result2 = monte_carlo_integration(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng2)
 
-    self.assertAlmostEqual(result1, result2)
+    self.assertAlmostEqual(float(result1), float(result2))
 
   def test_gaussian_dummy_hellinger_distance_mc(self):
     mu1 = np.array([0, 0])
@@ -161,7 +161,6 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
-
 class TestRiskMeasures(unittest.TestCase):
 
   def get_samples(self, std=1.0):
@@ -270,6 +269,28 @@ class TestRiskMeasures(unittest.TestCase):
     mean_est = model.mean_(x_cond=np.array([[1,2]]), n_samples=10**7)
     self.assertAlmostEqual(mean_est[0][0], 7, places=0)
     self.assertAlmostEqual(mean_est[0][1], -2, places=1)
+
+  def test_std1(self):
+    # prepare estimator dummy
+    mu = np.array([0, 1])
+    sigma = np.array([[1, -0.2], [-0.2, 2]])
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
+    est.fit(None, None)
+
+    std = est.std(x_cond=np.array([[0, 1]]))
+    self.assertAlmostEqual(std[0][0], np.sqrt(sigma[0][0]), places=2)
+    self.assertAlmostEqual(std[0][1], np.sqrt(sigma[1][1]), places=2)
+
+  def test_std2(self):
+    # prepare estimator dummy
+    mu = np.array([14])
+    sigma = np.array([[0.1]])
+    est = GaussianDummy(mean=mu, cov=sigma, ndim_x=1, ndim_y=1, can_sample=False)
+    est.fit(None, None)
+
+    std_est = est.std(x_cond=np.array([[0.0], [1.0]]))
+    self.assertAlmostEqual(std_est[0][0]**2, sigma[0][0], places=2)
+    self.assertAlmostEqual(std_est[1][0]**2, sigma[0][0], places=2)
 
   def test_covariance1(self):
     # prepare estimator dummy

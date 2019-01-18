@@ -9,7 +9,8 @@ import numpy as np
 import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from cde.helpers import sample_center_points, mc_integration_cauchy, norm_along_axis_1
+from cde.helpers import sample_center_points, norm_along_axis_1
+from cde.utils.integration import mc_integration_cauchy, numeric_integation
 from cde.utils.async_executor import execute_batch_async_pdf
 
 
@@ -112,6 +113,20 @@ class TestExecAsyncBatch(unittest.TestCase):
 
     self.assertLessEqual(np.mean((p_true - p_batched) ** 2), 0.00001)
 
+class TestIntegration(unittest.TestCase):
+
+  def test_integration1(self):
+    skew = lambda x: x ** 3 * stats.norm.pdf(x).flatten()
+
+    result = numeric_integation(skew, n_samples=10**5)
+    print("skew", result)
+    self.assertAlmostEqual(float(result), 0.0, places=1)
+
+    kurt = lambda x: x**4 * stats.norm.pdf(x).flatten()
+
+    result = numeric_integation(kurt, n_samples=10**5)
+    print("kurt", result)
+    self.assertAlmostEqual(float(result), 3, places=1)
 
 def suite():
   suite = unittest.TestSuite()

@@ -1,13 +1,18 @@
 from sklearn.base import BaseEstimator
-import numpy as np
+
+from cde.utils.integration import mc_integration_cauchy, numeric_integation
 from .helpers import *
 import scipy.stats as stats
-import warnings
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy
 from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
-from cde.utils.importance_sampling import monte_carlo_integration
+
+""" Default Numerical Integration Standards"""
+N_SAMPLES_INT = 10**5
+N_SAMPLES_INT_TIGHT_BOUNDS = 10**5
+LOWER_BOUND = - 10 ** 3
+UPPER_BOUND = 10 ** 3
 
 class ConditionalDensity(BaseEstimator):
 
@@ -31,24 +36,53 @@ class ConditionalDensity(BaseEstimator):
   def _mean_pdf(self, x_cond, n_samples=10 ** 6):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
-      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
-      func = lambda y: y * np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y))
-      integral = mc_integration_cauchy(func, ndim=self.ndim_y, n_samples=n_samples)
+      mean_fun = lambda y: y
+      if self.ndim_y == 1:
+        n_samples_int, lower, upper = self._determine_integration_bounds()
+        func_to_integrate = lambda y:  mean_fun(y) * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
+        integral = numeric_integation(func_to_integrate, n_samples_int, lower, upper)
+      else:
+        func_to_integrate = lambda y: mean_fun(y) * self._tiled_pdf(y, x_cond[i], n_samples)
+        integral = mc_integration_cauchy(func_to_integrate, ndim=self.ndim_y, n_samples=n_samples)
       means[i] = integral
     return means
 
-  def _mean_pdf_adapt(self, x_cond, n_samples=10 ** 6):
-    means = np.zeros((x_cond.shape[0], self.ndim_y))
+  """ STANDARD DEVIATION """
+
+  def _std_pdf(self, x_cond, n_samples=10**6, mean=None):
+    assert hasattr(self, "mean_")
+    assert hasattr(self, "pdf")
+
+    if mean is None:
+      mean = self.mean_(x_cond, n_samples=n_samples)
+
+    if self.ndim_y == 1: # compute with numerical integration
+      stds = np.zeros((x_cond.shape[0], self.ndim_y))
+      for i in range(x_cond.shape[0]):
+        mu = np.squeeze(mean[i])
+        n_samples_int, lower, upper = self._determine_integration_bounds()
+        func_to_integrate = lambda y: (y-mu)**2 * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
+        stds[i] = np.sqrt(numeric_integation(func_to_integrate, n_samples_int, lower, upper))
+    else: # call covariance and return sqrt of diagonal
+      covs = self.covariance(x_cond, n_samples=n_samples)
+      stds = np.sqrt(np.diagonal(covs, axis1=1, axis2=2))
+
+    return stds
+
+  def _std_mc(self, x_cond, n_samples=10**6):
+    if hasattr(self, 'sample'):
+      sample = self.sample
+    elif hasattr(self, 'simulate_conditional'):
+      sample = self.simulate_conditional
+    else:
+      raise AssertionError("Requires sample or simulate_conditional method")
+
+    stds = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
-      func = lambda y: y
-
-      def log_prob(y):
-        x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (y.shape[0], 1))
-        return np.tile(np.expand_dims(np.log(self.pdf(x, y)), axis=1), (1, self.ndim_y))
-
-      integral = monte_carlo_integration(func, log_prob, ndim=self.ndim_y, n_samples=n_samples)
-      means[i] = integral
-    return means
+      x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
+      _, samples = sample(x)
+      stds[i, :] = np.std(samples, axis=0)
+    return stds
 
   """ COVARIANCE """
 
@@ -100,28 +134,25 @@ class ConditionalDensity(BaseEstimator):
 
   """ SKEWNESS """
 
-  def _skewness_pdf(self, x_cond, n_samples=10 ** 6):
+  def _skewness_pdf(self, x_cond, n_samples=10 ** 6, mean=None, std=None):
     assert self.ndim_y == 1, "this function does not support co-skewness - target variable y must be one-dimensional"
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
     assert hasattr(self, "covariance")
 
-    mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
-    std = np.reshape(np.sqrt(self.covariance(x_cond, n_samples=n_samples)), (x_cond.shape[0],))
+    if mean is None:
+      mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
+    if std is None:
+      std = np.reshape(np.sqrt(self.covariance(x_cond, n_samples=n_samples)), (x_cond.shape[0],))
 
     skewness = np.empty(shape=(x_cond.shape[0],))
+    n_samples_int, lower, upper = self._determine_integration_bounds()
 
     for i in range(x_cond.shape[0]):
-      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
-
-      def skew(y):
-        s = ((y - mean[i]) / std[i])**3
-        p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
-        res = s * p
-        return res
-
-      integral = mc_integration_cauchy(skew, ndim=self.ndim_y, n_samples=n_samples)
-      skewness[i] = integral.reshape((self.ndim_y, self.ndim_y))
+      mu = np.squeeze(mean[i])
+      sigm = np.squeeze(std[i])
+      func_skew = lambda y: ((y - mu) / sigm)**3 * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
+      skewness[i] = numeric_integation(func_skew, n_samples=n_samples_int)
 
     return skewness
 
@@ -143,28 +174,25 @@ class ConditionalDensity(BaseEstimator):
 
   """ KURTOSIS """
 
-  def _kurtosis_pdf(self, x_cond, n_samples=10 ** 6):
+  def _kurtosis_pdf(self, x_cond, n_samples=10 ** 6, mean=None, std=None):
     assert self.ndim_y == 1, "this function does not support co-kurtosis - target variable y must be one-dimensional"
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
     assert hasattr(self, "covariance")
 
-    mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
-    var = np.reshape(self.covariance(x_cond, n_samples=n_samples), (x_cond.shape[0],))
+    if mean is None:
+      mean = np.reshape(self.mean_(x_cond, n_samples), (x_cond.shape[0],))
+    if std is None:
+      std = np.reshape(np.sqrt(self.covariance(x_cond, n_samples=n_samples)), (x_cond.shape[0],))
 
+    n_samples_int, lower, upper = self._determine_integration_bounds()
     kurtosis = np.empty(shape=(x_cond.shape[0],))
 
     for i in range(x_cond.shape[0]):
-      x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
-
-      def kurt(y):
-        k = (y - mean[i])**4 / var[i]**2
-        p = np.tile(np.expand_dims(self.pdf(x, y), axis=1), (1, self.ndim_y ** 2))
-        res = k * p
-        return res
-
-      integral = mc_integration_cauchy(kurt, ndim=self.ndim_y, n_samples=n_samples)
-      kurtosis[i] = integral.reshape((self.ndim_y, self.ndim_y))
+      mu = np.squeeze(mean[i])
+      sigm = np.squeeze(std[i])
+      func_skew = lambda y: ((y - mu)**4 / sigm**4) * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
+      kurtosis[i] = numeric_integation(func_skew, n_samples=n_samples_int)
 
     return kurtosis - 3 # excess kurtosis
 
@@ -220,31 +248,18 @@ class ConditionalDensity(BaseEstimator):
 
   def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 6):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
+    assert self.ndim_y == 1, 'this function only supports only ndim_y = 1'
     assert x_cond.ndim == 2
+
+    n_samples_int, lower, _ = self._determine_integration_bounds()
 
     CVaRs = np.zeros(x_cond.shape[0])
 
-    # preparations for importance sampling from exponential distribtution
-    scale = 0.4 # 1 \ lambda
-    sampling_dist = stats.expon(scale=scale)
-    exp_samples = sampling_dist.rvs(size=n_samples).flatten()
-    exp_f = sampling_dist.pdf(exp_samples)  #1 / scale * np.exp(-exp_samples/scale)
-
-    # check shapes
-    assert exp_samples.shape[0] == exp_f.shape[0] == n_samples
-
     for i in range(x_cond.shape[0]):
-      # flip the normal exponential distribution by negating it & placing it's mode at the VaR value
-      y_samples = VaRs[i] - exp_samples
-
-      x_cond_tiled = np.tile(np.expand_dims(x_cond[i,:], axis=0), (n_samples, 1))
-      assert x_cond_tiled.shape == (n_samples, self.ndim_x)
-
-      p = self.pdf(x_cond_tiled, y_samples).flatten()
-      q = exp_f.flatten()
-      importance_weights = p / q
-      cvar = np.mean(y_samples * importance_weights, axis=0) / alpha
-      CVaRs[i] = cvar
+      upper = float(VaRs[i])
+      func_to_integrate = lambda y: y * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
+      integral = numeric_integation(func_to_integrate, n_samples_int, lower, upper)
+      CVaRs[i] = integral / alpha
 
     return CVaRs
 
@@ -346,3 +361,15 @@ class ConditionalDensity(BaseEstimator):
 
     return fig
 
+  def _determine_integration_bounds(self):
+    if hasattr(self, 'y_std') and hasattr(self, 'y_mean'):
+      lower = self.y_mean - 10 * self.y_std
+      upper = self.y_mean + 10 * self.y_std
+
+      return N_SAMPLES_INT_TIGHT_BOUNDS, lower, upper
+    else:
+      return N_SAMPLES_INT, LOWER_BOUND, UPPER_BOUND
+
+  def _tiled_pdf(self, Y, x_cond, n_samples):
+    x = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples, 1))
+    return np.tile(np.expand_dims(self.pdf(x, Y), axis=1), (1, self.ndim_y))

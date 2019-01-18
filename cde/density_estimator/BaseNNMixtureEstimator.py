@@ -331,25 +331,25 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
   def _compute_data_normalization(self, X, Y):
     # compute data statistics (mean & std)
-    X_mean = np.mean(X, axis=0)
-    X_std = np.std(X, axis=0)
-    Y_mean = np.mean(Y, axis=0)
-    Y_std = np.std(Y, axis=0)
+    self.x_mean = np.mean(X, axis=0)
+    self.x_std = np.std(X, axis=0)
+    self.y_mean = np.mean(Y, axis=0)
+    self.y_std = np.std(Y, axis=0)
 
     self.data_statistics = {
-      'X_mean': X_mean,
-      'X_std': X_std,
-      'Y_mean': Y_mean,
-      'Y_std': Y_std,
+      'X_mean': self.x_mean,
+      'X_std': self.x_std,
+      'Y_mean': self.y_mean,
+      'Y_std': self.y_std,
     }
 
     # assign them to tf variables
     sess = tf.get_default_session()
     sess.run([
-      tf.assign(self.mean_x_sym, X_mean),
-      tf.assign(self.std_x_sym, X_std),
-      tf.assign(self.mean_y_sym, Y_mean),
-      tf.assign(self.std_y_sym, Y_std)
+      tf.assign(self.mean_x_sym, self.x_mean),
+      tf.assign(self.std_x_sym, self.x_std),
+      tf.assign(self.mean_y_sym, self.y_mean),
+      tf.assign(self.std_y_sym, self.y_std)
     ])
 
   def _build_input_layers(self):

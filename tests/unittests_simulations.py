@@ -7,7 +7,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 print(sys.path)
 from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump
-from cde.helpers import mc_integration_cauchy
+from cde.utils.integration import mc_integration_cauchy
 from .Dummies import SimulationDummy
 
 

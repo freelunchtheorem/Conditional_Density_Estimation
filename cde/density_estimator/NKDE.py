@@ -111,6 +111,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     # save mean and std of data for normalization
     self.x_std = np.std(X, axis=0)
     self.x_mean = np.mean(X, axis=0)
+    self.y_mean = np.std(Y, axis=0)
     self.y_std = np.std(Y, axis=0)
 
     self.n_train_points = X.shape[0]

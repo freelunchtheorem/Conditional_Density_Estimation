@@ -95,7 +95,7 @@ class BaseDensityEstimator(ConditionalDensity):
         conditional_log_likelihoods = np.log(self.pdf(X, Y))
       return np.mean(conditional_log_likelihoods)
 
-  def mean_(self, x_cond, n_samples=10**7):
+  def mean_(self, x_cond, n_samples=10**6):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -112,7 +112,21 @@ class BaseDensityEstimator(ConditionalDensity):
     else:
       return self._mean_pdf(x_cond, n_samples=n_samples)
 
-  def covariance(self, x_cond, n_samples=10**7):
+  def std(self, x_cond, n_samples=10 ** 6):
+    """ Standard deviation of the fitted distribution conditioned on x_cond
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Standard deviations  sqrt(Var[y|x]) corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    assert self.fitted, "model must be fitted"
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
+    return self._std_pdf(x_cond, n_samples=n_samples)
+
+  def covariance(self, x_cond, n_samples=10**6):
     """ Covariance of the fitted distribution conditioned on x_cond
 
     Args:
@@ -126,7 +140,7 @@ class BaseDensityEstimator(ConditionalDensity):
     assert x_cond.ndim == 2
     return self._covariance_pdf(x_cond, n_samples=n_samples)
 
-  def mean_covariance(self, x_cond, n_samples=10 ** 7):
+  def mean_covariance(self, x_cond, n_samples=10 ** 6):
     """ Computes Mean and Covariance of the fitted distribution conditioned on x_cond.
         Computationally more efficient than calling mean and covariance computatio separately
 
@@ -140,7 +154,7 @@ class BaseDensityEstimator(ConditionalDensity):
     cov = self._covariance_pdf(x_cond, n_samples=n_samples, mean=mean)
     return mean, cov
 
-  def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
+  def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
@@ -164,7 +178,7 @@ class BaseDensityEstimator(ConditionalDensity):
       raise NotImplementedError()
     return VaR
 
-  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
 
        Args:
@@ -299,7 +313,7 @@ class BaseDensityEstimator(ConditionalDensity):
 
     return fig
 
-  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 7):
+  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 6):
     """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)
 
         Args:
