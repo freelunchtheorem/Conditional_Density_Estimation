@@ -1,6 +1,6 @@
 from sklearn.base import BaseEstimator
 
-from cde.utils.integration import mc_integration_cauchy, numeric_integation
+from cde.utils.integration import mc_integration_student_t, numeric_integation, mc_integration_adaptive
 from .helpers import *
 import scipy.stats as stats
 import matplotlib as mpl
@@ -13,6 +13,11 @@ N_SAMPLES_INT = 10**5
 N_SAMPLES_INT_TIGHT_BOUNDS = 10**5
 LOWER_BOUND = - 10 ** 3
 UPPER_BOUND = 10 ** 3
+
+""" Default Monte-Carlo Integration Standards"""
+DOF = 6
+LOC_PROPOSAL = 0
+SCALE_PROPOSAL = 2
 
 class ConditionalDensity(BaseEstimator):
 
@@ -42,8 +47,10 @@ class ConditionalDensity(BaseEstimator):
         func_to_integrate = lambda y:  mean_fun(y) * np.squeeze(self._tiled_pdf(y, x_cond[i], n_samples_int))
         integral = numeric_integation(func_to_integrate, n_samples_int, lower, upper)
       else:
+        loc_proposal, scale_proposal = self._determine_mc_proposal_dist()
         func_to_integrate = lambda y: mean_fun(y) * self._tiled_pdf(y, x_cond[i], n_samples)
-        integral = mc_integration_cauchy(func_to_integrate, ndim=self.ndim_y, n_samples=n_samples)
+        integral = mc_integration_student_t(func_to_integrate, ndim=self.ndim_y, n_samples=n_samples,
+                                            loc_proposal=loc_proposal, scale_proposal=scale_proposal)
       means[i] = integral
     return means
 
@@ -91,11 +98,12 @@ class ConditionalDensity(BaseEstimator):
     assert hasattr(self, "pdf")
     assert mean is None or mean.shape == (x_cond.shape[0], self.ndim_y)
 
+    loc_proposal, scale_proposal = self._determine_mc_proposal_dist()
+
     if mean is None:
-      mean = self._mean_mc(x_cond, n_samples=n_samples)
+      mean = self.mean_(x_cond, n_samples=n_samples)
 
     covs = np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
-    mean = self.mean_(x_cond)
     for i in range(x_cond.shape[0]):
       x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
 
@@ -111,7 +119,8 @@ class ConditionalDensity(BaseEstimator):
         res = c * p
         return res
 
-      integral = mc_integration_cauchy(cov, ndim=self.ndim_y, n_samples=n_samples)
+      integral = mc_integration_student_t(cov, ndim=self.ndim_y, n_samples=n_samples,
+                                          loc_proposal=loc_proposal, scale_proposal=scale_proposal)
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
 
@@ -369,6 +378,14 @@ class ConditionalDensity(BaseEstimator):
       return N_SAMPLES_INT_TIGHT_BOUNDS, lower, upper
     else:
       return N_SAMPLES_INT, LOWER_BOUND, UPPER_BOUND
+
+  def _determine_mc_proposal_dist(self):
+    if hasattr(self, 'y_std') and hasattr(self, 'y_mean'):
+      mu_proposal = self.y_mean
+      std_proposal = 1 * self.y_std
+      return mu_proposal, std_proposal
+    else:
+      return np.ones(self.ndim_y) * LOC_PROPOSAL, np.ones(self.ndim_y) * SCALE_PROPOSAL
 
   def _tiled_pdf(self, Y, x_cond, n_samples):
     x = np.tile(x_cond.reshape((1, x_cond.shape[0])), (n_samples, 1))
