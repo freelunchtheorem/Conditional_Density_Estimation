@@ -16,7 +16,7 @@ from cde.utils.tf_utils.map_inference import MAP_inference
 #import matplotlib.pyplot as plt
 
 
-from cde.helpers import sample_center_points
+from cde.utils.center_point_select import sample_center_points
 from cde.density_estimator.BaseNNMixtureEstimator import BaseNNMixtureEstimator
 
 import logging

@@ -4,7 +4,7 @@ from scipy.stats import multivariate_normal
 import warnings
 from scipy import optimize
 
-from cde.helpers import norm_along_axis_1
+from cde.utils.misc import norm_along_axis_1
 from .BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.async_executor import execute_batch_async_pdf
 
@@ -79,7 +79,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     n_samples = X.shape[0]
-    if n_samples > MULTIPROC_THRESHOLD:
+    if n_samples >= MULTIPROC_THRESHOLD:
       return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._pdf(X, Y)

@@ -9,7 +9,8 @@ import numpy as np
 import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from cde.helpers import sample_center_points, norm_along_axis_1
+from cde.utils.center_point_select import sample_center_points
+from cde.utils.misc import norm_along_axis_1
 from cde.utils.integration import mc_integration_student_t, numeric_integation
 from cde.utils.async_executor import execute_batch_async_pdf
 

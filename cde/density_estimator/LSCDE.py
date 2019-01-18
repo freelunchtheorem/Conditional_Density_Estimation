@@ -2,7 +2,8 @@ import itertools
 import numpy as np
 import scipy.stats as stats
 
-from cde.helpers import sample_center_points, norm_along_axis_1
+from cde.utils.center_point_select import sample_center_points
+from cde.utils.misc import norm_along_axis_1
 from .BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.async_executor import execute_batch_async_pdf
 
@@ -115,7 +116,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     X, Y = self._handle_input_dimensionality(X, Y)
 
     n_samples = X.shape[0]
-    if n_samples > MULTIPROC_THRESHOLD:
+    if n_samples >= MULTIPROC_THRESHOLD:
       return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._pdf(X, Y)

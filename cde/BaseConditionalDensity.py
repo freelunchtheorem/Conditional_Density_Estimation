@@ -1,7 +1,7 @@
 from sklearn.base import BaseEstimator
 
 from cde.utils.integration import mc_integration_student_t, numeric_integation, mc_integration_adaptive
-from .helpers import *
+from cde.utils.center_point_select import *
 import scipy.stats as stats
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
 
 """ Default Numerical Integration Standards"""
 N_SAMPLES_INT = 10**5
-N_SAMPLES_INT_TIGHT_BOUNDS = 10**5
+N_SAMPLES_INT_TIGHT_BOUNDS = 10**4
 LOWER_BOUND = - 10 ** 3
 UPPER_BOUND = 10 ** 3
 

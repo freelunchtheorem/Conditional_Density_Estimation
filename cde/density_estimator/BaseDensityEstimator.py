@@ -1,7 +1,6 @@
 from sklearn.model_selection import GridSearchCV
 import warnings
 import matplotlib as mpl
-from scipy.stats import multivariate_normal, norm
 #mpl.use("PS") #handles X11 server detection (required to run on console)
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -10,7 +9,7 @@ from sklearn.mixture import GaussianMixture
 
 from cde import ConditionalDensity
 
-from cde.helpers import *
+from cde.utils.center_point_select import *
 
 class BaseDensityEstimator(ConditionalDensity):
   """ Interface for conditional density estimation models """
@@ -107,10 +106,10 @@ class BaseDensityEstimator(ConditionalDensity):
     x_cond = self._handle_input_dimensionality(x_cond)
     assert x_cond.ndim == 2
 
-    if self.can_sample:
-      return self._mean_mc(x_cond, n_samples=n_samples)
-    else:
+    if self.has_pdf:
       return self._mean_pdf(x_cond, n_samples=n_samples)
+    else:
+      return self._mean_mc(x_cond, n_samples=n_samples)
 
   def std(self, x_cond, n_samples=10 ** 6):
     """ Standard deviation of the fitted distribution conditioned on x_cond
@@ -140,7 +139,7 @@ class BaseDensityEstimator(ConditionalDensity):
     assert x_cond.ndim == 2
     return self._covariance_pdf(x_cond, n_samples=n_samples)
 
-  def mean_covariance(self, x_cond, n_samples=10 ** 6):
+  def mean_std(self, x_cond, n_samples=10 ** 6):
     """ Computes Mean and Covariance of the fitted distribution conditioned on x_cond.
         Computationally more efficient than calling mean and covariance computatio separately
 
@@ -150,9 +149,9 @@ class BaseDensityEstimator(ConditionalDensity):
     Returns:
       Means E[y|x] and Covariances Cov[y|x]
     """
-    mean = self.mean_(x_cond, n_samples=10 ** 7)
-    cov = self._covariance_pdf(x_cond, n_samples=n_samples, mean=mean)
-    return mean, cov
+    mean = self.mean_(x_cond, n_samples=n_samples)
+    std = self._std_pdf(x_cond, n_samples=n_samples, mean=mean)
+    return mean, std
 
   def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1

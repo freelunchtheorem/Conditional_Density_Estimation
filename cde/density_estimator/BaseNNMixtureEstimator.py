@@ -13,7 +13,7 @@ from cde.utils.tf_utils.map_inference import MAP_inference
 
 class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
-  def mean_(self, x_cond, n_samples=10**7):
+  def mean_(self, x_cond, n_samples=None):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -31,6 +31,18 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       # mean of density mixture is weights * means of density components
       means[i, :] = weights[i].dot(locs[i])
     return means
+
+  def std(self, x_cond, n_samples=10 ** 6):
+    """ Standard deviation of the fitted distribution conditioned on x_cond
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Standard deviations  sqrt(Var[y|x]) corresponding to x_cond - numpy array of shape (n_values, ndim_y)
+    """
+    covs = self.covariance(x_cond, n_samples=n_samples)
+    return np.sqrt(np.diagonal(covs, axis1=1, axis2=2))
 
   def covariance(self, x_cond, n_samples=None):
     """ Covariance of the fitted distribution conditioned on x_cond
@@ -61,6 +73,20 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       covs[i] = c1 + c2
 
     return covs
+
+  def mean_std(self, x_cond, n_samples=None):
+    """ Computes Mean and Covariance of the fitted distribution conditioned on x_cond.
+        Computationally more efficient than calling mean and covariance computatio separately
+
+    Args:
+      x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+    Returns:
+      Means E[y|x] and Covariances Cov[y|x]
+    """
+    mean = self.mean_(x_cond, n_samples=n_samples)
+    std = self.std(x_cond, n_samples=n_samples)
+    return mean, std
 
   def sample(self, X):
     """ sample from the conditional mixture distributions - requires the model to be fitted
