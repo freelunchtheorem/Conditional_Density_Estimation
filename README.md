@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/jonasrothfuss/Conditional_Density_Estimation.svg?token=j5XSZzvzzLqAy58VEYoC&branch=master)](https://travis-ci.com/jonasrothfuss/Conditional_Density_Estimation)
+
 # Conditional Density Estimation (CDE)
 
 ## Description
