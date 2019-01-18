@@ -1,3 +1,5 @@
+import numpy as np
+
 def norm_along_axis_1(A, B, squared=False):
     """ calculates the (squared) euclidean distance along the axis 1 of both 2d arrays
 
