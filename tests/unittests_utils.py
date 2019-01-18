@@ -10,7 +10,7 @@ import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.helpers import sample_center_points, norm_along_axis_1
-from cde.utils.integration import mc_integration_cauchy, numeric_integation
+from cde.utils.integration import mc_integration_student_t, numeric_integation
 from cde.utils.async_executor import execute_batch_async_pdf
 
 
@@ -70,16 +70,30 @@ class TestHelpers(unittest.TestCase):
 
   """ monte carlo integration """
 
-  def test_mc_integration_chauchy_1(self):
+  def test_mc_integration_t_1(self):
     func = lambda y: np.expand_dims(stats.multivariate_normal.pdf(y, mean=[0, 0], cov=np.diag([2, 2])), axis=1)
-    integral = mc_integration_cauchy(func, ndim=2, n_samples=10 ** 7, batch_size=10**6)
+    integral = mc_integration_student_t(func, ndim=2, n_samples=10 ** 7, batch_size=10 ** 6)
     self.assertAlmostEqual(1.0, integral[0], places=2)
 
-  def test_mc_integration_chauchy_2(self):
+  def test_mc_integration_t_2(self):
     func = lambda y: y * np.tile(np.expand_dims(stats.multivariate_normal.pdf(y, mean=[1, 2], cov=np.diag([2, 2])), axis=1), (1,2))
-    integral = mc_integration_cauchy(func, ndim=2, n_samples=10 ** 7, batch_size=10**6)
+    integral = mc_integration_student_t(func, ndim=2, n_samples=10 ** 7, batch_size=10 ** 6)
     self.assertAlmostEqual(1, integral[0], places=2)
     self.assertAlmostEqual(2, integral[1], places=2)
+
+  def test_multidim_cauchy(self):
+    from scipy.stats import t
+    from cde.utils.integration import _multidim_t_pdf
+    mu = 5 * np.ones(3)
+    sigma = 3 * np.ones(3)
+    dof = 6
+
+    x = np.random.uniform(-10, 10, size=(100, 3))
+    p1 = np.prod(t.pdf(x, loc=5, scale=3, df=dof), axis=-1)
+
+    p2 = _multidim_t_pdf(x, mu, sigma, dof)
+
+    self.assertLessEqual(np.sum((p1 - p2)**2), 0.0001)
 
 class TestExecAsyncBatch(unittest.TestCase):
 

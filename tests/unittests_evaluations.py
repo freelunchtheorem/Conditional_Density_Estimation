@@ -11,8 +11,7 @@ from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
 from .Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
 
-from cde.utils.importance_sampling import monte_carlo_integration
-
+from cde.utils.integration import mc_integration_adaptive
 
 alpha = 0.05
 
@@ -22,13 +21,13 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     skew = lambda x: x ** 3
     log_prob =  lambda x: stats.norm.logpdf(x).flatten()
 
-    result = monte_carlo_integration(skew, log_prob, ndim=1, n_samples=10**6, adaptive=True)
+    result = mc_integration_adaptive(skew, log_prob, ndim=1, n_samples=10 ** 6, adaptive=True)
     print("skew", result)
     self.assertAlmostEqual(float(result), 0.0, places=1)
 
     kurt = lambda x: x**4
 
-    result = monte_carlo_integration(kurt, log_prob, ndim=1, n_samples=10**6, adaptive=True)
+    result = mc_integration_adaptive(kurt, log_prob, ndim=1, n_samples=10 ** 6, adaptive=True)
     print("kurt", result)
     self.assertAlmostEqual(float(result), 3, places=1)
 
@@ -37,10 +36,10 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     log_prob = lambda x: stats.norm.logpdf(x).flatten()
 
     rng1 = np.random.RandomState(22)
-    result1 = monte_carlo_integration(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng1)
+    result1 = mc_integration_adaptive(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng1)
 
     rng2 = np.random.RandomState(22)
-    result2 = monte_carlo_integration(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng2)
+    result2 = mc_integration_adaptive(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng2)
 
     self.assertAlmostEqual(float(result1), float(result2))
 

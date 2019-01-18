@@ -7,7 +7,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 print(sys.path)
 from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump
-from cde.utils.integration import mc_integration_cauchy
+from cde.utils.integration import mc_integration_student_t
 from .Dummies import SimulationDummy
 
 
@@ -376,7 +376,7 @@ def mean_pdf(density, x_cond, n_samples=10 ** 6):
   for i in range(x_cond.shape[0]):
     x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
     func = lambda y: y * np.tile(np.expand_dims(density.pdf(x, y), axis=1), (1, density.ndim_y))
-    integral = mc_integration_cauchy(func, ndim=2, n_samples=n_samples)
+    integral = mc_integration_student_t(func, ndim=2, n_samples=n_samples)
     means[i] = integral
   return means
 
@@ -398,7 +398,7 @@ def covariance_pdf(density, x_cond, n_samples=10 ** 6):
       res = c * p
       return res
 
-    integral = mc_integration_cauchy(cov, ndim=density.ndim_y, n_samples=n_samples)
+    integral = mc_integration_student_t(cov, ndim=density.ndim_y, n_samples=n_samples)
     covs[i] = integral.reshape((density.ndim_y, density.ndim_y))
   return covs
 
