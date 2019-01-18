@@ -80,7 +80,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.y_mean, self.y_std = np.mean(Y, axis=0), np.std(Y, axis=0)
 
     n_samples = X.shape[0]
-    if n_samples > MULTIPROC_THRESHOLD:
+    if n_samples >= MULTIPROC_THRESHOLD:
       return execute_batch_async_pdf(self.sm_kde.pdf, Y, X, n_jobs=self.n_jobs)
     else:
       return self.sm_kde.pdf(endog_predict=Y, exog_predict=X)
