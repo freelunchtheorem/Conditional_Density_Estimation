@@ -8,7 +8,7 @@ from ml_logger import logger
 EXP_PREFIX = 'question2_entropy_reg'
 RESULTS_FILE = 'results.pkl'
 
-def question1():
+def question2():
   estimator_params = {
   'KernelMixtureNetwork':
 
@@ -61,7 +61,7 @@ def question1():
 
 
 if __name__ == '__main__':
-    estimator_params, simulators_params, observations = question1()
+    estimator_params, simulators_params, observations = question2()
     load = base_experiment.launch_experiment(estimator_params, simulators_params, observations, EXP_PREFIX)
 
     if load:
@@ -78,6 +78,6 @@ if __name__ == '__main__':
         {"estimator": "KernelMixtureNetwork", "entropy_reg_coef": 100, "n_centers": 20}
         ]
 
-        gof_result.plot_metric(graph_dicts, metric="js_divergence", simulator="EconDensity")
+        gof_result.plot_metric(graph_dicts, metric="js_divergence")
         print(results_df)
 
