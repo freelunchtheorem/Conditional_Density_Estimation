@@ -27,7 +27,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
   """
 
-  def __init__(self, name='NKDE', ndim_x=None, ndim_y=None, epsilon=0.3, bandwidth='normal_reference',
+  def __init__(self, name='NKDE', ndim_x=None, ndim_y=None, epsilon=0.4, bandwidth='normal_reference',
                weighted=True, n_jobs=-1, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
 
@@ -161,7 +161,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     return conditional_densities
 
   def _kernel_weights(self, X_normalized, epsilon):
-    X_dist = norm_along_axis_1(X_normalized, self.X_train)
+    X_dist = norm_along_axis_1(X_normalized, self.X_train, norm_dim=True)
     mask = X_dist > epsilon
     num_neighbors = np.sum(np.logical_not(mask), axis=1)
 
@@ -215,7 +215,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     return param_grid
 
   def _normal_reference(self):
-    X_dist = norm_along_axis_1(self.X_train, self.X_train)
+    X_dist = norm_along_axis_1(self.X_train, self.X_train, norm_dim=True)
 
     # filter out all points that are not in a epsilon region of x
     avg_num_neighbors = np.mean(np.ma.masked_where(X_dist > self.epsilon, X_dist).count(axis=1)) - 1
