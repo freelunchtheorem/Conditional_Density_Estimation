@@ -3,8 +3,6 @@ mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment
-import cde.evaluation.ConfigRunner as ConfigRunner
-#from cde.evaluation.ConfigRunner import load_dumped_estimators
 from ml_logger import logger
 
 EXP_PREFIX = 'question1_noise_reg_x_v1'

@@ -4,7 +4,6 @@ import numpy as np
 
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment
-import cde.evaluation.ConfigRunner as ConfigRunner
 
 from ml_logger import logger
 
@@ -54,8 +53,8 @@ if __name__ == '__main__':
         results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
 
         graph_dicts = [
-            {"estimator": "LSConditionalDensityEstimation"},
-            {"estimator": "LSConditionalDensityEstimation"}
+            {"estimator": "NeighborKernelDensityEstimation"},
+            {"estimator": "NeighborKernelDensityEstimation"}
             ]
 
         gof_result.plot_metric(graph_dicts, metric="js_divergence")

@@ -4,7 +4,6 @@ import numpy as np
 
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.evaluation_runs import base_experiment
-import cde.evaluation.ConfigRunner as ConfigRunner
 
 from ml_logger import logger
 
