@@ -18,12 +18,12 @@ See the documentation [here](https://jonasrothfuss.github.io/Conditional_Density
 If you use CDE in your research, you can cite it as follows:
 
 ```
-@misc{npde2019,
+@misc{cde2019,
     author = {Jonas Rothfuss, Fabio Ferreira},
-    title = {Non-parametric Density Estimation},
+    title = {Conditional Density Estimation},
     year = {2019},
     publisher = {GitHub},
     journal = {GitHub repository},
-    howpublished = {\url{https://github.com/jonasrothfuss/Nonparametric_Density_Estimation}},
+    howpublished = {\url{https://github.com/jonasrothfuss/Conditional_Density_Estimation}},
 }
 ```
