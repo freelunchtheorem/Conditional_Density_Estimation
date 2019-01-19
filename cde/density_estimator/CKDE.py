@@ -56,6 +56,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+    self.y_mean, self.y_std = np.mean(Y, axis=0), np.std(Y, axis=0)
 
     dep_type = 'c' * self.ndim_y
     indep_type = 'c' * self.ndim_x
@@ -77,7 +78,6 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
      """
     X,Y = self._handle_input_dimensionality(X, Y)
-    self.y_mean, self.y_std = np.mean(Y, axis=0), np.std(Y, axis=0)
 
     n_samples = X.shape[0]
     if n_samples >= MULTIPROC_THRESHOLD:

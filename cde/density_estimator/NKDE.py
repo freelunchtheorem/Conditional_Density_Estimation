@@ -2,13 +2,14 @@ import numpy as np
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
 import warnings
-from scipy import optimize
 
 from cde.utils.misc import norm_along_axis_1
 from .BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.async_executor import execute_batch_async_pdf
+from scipy.special import logsumexp
 
 MULTIPROC_THRESHOLD = 10**4
+N_POINT_OUT_OF_RANGE = 5 # number for closest points to consider if all points are outside of the epsilon range
 
 class NeighborKernelDensityEstimation(BaseDensityEstimator):
   """
@@ -66,23 +67,36 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.fitted = True
 
   def pdf(self, X, Y):
-    """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
+    """ Predicts the conditional probability density p(y|x). Requires the model to be fitted.
 
        Args:
          X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
 
        Returns:
-          conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )
+          conditional probability p(y|x) - numpy array of shape (n_query_samples, )
+
+    """
+    return np.exp(self.log_pdf(X,Y))
+
+  def log_pdf(self, X, Y):
+    """ Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.
+
+       Args:
+         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+       Returns:
+          conditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
 
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     n_samples = X.shape[0]
     if n_samples >= MULTIPROC_THRESHOLD:
-      return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
+      return execute_batch_async_pdf(self._log_pdf, X, Y, n_jobs=self.n_jobs)
     else:
-      return self._pdf(X, Y)
+      return self._log_pdf(X, Y)
 
   def sample(self, X):
     raise NotImplementedError("Neighbor Kernel Density Estimation is a lazy learner and does not support sampling")
@@ -103,7 +117,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     conditional_log_densities = np.zeros(self.n_train_points)
     for i in range(self.n_train_points):
-      conditional_log_densities[i] = np.log(self._density(bw, kernel_weights_loo[i, :], self.Y_train[i, :]))
+      conditional_log_densities[i] = self._log_density(bw, kernel_weights_loo[i, :], self.Y_train[i, :])
 
     return np.sum(conditional_log_densities)
 
@@ -130,27 +144,36 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     # prepare Gaussians centered in the Y points
     self.locs_array = np.vsplit(Y, self.n_train_points)
-    self.kernel = multivariate_normal(mean=np.ones(self.ndim_y)).pdf
+    self.log_kernel = multivariate_normal(mean=np.ones(self.ndim_y)).logpdf
 
-  def _pdf(self, X, Y):
+  def _log_pdf(self, X, Y):
     """ 1. Determine weights of the Gaussians """
     X_normalized = self._normalize_x(X)
     kernel_weights = self._kernel_weights(X_normalized, self.epsilon)
 
-    """ 2. Calculate the conditional densities """
+    """ 2. Calculate the conditional log densities """
     n_samples = X.shape[0]
 
     conditional_densities = np.zeros(n_samples)
     for i in range(n_samples):
-      conditional_densities[i] = self._density(self.bw, kernel_weights[i, :], Y[i, :])
+      conditional_densities[i] = self._log_density(self.bw, kernel_weights[i, :], Y[i, :])
 
     return conditional_densities
 
   def _kernel_weights(self, X_normalized, epsilon):
     X_dist = norm_along_axis_1(X_normalized, self.X_train)
     mask = X_dist > epsilon
+    num_neighbors = np.sum(np.logical_not(mask), axis=1)
+
+    # Extra treatment for X that are outside of the epsilon range
+    if np.any(num_neighbors <= 0):
+      for i in np.nditer(np.where(num_neighbors <= 0)): # if all points outside of epsilon region - take closest points
+        closest_indices = np.argsort(X_dist[i, :])[:N_POINT_OUT_OF_RANGE]
+        for j in np.nditer(closest_indices):
+          mask[i,j] = False
+
+    num_neighbors = np.sum(np.logical_not(mask), axis=1)
     neighbor_distances = np.ma.masked_where(mask, X_dist)
-    num_neighbors = neighbor_distances.count(axis=1)
 
     if self.weighted:
       # neighbors are weighted in proportion to their distance to the query point
@@ -166,24 +189,17 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     return neighbor_weights
 
-  def _density(self, bw, neighbor_weights, y):
+  def _log_density(self, bw, neighbor_weights, y):
     assert neighbor_weights.shape[0] == self.n_train_points
     assert y.shape[0] == self.ndim_y
-    kernel_ids = np.arange(self.n_train_points)
 
-    # vectorized function
-    single_densities = np.vectorize(self._single_density, excluded=[0, 3])
+    log_single_densities = np.array([self._single_log_density(bw, neighbor_weights[i], i, y)
+                                 for i in np.nditer(np.nonzero(neighbor_weights))])
 
-    # call vectorized function
-    single_den = single_densities(bw, neighbor_weights, kernel_ids, y)
+    return logsumexp(log_single_densities)
 
-    return np.sum(single_den)
-
-  def _single_density(self, bw, neighbor_weight, kernel_id, y):
-    if neighbor_weight > 0:
-      return neighbor_weight * self.kernel((y - self.Y_train[kernel_id, :])/bw) / np.product(bw)
-    else:
-      return 0
+  def _single_log_density(self, bw, neighbor_weight, kernel_id, y):
+      return np.log(neighbor_weight) + self.log_kernel((y - self.Y_train[kernel_id, :]) / bw) - np.sum(np.log(bw))
 
   def _param_grid(self):
     mean_std_y = np.mean(self.y_std)
