@@ -11,7 +11,7 @@ from tensorflow.python.training import moving_averages
 from collections import OrderedDict
 from collections import deque
 from itertools import chain
-from inspect import getargspec
+from inspect import getfullargspec
 from difflib import get_close_matches
 from warnings import warn
 
@@ -1858,7 +1858,7 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
                                  % layer)
             all_outputs[layer] = layer.get_output_for(layer_inputs, **kwargs)
             try:
-                names, _, _, defaults = getargspec(layer.get_output_for)
+                names, _, _, defaults, _, _, _ = getfullargspec(layer.get_output_for)
             except TypeError:
                 # If introspection is not possible, skip it
                 pass

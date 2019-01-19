@@ -126,6 +126,7 @@ def mc_integration_adaptive(fun, log_prob, ndim, n_samples=10 ** 6, adaptive=Tru
                 except (RuntimeWarning, ValueError):
                   warnings.warn("Adaptive PMC failed - falling back on proposal dist")
                   break
+    warnings.filterwarnings('default')
 
     # monte carlo integration with importance sampling from init_proposal distribution
     log_target = lambda x: log_prob(x).flatten()

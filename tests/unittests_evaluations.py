@@ -262,7 +262,7 @@ class TestRiskMeasures(unittest.TestCase):
     X = data[:, 0:2]
     Y = data[:, 2:4]
 
-    model = MixtureDensityNetwork("mdn_mean", 2, 2, n_centers=3)
+    model = MixtureDensityNetwork("mdn_mean", 2, 2, n_centers=3, y_noise_std=0.1, x_noise_std=0.1)
     model.fit(X, Y)
 
     mean_est = model.mean_(x_cond=np.array([[1,2]]), n_samples=10**7)
@@ -312,7 +312,7 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][0][0], sigma[0][0], places=2)
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
-  def test_mean_covariance(self):
+  def test_mean_std(self):
     mu = np.array([0, 1])
     sigma = np.array([[1, -0.2], [-0.2, 2]])
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
@@ -322,7 +322,7 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(mean_est[0][0], mu[0], places=2)
     self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
     self.assertAlmostEqual(std_est[0][0]**2, sigma[0][0], places=2)
-    self.assertAlmostEqual(std_est[0][1]**2, sigma[1][0], places=2)
+    self.assertAlmostEqual(std_est[0][1]**2, sigma[1][1], places=2)
 
   def test_covariance_mixture(self):
     np.random.seed(24)
