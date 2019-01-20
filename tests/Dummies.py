@@ -26,6 +26,10 @@ class GaussianDummy(BaseDensityEstimator):
       self.cov = np.identity(self.ndim_y)
     assert self.cov.shape[0] == self.cov.shape[1] == self.ndim_y
 
+    # safe data stats
+    self.y_mean = self.mean
+    self.y_std = np.sqrt(np.diagonal(self.cov))
+
     self.gaussian = stats.multivariate_normal(mean=self.mean, cov=self.cov)
     self.fitted = False
 

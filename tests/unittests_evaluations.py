@@ -10,8 +10,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
 from .Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
-
 from cde.utils.integration import mc_integration_adaptive
+from cde.evaluation.divergences import kl_divergence_pdf, js_divergence_pdf, hellinger_distance_pdf, divergence_measures_pdf
 
 alpha = 0.05
 
@@ -265,9 +265,9 @@ class TestRiskMeasures(unittest.TestCase):
     model = MixtureDensityNetwork("mdn_mean", 2, 2, n_centers=3, y_noise_std=0.1, x_noise_std=0.1)
     model.fit(X, Y)
 
-    mean_est = model.mean_(x_cond=np.array([[1,2]]), n_samples=10**7)
+    mean_est = model.mean_(x_cond=np.array([[1.5, 2]]), n_samples=10**7)
     self.assertAlmostEqual(mean_est[0][0], 7, places=0)
-    self.assertAlmostEqual(mean_est[0][1], -2, places=1)
+    self.assertAlmostEqual(mean_est[0][1], -2, places=0)
 
   def test_std1(self):
     # prepare estimator dummy
@@ -434,6 +434,131 @@ class TestRiskMeasures(unittest.TestCase):
     diff_var = np.mean(np.abs(VaR_mixture - VaR_cdf))
     self.assertAlmostEqual(diff_var, 0, places=1)
 
+class TestDivergenceMeasures(unittest.TestCase):
+
+  def setUp(self):
+    self.mu1 = np.array([0.0])
+    self.cov1 = np.eye(1)
+    self.mu2 = np.array([1.0])
+    self.cov2 = np.eye(1) * 2
+
+    self.gaussian1 = GaussianDummy(mean=self.mu1, cov=self.cov1, ndim_x=2, ndim_y=1)
+    self.gaussian2 = GaussianDummy(mean=self.mu2, cov=self.cov2, ndim_x=2, ndim_y=1)
+
+    self.mu3 = np.array([1.6, -7.0])
+    self.cov3 = np.array([[2.0, 0.5], [0.5, 4.5]])
+    self.mu4 = np.array([1.0, -5.0])
+    self.cov4 = np.eye(2) * 2
+
+    self.gaussian3 = GaussianDummy(mean=self.mu3, cov=self.cov3, ndim_x=2, ndim_y=2)
+    self.gaussian4 = GaussianDummy(mean=self.mu4, cov=self.cov4, ndim_x=2, ndim_y=2)
+
+  def test_kl_gaussian(self):
+    kl1 = _kl_gaussians(self.mu1, self.cov1, self.mu1, self.cov1)
+    self.assertAlmostEqual(float(kl1), 0.0)
+
+    kl2 = _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+    self.assertGreater(float(kl2), 0.0)
+
+    mu = np.array([1.6, -7.0])
+    cov = np.array([[2.0, 0.5], [0.5, 4.5]])
+    kl3 = _kl_gaussians(mu, cov, mu, cov)
+    self.assertAlmostEqual(float(kl3), 0.0)
+
+  def test_hellinger_gaussian(self):
+    kl1 = _hellinger_gaussians(self.mu1, self.cov1, self.mu1, self.cov1)
+    self.assertAlmostEqual(float(kl1), 0.0)
+
+    kl2 = _hellinger_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+    self.assertGreater(float(kl2), 0.0)
+
+    mu = np.array([1.6, -7.0])
+    cov = np.array([[2.0, 0.5], [0.5, 4.5]])
+    kl3 = _hellinger_gaussians(mu, cov, mu, cov)
+    self.assertAlmostEqual(float(kl3), 0.0)
+
+  def test_kl_mc_1d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    kl_est = kl_divergence_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
+    kl_true = _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+    print(kl_est[0], kl_true)
+    self.assertAlmostEqual(kl_est[0], kl_true, places=1)
+
+  def test_kl_mc_2d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    kl_est = kl_divergence_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
+    kl_true = _kl_gaussians(self.mu3, self.cov3, self.mu4, self.cov4)
+    print(kl_est[0], kl_true)
+    self.assertAlmostEqual(kl_est[0], kl_true, places=1)
+
+  def test_hellinger_mc_1d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    h_est = hellinger_distance_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
+    h_true = _hellinger_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+    print(h_est[0], h_true)
+    self.assertAlmostEqual(h_est[0], h_true, places=1)
+
+  def test_hellinger_mc_2d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    h_est = hellinger_distance_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
+    h_true = _hellinger_gaussians(self.mu3, self.cov3, self.mu4, self.cov4)
+    print(h_est[0], h_true)
+    self.assertAlmostEqual(h_est[0], h_true, places=1)
+
+  def test_js_mc_1d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    js_est = js_divergence_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
+    js_true = 0.5 * _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2) + 0.5 * _kl_gaussians(self.mu2, self.cov2, self.mu1, self.cov1)
+    print(js_est[0], js_true)
+    self.assertAlmostEqual(js_est[0], js_true, places=1)
+
+  def test_js_mc_2d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    kl_est = js_divergence_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
+    kl_true = 0.5 * _kl_gaussians(self.mu3, self.cov3, self.mu4, self.cov4) + 0.5 * _kl_gaussians(self.mu4, self.cov4, self.mu3, self.cov3)
+    print(kl_est[0], kl_true)
+    self.assertAlmostEqual(kl_est[0], kl_true, places=1)
+
+  def test_divmeasures_mc_1d(self):
+    x_cond = np.array([[0.0, 1.0], [2.0, 0.5]])
+    h_est, kl_est, js_est, h_est2 = divergence_measures_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
+
+    js_true = 0.5 * _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2) + 0.5 * _kl_gaussians(self.mu2, self.cov2, self.mu1, self.cov1)
+    h_true = _hellinger_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+    kl_true = _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
+
+    self.assertAlmostEqual(js_est[1], js_true, places=1)
+    self.assertAlmostEqual(kl_est[0], kl_true, places=1)
+    self.assertAlmostEqual(h_est[0], h_true, places=1)
+
+  def test_divmeasures_mc_2d(self):
+    x_cond = np.array([[0.0, 1.0]])
+    h_est, kl_est, js_est, h_est2 = divergence_measures_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
+
+    js_true = 0.5 * _kl_gaussians(self.mu3, self.cov3, self.mu4, self.cov4) + 0.5 * _kl_gaussians(self.mu4, self.cov4,
+                                                                                                  self.mu3, self.cov3)
+    h_true = _hellinger_gaussians(self.mu3, self.cov3, self.mu4, self.cov4)
+    kl_true = _kl_gaussians(self.mu3, self.cov3, self.mu4, self.cov4)
+
+    self.assertAlmostEqual(js_est[0], js_true, places=1)
+    self.assertAlmostEqual(kl_est[0], kl_true, places=1)
+    self.assertAlmostEqual(h_est[0], h_true, places=1)
+
+def _kl_gaussians(mu1, cov1, mu2, cov2):
+  assert cov1.shape == cov2.shape
+  assert mu1.shape == mu2.shape
+  term1 = np.log(np.linalg.det(cov2)) - np.log(np.linalg.det(cov1))
+  term2 = np.trace(np.linalg.inv(cov2).dot(cov1))
+  term3 = np.transpose(mu2 - mu1).dot(np.linalg.inv(cov2)).dot(mu2-mu1)
+  return 0.5 * (term1 - cov1.shape[0] + term2 + term3)
+
+def _hellinger_gaussians(mu1, cov1, mu2, cov2):
+  assert cov1.shape == cov2.shape
+  assert mu1.shape == mu2.shape
+  term1 = np.linalg.det(cov1)**0.25 * np.linalg.det(cov2)**0.25
+  term2 = np.linalg.det(0.5 * (cov1 + cov2))**0.5
+  term3 = np.exp(-0.125 * np.transpose(mu2 - mu1).dot(np.linalg.inv(0.5 * (cov1 + cov2))).dot(mu2-mu1))
+  return np.sqrt(1 - term1 / term2 * term3)
 
 if __name__ == '__main__':
   if __name__ == '__main__':
