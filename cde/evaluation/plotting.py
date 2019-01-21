@@ -2,7 +2,7 @@ from cde.density_simulation import *
 from cde.density_estimator import *
 from cde.evaluation_runs import base_experiment
 from ml_logger import logger
-from cde.helpers import take_of_type
+from cde.utils.misc import take_of_type
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 import cde.evaluation.ConfigRunner as ConfigRunner
 import tensorflow as tf

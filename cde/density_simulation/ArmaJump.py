@@ -15,7 +15,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
   """
 
   def __init__(self, c=0.1, arma_a1=0.9, std=0.05, jump_prob=0.05, random_seed=None):
-    self.std = std
+    self.base_std = std
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
 
@@ -49,8 +49,8 @@ class ArmaJump(BaseConditionalDensitySimulation):
     """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self.arma_c * (1-self.arma_a1) + self.arma_a1 * X
-    return (1-self.jump_prob) * stats.norm.pdf(Y - mean, scale=self.std).flatten() + \
-                self.jump_prob *  stats.norm.pdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()
+    return (1-self.jump_prob) * stats.norm.pdf(Y - mean, scale=self.base_std).flatten() + \
+           self.jump_prob * stats.norm.pdf(Y - (mean + self.jump_mean), scale=2*self.base_std).flatten()
 
   def cdf(self, X, Y):
     """ Conditional cumulated probability density function P(Y < y | x) of the underlying probability model
@@ -64,8 +64,8 @@ class ArmaJump(BaseConditionalDensitySimulation):
         """
     X, Y = self._handle_input_dimensionality(X, Y)
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
-    return (1-self.jump_prob) * stats.norm.cdf(Y - mean, scale=self.std).flatten() + \
-                self.jump_prob * stats.norm.cdf(Y - (mean + self.jump_mean), scale=2*self.std).flatten()
+    return (1-self.jump_prob) * stats.norm.cdf(Y - mean, scale=self.base_std).flatten() + \
+           self.jump_prob * stats.norm.cdf(Y - (mean + self.jump_mean), scale=2*self.base_std).flatten()
 
   def simulate_conditional(self, X):
     """ Draws random samples from the conditional distribution
@@ -77,7 +77,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
       Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)
     """
     mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * X
-    y_ar = self.random_state.normal(loc=mean, scale=self.std, size=X.shape[0])
+    y_ar = self.random_state.normal(loc=mean, scale=self.base_std, size=X.shape[0])
 
     mean_jump = mean + self.jump_mean
     y_jump = self.random_state.normal(loc=mean_jump, scale=self.jump_std, size=X.shape[0])
@@ -95,7 +95,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
        Returns:
          (X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)
     """
-    self.eps = self.random_state.normal(scale=self.std, size=n_samples + burn_in + 1)
+    self.eps = self.random_state.normal(scale=self.base_std, size=n_samples + burn_in + 1)
 
     x = np.zeros(n_samples + burn_in + 1)
     x[0] = x_0
@@ -135,7 +135,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
 
     covs=np.zeros((x_cond.shape[0], self.ndim_y, self.ndim_y))
     for i in range(x_cond.shape[0]):
-      c1 = self.jump_prob * self.jump_std**2 + (1-self.jump_prob) * self.std**2
+      c1 = self.jump_prob * self.jump_std ** 2 + (1-self.jump_prob) * self.base_std ** 2
 
       mean = self.arma_c * (1 - self.arma_a1) + self.arma_a1 * x_cond[i]
       c2 = self.jump_prob * mean**2 + (1-self.jump_prob) * (mean-self.jump_mean)**2 - \
@@ -143,19 +143,3 @@ class ArmaJump(BaseConditionalDensitySimulation):
       covs[i][0][0] = c1 + c2
 
     return covs
-
-  def _simulate_GARCH(self, T=1000):
-    sigma1 = np.sqrt(self.garch_a0 / (1 - self.garch_a1 - self.garch_b1))
-
-    # Initialize our values
-    self.eps = np.ndarray(T)
-    self.sigma = np.ndarray(T)
-    self.sigma[0] = sigma1
-
-    for t in range(1, T):
-      # Draw the next x_t
-      self.eps[t - 1] = self.sigma[t - 1] * self.random_state.normal(0, 1)
-      # Draw the next sigma_t
-      self.sigma[t] = np.sqrt(self.garch_a0 + self.garch_b1 * self.sigma[t - 1] ** 2 + self.garch_a1 * self.eps[t - 1] ** 2)
-
-    self.eps[T - 1] = self.sigma[T - 1] * self.random_state.normal(0, 1)

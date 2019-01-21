@@ -7,7 +7,7 @@ import scipy.stats as stats
 from scipy.stats import norm
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit, _multidim_cauchy_pdf
+from cde.evaluation.GoodnessOfFit import GoodnessOfFit
 from .Dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
 from cde.utils.integration import mc_integration_adaptive
@@ -119,46 +119,6 @@ class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
     self.assertAlmostEqual(kl_divergence_analytical, kl_div_mc[0], places=2)
     self.assertGreaterEqual(1, js_div_mc[0])
     self.assertLessEqual(0, js_div_mc[0])
-
-  def test_multidim_chauchy(self):
-    x1 = np.asarray([[1, 0], [0, 1]])
-    x2 = np.asarray([[1]])
-
-    self.assertEqual(_multidim_cauchy_pdf(x1)[0], _multidim_cauchy_pdf(x1)[1])
-    self.assertAlmostEqual(_multidim_cauchy_pdf(x2, scale=4)[0], stats.cauchy.pdf(x2[0], scale=4)[0])
-
-  def test_mc_intrgration_chauchy_1(self):
-    mu1 = np.array([0])
-    mu2 = np.array([0])
-    sigma1 = np.identity(n=1) * 2
-    sigma2 = np.identity(n=1) * 1
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=1, ndim_y=1)
-
-    x_cond = np.asarray([[0]])
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x_cond, n_mc_samples=10 ** 7)
-
-    func = lambda y, x: stats.uniform.pdf(y, loc=-1, scale=2)
-
-    integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
-    self.assertAlmostEqual(1.0, integral[0], places=2)
-
-  def test_mc_intrgration_chauchy_2(self):
-    mu1 = np.array([0, 0])
-    mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2) * 2
-    sigma2 = np.identity(n=2) * 1
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
-
-    x_cond = np.asarray([[0,0]])
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x_cond, n_mc_samples=10 ** 7)
-
-    func = lambda y, x: stats.multivariate_normal.pdf(y, mean=[0,0], cov=np.diag([2,2]))
-    integral = gof1._mc_integration_cauchy(func, n_samples=10**5, batch_size=10 ** 4)
-    self.assertAlmostEqual(1.0, integral[0], places=2)
 
 class TestRiskMeasures(unittest.TestCase):
 
@@ -276,7 +236,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
     est.fit(None, None)
 
-    std = est.std(x_cond=np.array([[0, 1]]))
+    std = est.std_(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(std[0][0], np.sqrt(sigma[0][0]), places=2)
     self.assertAlmostEqual(std[0][1], np.sqrt(sigma[1][1]), places=2)
 
@@ -287,7 +247,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=1, ndim_y=1, can_sample=False)
     est.fit(None, None)
 
-    std_est = est.std(x_cond=np.array([[0.0], [1.0]]))
+    std_est = est.std_(x_cond=np.array([[0.0], [1.0]]))
     self.assertAlmostEqual(std_est[0][0]**2, sigma[0][0], places=2)
     self.assertAlmostEqual(std_est[1][0]**2, sigma[0][0], places=2)
 
@@ -520,8 +480,9 @@ class TestDivergenceMeasures(unittest.TestCase):
     self.assertAlmostEqual(kl_est[0], kl_true, places=1)
 
   def test_divmeasures_mc_1d(self):
+    np.random.seed(22)
     x_cond = np.array([[0.0, 1.0], [2.0, 0.5]])
-    h_est, kl_est, js_est, h_est2 = divergence_measures_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
+    h_est, kl_est, js_est = divergence_measures_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
 
     js_true = 0.5 * _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2) + 0.5 * _kl_gaussians(self.mu2, self.cov2, self.mu1, self.cov1)
     h_true = _hellinger_gaussians(self.mu1, self.cov1, self.mu2, self.cov2)
@@ -532,8 +493,9 @@ class TestDivergenceMeasures(unittest.TestCase):
     self.assertAlmostEqual(h_est[0], h_true, places=1)
 
   def test_divmeasures_mc_2d(self):
+    np.random.seed(22)
     x_cond = np.array([[0.0, 1.0]])
-    h_est, kl_est, js_est, h_est2 = divergence_measures_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
+    h_est, kl_est, js_est = divergence_measures_pdf(self.gaussian3, self.gaussian4, x_cond=x_cond)
 
     js_true = 0.5 * _kl_gaussians(self.mu3, self.cov3, self.mu4, self.cov4) + 0.5 * _kl_gaussians(self.mu4, self.cov4,
                                                                                                   self.mu3, self.cov3)
