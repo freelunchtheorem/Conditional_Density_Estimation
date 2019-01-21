@@ -69,11 +69,11 @@ def divergence_measures_pdf(p, q, x_cond, n_samples=10**5):
     Returns:
       (hellinger_dists, kl_divs, js_divs) - tuple of numpy arrays of shape (n_values,)
     """
-  fun_div_measures_stack = lambda p, q: np.stack([_FUN_HELLINGER_2(p,q), _FUN_KL(p,q), _FUN_JS(p,q), _FUN_HELLINGER_2(p,q)], axis=1) # np.sqrt(_FUN_HELLINGER_2(p,q))
-  div_measure_stack = _divergence_mc(p, q, x_cond, fun_div_measures_stack, n_samples, n_measures=4)
-  assert div_measure_stack.shape == (x_cond.shape[0], 4)
-  h_divs, kl_divs, js_divs, h_divs2 = div_measure_stack[:, 0], div_measure_stack[:,1], div_measure_stack[:, 2], div_measure_stack[:, 3]
-  return np.sqrt(0.5 * h_divs), kl_divs, js_divs, np.sqrt(0.5 * h_divs2)
+  fun_div_measures_stack = lambda p, q: np.stack([_FUN_HELLINGER_2(p,q), _FUN_KL(p,q), _FUN_JS(p,q)], axis=1) # np.sqrt(_FUN_HELLINGER_2(p,q))
+  div_measure_stack = _divergence_mc(p, q, x_cond, fun_div_measures_stack, n_samples, n_measures=3)
+  assert div_measure_stack.shape == (x_cond.shape[0], 3)
+  h_divs, kl_divs, js_divs = div_measure_stack[:, 0], div_measure_stack[:,1], div_measure_stack[:, 2]
+  return np.sqrt(0.5 * h_divs), kl_divs, js_divs
 
 def _divergence_mc(p, q, x_cond, divergenc_fun, n_samples=10 ** 5, n_measures=1):
   assert x_cond.ndim == 2 and x_cond.shape[1] == q.ndim_x
