@@ -26,7 +26,8 @@ class GoodnessOfFit:
      estimator and prob_model name.
 
   """
-  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, seed=24, task_name=None):
+  def __init__(self, estimator, probabilistic_model, X, Y, n_observations, x_cond, n_mc_samples, seed=24, task_name=None,
+               tail_measures=True):
 
     assert isinstance(estimator, BaseDensityEstimator), "estimator must inherit BaseDensityEstimator class"
     assert isinstance(probabilistic_model, BaseConditionalDensitySimulation), "probabilistic model must inherit from ConditionalDensity"
@@ -46,6 +47,7 @@ class GoodnessOfFit:
     self.X = X
     self.Y = Y
     self.n_observations = n_observations
+    self.tail_measures = tail_measures
 
     self.estimator = estimator
 
@@ -131,7 +133,7 @@ class GoodnessOfFit:
     gof_result.std_abs_diff = np.mean(np.abs(gof_result.std_sim_ - gof_result.std_sim_))
 
     """ tail risk """
-    if self.estimator.ndim_y == 1:
+    if self.estimator.ndim_y == 1 and self.tail_measures:
       # estimator
       gof_result.VaR_est_, gof_result.CVaR_est_ = self.estimator.tail_risk_measures(self.x_cond, n_samples=self.n_mc_samples)
       gof_result.VaR_est, gof_result.CVaR_est = [str(gof_result.VaR_est_.flatten())], [str(gof_result.CVaR_est_.flatten())]

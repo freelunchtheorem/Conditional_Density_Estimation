@@ -64,7 +64,7 @@ class ConfigRunner():
   """
 
   def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7,
-               n_x_cond=5, n_seeds=5, use_gpu=True):
+               n_x_cond=5, n_seeds=5, use_gpu=True, tail_measures=True):
 
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
@@ -77,6 +77,7 @@ class ConfigRunner():
     self.keys_of_interest = keys_of_interest
     self.exp_prefix = exp_prefix
     self.use_gpu = use_gpu
+    self.tail_measures = tail_measures
 
     logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix, color='green')
 
@@ -253,7 +254,7 @@ class ConfigRunner():
           ''' train the model '''
           gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
                               n_observations=task['n_obs'], n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'],
-                              task_name = task['task_name'])
+                              task_name = task['task_name'], tail_measures=self.tail_measures)
 
           t = time.time()
           gof.fit_estimator(print_fit_result=True)
