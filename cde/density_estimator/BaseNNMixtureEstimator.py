@@ -288,7 +288,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
     return P
 
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None):
+  def fit_by_cv_gridsearch(self, X, Y, n_folds=3, param_grid=None, random_state=None):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,

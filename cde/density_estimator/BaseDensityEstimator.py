@@ -5,7 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import cross_validate
 
 from cde import ConditionalDensity
 
@@ -20,10 +20,66 @@ class BaseDensityEstimator(ConditionalDensity):
       Args:
         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        n_folds: number of cross-validation folds (positive integer)
-
     """
     raise NotImplementedError
+
+  def fit_by_cv(self, X, Y, n_splits=5, verbose=True):
+    """ Fits the conditional density model with cross-validation by using the score function of the BaseDensityEstimator for
+    scoring the various splits.
+
+    Args:
+      X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+      Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+      n_splits: number of cross-validation folds (positive integer)
+      verbose: the verbosity level
+    """
+    X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+    cv_results = cross_validate(self, X=X, y=Y, cv=n_splits, return_estimator=False, verbose=verbose)
+
+    test_scores = cv_results['test_score']
+    test_scores_max_idx = np.argmax(test_scores)
+    estimator = cv_results['estimator'][test_scores_max_idx]
+
+    self.set_params(**estimator.best_params_)
+    self.fit(X, Y)
+
+  def fit_by_cv_gridsearch(self, X, Y, n_folds=5, param_grid=None, verbose=True):
+    """ Fits the conditional density model with hyperparameter search and cross-validation.
+    - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+      the conditional log-likelihood is used for evaluation_runs.
+    - Fits the model with the previously selected hyperparameter configuration
+    Args:
+      X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+      Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+      n_folds: number of cross-validation folds (positive integer)
+      param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
+                  parametrizations as value. The hyperparameter search is performed over the cartesian product of \
+                  the provided lists.
+                  Example:
+                  {"n_centers": [20, 50, 100, 200],
+                   "center_sampling_method": ["agglomerative", "k_means", "random"],
+                   "keep_edges": [True, False]
+                  }
+    """
+
+    # save properties of data
+    self.n_samples = X.shape[0]
+    self.x_std = np.std(X, axis=0)
+    self.y_std = np.std(Y, axis=0)
+
+    if param_grid is None:
+      param_grid = self._param_grid()
+
+    cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=-1, refit=True, cv=n_folds, verbose=verbose)
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore")  # don't print division by zero warning
+      cv_model.fit(X, Y)
+    best_params = cv_model.best_params_
+    if verbose: print("Cross-Validation terminated")
+    if verbose: print("Best likelihood score: %.4f" % cv_model.best_score_)
+    if verbose: print("Best params:", best_params)
+    self.set_params(**cv_model.best_params_)
+    self.fit(X, Y)
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.
@@ -46,7 +102,7 @@ class BaseDensityEstimator(ConditionalDensity):
          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
 
        Returns:
-          onditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
+          conditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
 
      """
     # This method is numerically unfavorable and should be overwritten with a numerically stable method
@@ -200,50 +256,6 @@ class BaseDensityEstimator(ConditionalDensity):
       return self._conditional_value_at_risk_sampling(VaRs, x_cond, n_samples=n_samples)
     else:
       raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
-
-  def fit_by_cv(self, X, Y, n_folds=5, param_grid=None, verbose=True):
-    """ Fits the conditional density model with hyperparameter search and cross-validation.
-
-    - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-      the conditional log-likelihood is used for evaluation_runs.
-    - Fits the model with the previously selected hyperparameter configuration
-
-    Args:
-      X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-      Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-      n_folds: number of cross-validation folds (positive integer)
-      param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
-                  parametrizations as value. The hyperparameter search is performed over the cartesian product of \
-                  the provided lists.
-
-                  Example:
-                  {"n_centers": [20, 50, 100, 200],
-                   "center_sampling_method": ["agglomerative", "k_means", "random"],
-                   "keep_edges": [True, False]
-                  }
-
-    """
-
-
-    # save properties of data
-    self.n_samples = X.shape[0]
-    self.x_std = np.std(X, axis=0)
-    self.y_std = np.std(Y, axis=0)
-
-    if param_grid is None:
-      param_grid = self._param_grid()
-
-    cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=-1, refit=True, cv=n_folds,
-                 verbose=verbose)
-    with warnings.catch_warnings():
-      warnings.simplefilter("ignore")  # don't print division by zero warning
-      cv_model.fit(X,Y)
-    best_params = cv_model.best_params_
-    if verbose: print("Cross-Validation terminated")
-    if verbose: print("Best likelihood score: %.4f"%cv_model.best_score_)
-    if verbose: print("Best params:", best_params)
-    self.set_params(**cv_model.best_params_)
-    self.fit(X,Y)
 
   def get_configuration(self, deep=True):
     """ Get parameter configuration for this estimator.

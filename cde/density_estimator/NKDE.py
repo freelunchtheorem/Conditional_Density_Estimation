@@ -36,12 +36,11 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.ndim_y = ndim_y
     self.epsilon = epsilon
     self.weighted = weighted
+    assert bandwidth is 'normal_reference' or isinstance(bandwidth, (int, float)) or isinstance(bandwidth, np.ndarray)
     self.bw = bandwidth
     self.n_jobs = n_jobs
 
-    assert bandwidth is 'normal_reference' \
-           or isinstance(bandwidth, (int, float)) \
-           or isinstance(bandwidth, np.ndarray)
+
 
     self.fitted = False
 

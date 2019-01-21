@@ -2,12 +2,15 @@ from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensity
   NeighborKernelDensityEstimation, LSConditionalDensityEstimation
 from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
+from sklearn.model_selection import cross_validate
+
 import numpy as np
 import time
 import pandas as pd
 from collections import OrderedDict
 
 VALIDATION_PORTION = 0.2
+CROSS_VALIDATION = True
 
 ndim_x = 14
 ndim_y = 1
@@ -28,7 +31,7 @@ def train_valid_split(valid_portion):
   return df_train, df_valid
 
 
-def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True):
+def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, cv=False):
   """
   Fits the estimator and, based on a left out validation splot, computes the
   Root Mean Squared Error (RMSE) between realized and estimated mean and std
@@ -54,10 +57,13 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True):
   std_realized = np.sqrt(df_valid['RealizedVariation'][1:])
 
   # fit density model
-  estimator.fit(X_train, Y_train)
+  if cv:
+    estimator.fit_by_cv(X_train, Y_train, n_splits=5)
+  else:
+    estimator.fit(X_train, Y_train)
 
   # compute avg. log likelihood
-  mean_logli = np.mean(np.log(estimator.pdf(X_valid, Y_valid)))
+  mean_logli = np.mean(estimator.log_pdf(X_valid, Y_valid))
 
   if moment_r2:
     # predict mean and std
@@ -76,13 +82,14 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True):
 
   return mean_logli, mu_rmse, std_rmse
 
-def empirical_benchmark(model_dict, moment_r2=True):
+
+def empirical_benchmark(model_dict, moment_r2=True, cv=True):
   result_dict = {}
 
   for model_name, model in model_dict.items():
     print("Running likelihood fit and validation for %s"%model_name)
     t = time.time()
-    result_dict[model_name] = empirical_evaluation(model, VALIDATION_PORTION, moment_r2=moment_r2)
+    result_dict[model_name] = empirical_evaluation(model, VALIDATION_PORTION, moment_r2=moment_r2, cv=cv)
     print('%s results:' % model_name, result_dict[model_name])
     print('Duration of %s:'%model_name, time.time() - t)
 
@@ -90,9 +97,14 @@ def empirical_benchmark(model_dict, moment_r2=True):
   df.columns = ['log_likelihood', 'rmse_mean', 'rmse_std']
   return df
 
+
 if __name__ == '__main__':
+
+  print("Fitting estimators {}".format("(by CV)" if CROSS_VALIDATION else ""))
+
   model_dict = {
-    'MDN w/ noise smoothing:': MixtureDensityNetwork('mdn1', ndim_x, ndim_y, n_centers=20, n_training_epochs=2000,
+    'NKDE': NeighborKernelDensityEstimation('NKDE', ndim_x, ndim_y),
+    'MDN w/ noise smoothing': MixtureDensityNetwork('mdn1', ndim_x, ndim_y, n_centers=20, n_training_epochs=2000,
                                 random_seed=22, x_noise_std=0.2, y_noise_std=0.1),
     'MDN w/o noise smoothing': MixtureDensityNetwork('mdn2', ndim_x, ndim_y, n_centers=20,
                                 n_training_epochs=2000, random_seed=22, x_noise_std=None, y_noise_std=None),
@@ -101,16 +113,13 @@ if __name__ == '__main__':
                                 random_seed=22, x_noise_std=0.2, y_noise_std=0.1),
     'KMN w/o noise smoothing':  KernelMixtureNetwork('kmn2', ndim_x, ndim_y, n_centers=50, n_training_epochs=2000, init_scales=[0.7, 0.3],
                                 random_seed=22, x_noise_std=None, y_noise_std=None),
-    'NKDE': NeighborKernelDensityEstimation('NKDE', ndim_x, ndim_y),
 
     'LSCDE': LSConditionalDensityEstimation('CKDE', ndim_x, ndim_y),
-    'CKDE normal_reference': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y,
-                                                                bandwidth='normal_reference'),
-    'CKDE cv_ml': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y,
-                                                                bandwidth='cv_ml'),
+    'CKDE': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y, bandwidth='normal_reference' if not CROSS_VALIDATION else 'cv_ml')
   }
   model_dict = OrderedDict(list(model_dict.items()))
 
-  result_df = empirical_benchmark(model_dict, moment_r2=True)
+
+  result_df = empirical_benchmark(model_dict, moment_r2=True, cv=CROSS_VALIDATION)
   print(result_df.to_latex())
   print(result_df)

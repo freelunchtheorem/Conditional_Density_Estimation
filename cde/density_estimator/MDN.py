@@ -83,7 +83,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       Args:
         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        n_folds: number of cross-validation folds (positive integer)
+        random_seed: the seed (integer) used by the random number generator
         verbose: (boolean) controls the verbosity (console output)
 
     """
