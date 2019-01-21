@@ -47,7 +47,7 @@ def execute_batch_async_pdf(pdf_fun, X, Y, n_jobs=-1, batch_size=None):
     query_length = X.shape[0]
 
     if n_jobs < 1:
-        n_jobs = multiprocessing.cpu_count()
+        n_jobs = max(multiprocessing.cpu_count(), 8)
 
     if batch_size is None:
         n_batches = n_jobs

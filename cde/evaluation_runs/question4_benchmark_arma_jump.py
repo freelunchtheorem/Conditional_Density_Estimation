@@ -9,7 +9,7 @@ import config
 
 from ml_logger import logger
 
-EXP_PREFIX = 'question4_benchmark_econ_density'
+EXP_PREFIX = 'question4_benchmark_arma_jump'
 RESULTS_FILE = 'results.pkl'
 
 N_MC_SAMPLES = int(2*10**5)
@@ -48,9 +48,7 @@ def question4():
   }
 
   simulators_params = {
-  'EconDensity': {'std': [1],
-                  'heteroscedastic': [True]
-                  },
+  'ArmaJump': {}
   }
 
   observations = 100 * np.logspace(1, 6, num=7, base=2.0, dtype=np.int32)
