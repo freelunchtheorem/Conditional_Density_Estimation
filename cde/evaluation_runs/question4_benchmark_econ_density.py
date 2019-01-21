@@ -61,7 +61,7 @@ def question4():
 if __name__ == '__main__':
   estimator_params, simulators_params, observations = question4()
   load = base_experiment.launch_experiment(estimator_params, simulators_params, observations, EXP_PREFIX,
-                                           n_mc_samples=N_MC_SAMPLES, tail_measures=True)
+                                           n_mc_samples=N_MC_SAMPLES, tail_measures=False)
 
   if load:
     logger.configure(config.DATA_DIR, EXP_PREFIX)
