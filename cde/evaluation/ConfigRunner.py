@@ -6,7 +6,7 @@ import traceback
 
 """ do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation
-from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel, SkewNormal
+from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel, SkewNormal, LinearGaussian
 from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
@@ -362,7 +362,6 @@ def _add_seeds_to_sim_params(n_seeds, sim_params):
     sim_params[sim_instance]['random_seed'] = seeds
   return sim_params
 
-
 def _create_configurations(params_dict):
   confs = {}
   for conf_instance, conf_dict in params_dict.items():
@@ -372,7 +371,6 @@ def _create_configurations(params_dict):
 
   return confs
 
-# TODO: replace SHA256 by faster, non-cryptographic hash function (e.g. pyhashxx)
 def _hash_task_dict(task_dict):
   assert {'simulator_name', 'simulator_config', 'estimator_name', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
   task_dict = copy.deepcopy(task_dict)
