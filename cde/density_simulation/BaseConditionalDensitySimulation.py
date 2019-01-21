@@ -266,3 +266,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
       return X
     else:
       return X, Y
+
+  def _compute_data_statistics(self):
+    _, Y = self.simulate(n_samples=10**4)
+    return np.mean(Y, axis=0), np.std(Y, axis=0)

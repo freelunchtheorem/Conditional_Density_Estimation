@@ -31,6 +31,9 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
 
+    # approximate data statistics
+    self.y_mean, self.y_std = self._compute_data_statistics()
+
     self.has_cdf = True
     self.has_pdf = True
     self.can_sample = True

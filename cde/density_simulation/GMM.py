@@ -62,6 +62,9 @@ class GaussianMixture(BaseConditionalDensitySimulation):
       self.gaussians_x.append(stats.multivariate_normal(mean=self.means_x[i,], cov=self.covariances_x[i]))
       self.gaussians_y.append(stats.multivariate_normal(mean=self.means_y[i,], cov=self.covariances_y[i]))
 
+    # approximate data statistics
+    self.y_mean, self.y_std = self._compute_data_statistics()
+
   def pdf(self, X, Y):
     """ conditional probability density function P(Y|X)
         See "Conditional Gaussian Mixture Models for Environmental Risk Mapping" [Gilardi, Bengio] for the math.

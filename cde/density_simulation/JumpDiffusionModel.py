@@ -47,6 +47,9 @@ class JumpDiffusionModel(BaseConditionalDensitySimulation):
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
 
+    # approximate data statistics
+    self.y_mean, self.y_std = self._compute_data_statistics()
+
     self.has_cdf = False
     self.has_pdf = False
     self.can_sample = True
