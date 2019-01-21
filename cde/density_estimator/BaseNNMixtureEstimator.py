@@ -32,7 +32,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       means[i, :] = weights[i].dot(locs[i])
     return means
 
-  def std(self, x_cond, n_samples=10 ** 6):
+  def std_(self, x_cond, n_samples=10 ** 6):
     """ Standard deviation of the fitted distribution conditioned on x_cond
 
     Args:
@@ -85,7 +85,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       Means E[y|x] and Covariances Cov[y|x]
     """
     mean = self.mean_(x_cond, n_samples=n_samples)
-    std = self.std(x_cond, n_samples=n_samples)
+    std = self.std_(x_cond, n_samples=n_samples)
     return mean, std
 
   def sample(self, X):

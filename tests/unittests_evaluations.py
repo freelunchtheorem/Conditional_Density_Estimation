@@ -236,7 +236,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=2, ndim_y=2, can_sample=False)
     est.fit(None, None)
 
-    std = est.std(x_cond=np.array([[0, 1]]))
+    std = est.std_(x_cond=np.array([[0, 1]]))
     self.assertAlmostEqual(std[0][0], np.sqrt(sigma[0][0]), places=2)
     self.assertAlmostEqual(std[0][1], np.sqrt(sigma[1][1]), places=2)
 
@@ -247,7 +247,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = GaussianDummy(mean=mu, cov=sigma, ndim_x=1, ndim_y=1, can_sample=False)
     est.fit(None, None)
 
-    std_est = est.std(x_cond=np.array([[0.0], [1.0]]))
+    std_est = est.std_(x_cond=np.array([[0.0], [1.0]]))
     self.assertAlmostEqual(std_est[0][0]**2, sigma[0][0], places=2)
     self.assertAlmostEqual(std_est[1][0]**2, sigma[0][0], places=2)
 

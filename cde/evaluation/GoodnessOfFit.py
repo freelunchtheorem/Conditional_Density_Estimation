@@ -107,8 +107,8 @@ class GoodnessOfFit:
     gof_result.n_mc_samples = [self.n_mc_samples]
 
     """ Divergence measures """
-    gof_result.hellinger_distance_, gof_result.kl_divergence_, gof_result.js_divergence_ \
-      = divergence_measures_pdf(self.probabilistic_model, self.estimator, x_cond=self.x_cond, n_samples=self.n_mc_samples)
+    gof_result.hellinger_distance_, gof_result.kl_divergence_, gof_result.js_divergence_ =\
+       divergence_measures_pdf(self.probabilistic_model, self.estimator, x_cond=self.x_cond, n_samples=self.n_mc_samples)
 
     gof_result.hellinger_distance = [np.mean(gof_result.hellinger_distance_)]
     gof_result.kl_divergence = [np.mean(gof_result.kl_divergence_)]
@@ -118,12 +118,12 @@ class GoodnessOfFit:
     """ create strings since pandas requires lists to be all of the same length if numerical """
     # estimator
     gof_result.mean_est_ = self.estimator.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.std_est_ = self.estimator.std(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+    gof_result.std_est_ = self.estimator.std_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
     gof_result.mean_est, gof_result.std_est = [str(gof_result.mean_est_.flatten())], [str(gof_result.std_est_.flatten())]
 
     # simulator
     gof_result.mean_sim_ = self.probabilistic_model.mean_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
-    gof_result.std_sim_ = self.probabilistic_model.std(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
+    gof_result.std_sim_ = self.probabilistic_model.std_(self.x_cond, n_samples=self.n_mc_samples) # original data preserved
     gof_result.mean_sim, gof_result.std_sim = [str(gof_result.mean_sim_ .flatten())], [str(gof_result.std_sim_.flatten())]
 
     # absolute mean, std difference

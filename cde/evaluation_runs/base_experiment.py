@@ -7,8 +7,8 @@ RESULTS_FILE = 'results.pkl'
 
 KEYS_OF_INTEREST = ['task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
                       'y_noise_std', 'ndim_x', 'ndim_y', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
-                      'cov_est', 'mean_sim', 'cov_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
-                      'x_cond', 'random_seed', "mean_sim", "cov_sim", "mean_abs_diff", "cov_abs_diff",
+                      'std_est', 'mean_sim', 'std_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
+                      'x_cond', 'random_seed', "mean_sim", "std_sim", "mean_abs_diff", "std_abs_diff",
                       "VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVaR_est", "CVaR_abs_diff",
                       "time_to_fit"
                       ]
@@ -27,7 +27,7 @@ def launch_experiment(conf_est, conf_sim, observations, exp_prefix):
 
 
   conf_runner = ConfigRunner(exp_prefix, conf_est, conf_sim, observations=observations, keys_of_interest=KEYS_OF_INTEREST,
-                             n_mc_samples=int(2e6), n_x_cond=10, n_seeds=5, use_gpu=args.use_gpu)
+                             n_mc_samples=int(1e5), n_x_cond=10, n_seeds=5, use_gpu=args.use_gpu)
 
   conf_runner.run_configurations(dump_models=True, multiprocessing=args.parallel, n_workers=args.n_workers)
 

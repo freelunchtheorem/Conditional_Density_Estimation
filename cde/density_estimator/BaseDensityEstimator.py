@@ -111,7 +111,7 @@ class BaseDensityEstimator(ConditionalDensity):
     else:
       return self._mean_mc(x_cond, n_samples=n_samples)
 
-  def std(self, x_cond, n_samples=10 ** 6):
+  def std_(self, x_cond, n_samples=10 ** 6):
     """ Standard deviation of the fitted distribution conditioned on x_cond
 
     Args:

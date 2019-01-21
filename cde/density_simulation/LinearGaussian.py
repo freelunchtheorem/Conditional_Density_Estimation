@@ -24,7 +24,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     self.random_seed = random_seed
 
     self.mu = mu
-    self.std = std
+    self.base_std = std
     self.mu_slope = mu_slope
     self.std_slope = std_slope
     self.ndim_x = ndim_x
@@ -182,11 +182,11 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     return np.expand_dims(self.mu + np.mean(self.mu_slope * X), axis=-1)
 
   def _std(self, X):
-    return np.expand_dims(self.std + np.mean(self.std_slope * X), axis=-1)
+    return np.expand_dims(self.base_std + np.mean(self.std_slope * X), axis=-1)
 
   def __str__(self):
-    return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
-                                                                                                 self.ndim_y)
+    return "\nProbabilistic model type: {}\n base_std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.base_std, self.ndim_x,
+                                                                                                self.ndim_y)
 
   def __unicode__(self):
     return self.__str__()
