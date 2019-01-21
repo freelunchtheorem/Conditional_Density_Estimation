@@ -20,19 +20,19 @@ class SkewNormal(BaseConditionalDensitySimulation):
     self.scale_intercept = 0.05
 
     self.skew_low = -4
-    self.skew_high = -0.1
+    self.skew_high = 0.0
 
     # x folows gaussian
     self.x_loc = 0
     self.x_scale = 0.5
     self.x_dist = stats.norm(loc=self.x_loc, scale=self.x_scale)
 
-    # approximate data statistics
-    self.y_mean, self.y_std = self._compute_data_statistics()
-
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
+
+    # approximate data statistics
+    self.y_mean, self.y_std = self._compute_data_statistics()
 
     self.has_cdf = True
     self.has_pdf = True

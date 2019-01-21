@@ -5,6 +5,10 @@ from cde.utils.center_point_select import *
 import scipy.stats as stats
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+
+
 import scipy
 from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
 
@@ -356,6 +360,49 @@ class ConditionalDensity(BaseEstimator):
 
     plt.legend([prefix + label for label in labels], loc='upper right')
 
+    plt.xlabel("x")
+    plt.ylabel("y")
+    if show:
+      plt.show()
+
+    if numpyfig:
+      fig.tight_layout(pad=0)
+      fig.canvas.draw()
+      numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+      numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+      return numpy_img
+
+    return fig
+
+  def plot3d(self, xlim=(-5, 5), ylim=(-8, 8), resolution=100, show=False, numpyfig=False):
+    """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
+
+    Args:
+      xlim: 2-tuple specifying the x axis limits
+      ylim: 2-tuple specifying the y axis limits
+      resolution: integer specifying the resolution of plot
+    """
+    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
+
+    if show == False and mpl.is_interactive():
+      plt.ioff()
+      mpl.use('Agg')
+
+    # prepare mesh
+    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
+    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
+    X, Y = np.meshgrid(linspace_x, linspace_y)
+    X, Y = X.flatten(), Y.flatten()
+
+    # calculate values of distribution
+    Z = self.pdf(X, Y)
+
+    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
+      [resolution, resolution])
+    fig = plt.figure(dpi=300)
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
+                           linewidth=100, antialiased=True)
     plt.xlabel("x")
     plt.ylabel("y")
     if show:

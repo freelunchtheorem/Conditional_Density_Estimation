@@ -1,10 +1,5 @@
 from sklearn.model_selection import GridSearchCV
 import warnings
-import matplotlib as mpl
-#mpl.use("PS") #handles X11 server detection (required to run on console)
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 from sklearn.model_selection import cross_validate
 
 from cde import ConditionalDensity
@@ -279,50 +274,6 @@ class BaseDensityEstimator(ConditionalDensity):
         param_dict[x] = None
 
     return param_dict
-
-  def plot3d(self, xlim=(-5, 5), ylim=(-8, 8), resolution=100, show=False, numpyfig=False):
-    """ Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each
-
-    Args:
-      xlim: 2-tuple specifying the x axis limits
-      ylim: 2-tuple specifying the y axis limits
-      resolution: integer specifying the resolution of plot
-    """
-    assert self.fitted, "model must be fitted to plot"
-    assert self.ndim_x + self.ndim_y == 2, "Can only plot two dimensional distributions"
-
-    if show == False and mpl.is_interactive():
-      plt.ioff()
-      mpl.use('Agg')
-
-    # prepare mesh
-    linspace_x = np.linspace(xlim[0], xlim[1], num=resolution)
-    linspace_y = np.linspace(ylim[0], ylim[1], num=resolution)
-    X, Y = np.meshgrid(linspace_x, linspace_y)
-    X, Y = X.flatten(), Y.flatten()
-
-    # calculate values of distribution
-    Z = self.pdf(X, Y)
-
-    X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
-      [resolution, resolution])
-    fig = plt.figure(dpi=300)
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
-                           linewidth=100, antialiased=True)
-    plt.xlabel("x")
-    plt.ylabel("y")
-    if show:
-      plt.show()
-
-    if numpyfig:
-      fig.tight_layout(pad=0)
-      fig.canvas.draw()
-      numpy_img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-      numpy_img = numpy_img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-      return numpy_img
-
-    return fig
 
   def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10 ** 6):
     """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)
