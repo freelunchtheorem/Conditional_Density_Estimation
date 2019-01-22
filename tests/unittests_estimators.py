@@ -60,6 +60,51 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
       p_true = norm.pdf(y, loc=-1, scale=1.5)
       self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+  def test_NKDE_loo_log_likelihood(self):
+    mu = 1
+    std = 1
+    X = np.random.normal(loc=mu, scale=std, size=(500, 2))
+    Y = np.random.normal(loc=mu, scale=std, size=(500, 2))
+
+    model = NeighborKernelDensityEstimation(epsilon=0.3)
+    model.fit(X, Y)
+    bw = np.array([0.5])
+    epsilon = 0.3
+    ll1 = model.loo_likelihood(bandwidth=bw, epsilon=epsilon)
+
+    bw = np.array([0.05])
+    epsilon = 0.1
+    ll2 = model.loo_likelihood(bandwidth=bw, epsilon=epsilon)
+    self.assertGreater(ll1, ll2)
+
+  def test_NKDE_param_selection(self):
+    mu = 5
+    std = 2
+    X = np.random.normal(loc=mu, scale=std, size=(500, 2))
+    Y = np.random.normal(loc=mu, scale=std, size=(500, 2))
+
+    model1 = NeighborKernelDensityEstimation('NKDE', 2, 2, epsilon=0.1, bandwidth=0.3, param_selection=None)
+    model1.fit(X, Y)
+    self.assertAlmostEqual(model1.epsilon, 0.1)
+
+    model2 = NeighborKernelDensityEstimation('NKDE', 2, 2, epsilon=0.1, bandwidth=0.3, param_selection='normal_reference')
+    model2.fit(X, Y)
+    self.assertAlmostEqual(model1.epsilon, 0.1)
+    self.assertGreaterEqual(np.mean(model2.bandwidth - model1.bandwidth), 0.0)
+
+    model3 = NeighborKernelDensityEstimation('NKDE', 2, 2, epsilon=0.1, bandwidth=0.3, param_selection='cv_ml')
+    model3.fit(X, Y)
+    self.assertNotEqual(model3.epsilon, 0.1)
+
+    X_test, Y_test = np.random.normal(loc=mu, scale=std, size=(2000, 2)), np.random.normal(loc=mu, scale=std, size=(2000, 2))
+    score1 = model1.score(X_test, Y_test)
+    score2 = model2.score(X_test, Y_test)
+    score3 = model3.score(X_test, Y_test)
+    print(score1, score2, score3)
+
+    self.assertGreaterEqual(score2, score1)
+    self.assertGreaterEqual(score3, score2 - 0.1)
+
   def test_LSCD_with_4d_gaussian(self):
     mu = 5
     std = 2.0

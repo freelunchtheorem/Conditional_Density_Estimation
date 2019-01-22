@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import normalize
 from scipy.stats import multivariate_normal
+import scipy.optimize as optimize
 import warnings
 
 from cde.utils.misc import norm_along_axis_1
@@ -8,8 +9,10 @@ from .BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.async_executor import execute_batch_async_pdf
 from scipy.special import logsumexp
 
-MULTIPROC_THRESHOLD = 10**4
-N_POINT_OUT_OF_RANGE = 5 # number for closest points to consider if all points are outside of the epsilon range
+_MULTIPROC_THRESHOLD = 10 ** 4
+_N_POINT_OUT_OF_RANGE = 5 # number for closest points to consider if all points are outside of the epsilon range
+_DAFAULT_EPSILON = 0.4
+_MAX_ITER_CV_ML_OPTIMIZER = 30
 
 class NeighborKernelDensityEstimation(BaseDensityEstimator):
   """
@@ -20,24 +23,33 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     ndim_x: (int) dimensionality of x variable
     ndim_y: (int) dimensionality of y variable
     epsilon: size of the (normalized) neighborhood region
-    bandwidth: bandwidth selection method or bandwidth parameter
+    bandwidth: (float of array_like) initial bandwidth parameter
+    param_selection: parameter selection method. Must be
+                     - None or False: use the provided epsilon and bandwidth
+                     - normal_reference: bandwidths are chosen according to normal reference distribution
+                     - cv_ml: select bandwidth and epsilon via maximum likelihood leave-one-out cross-validation
     weighted: if true - the neighborhood Gaussians are weighted according to their distance to the query point,
               if false - all neighborhood Gaussians are weighted equally
     random_seed: (optional) seed (int) of the random number generators used
 
   """
 
-  def __init__(self, name='NKDE', ndim_x=None, ndim_y=None, epsilon=0.4, bandwidth='normal_reference',
+  def __init__(self, name='NKDE', ndim_x=None, ndim_y=None, epsilon=0.4, bandwidth=0.6, param_selection='normal_reference',
                weighted=True, n_jobs=-1, random_seed=None):
     self.random_state = np.random.RandomState(seed=random_seed)
+
+    assert isinstance(bandwidth, (int, float)) or isinstance(bandwidth, np.ndarray)
+    assert isinstance(epsilon, (int, float))
+    assert param_selection in ['cv_ml', 'normal_reference', None, False]
 
     self.name = name
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
+
     self.epsilon = epsilon
-    self.weighted = weighted
-    assert bandwidth is 'normal_reference' or isinstance(bandwidth, (int, float)) or isinstance(bandwidth, np.ndarray)
     self.bandwidth = bandwidth
+    self.parameter_selection = param_selection
+    self.weighted = weighted
     self.n_jobs = n_jobs
 
     self.fitted = False
@@ -90,7 +102,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
 
     n_samples = X.shape[0]
-    if n_samples >= MULTIPROC_THRESHOLD:
+    if n_samples >= _MULTIPROC_THRESHOLD:
       return execute_batch_async_pdf(self._log_pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._log_pdf(X, Y)
@@ -98,7 +110,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
   def sample(self, X):
     raise NotImplementedError("Neighbor Kernel Density Estimation is a lazy learner and does not support sampling")
 
-  def loo_likelihood(self, bw, epsilon):
+  def loo_likelihood(self, bandwidth, epsilon):
     """
     calculates the negative leave-one-out log-likelihood of the training data
 
@@ -108,15 +120,15 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     """
     kernel_weights = self._kernel_weights(self.X_train, epsilon)
 
-    # remove kenel of query x and re-normalize weights
+    # remove kernel of query x and re-normalize weights
     np.fill_diagonal(kernel_weights, 0.0)
     kernel_weights_loo = kernel_weights / np.sum(kernel_weights, axis=-1, keepdims=True)
 
     conditional_log_densities = np.zeros(self.n_train_points)
     for i in range(self.n_train_points):
-      conditional_log_densities[i] = self._log_density(bw, kernel_weights_loo[i, :], self.Y_train[i, :])
+      conditional_log_densities[i] = self._log_density(bandwidth, kernel_weights_loo[i, :], self.Y_train[i, :])
 
-    return np.sum(conditional_log_densities)
+    return np.mean(conditional_log_densities)
 
   def _build_model(self, X, Y):
     # save mean and std of data for normalization
@@ -131,17 +143,18 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.X_train = self._normalize_x(X)
     self.Y_train = Y
 
-    # if desired determine bandwidth via normal reference
-    if self.bandwidth == 'normal_reference':
-      self.bandwidth = self._normal_reference()
-    elif isinstance(self.bandwidth, (int, float)):
-      self.bandwidth = self.y_std * self.bandwidth
-    elif isinstance(self.bandwidth, np.ndarray):
-      assert self.bandwidth.shape[0] == (self.ndim_y,)
-
     # prepare Gaussians centered in the Y points
     self.locs_array = np.vsplit(Y, self.n_train_points)
     self.log_kernel = multivariate_normal(mean=np.ones(self.ndim_y)).logpdf
+
+    # select / properly initialize bandwidth and epsilon
+    if isinstance(self.bandwidth, (int, float)):
+      self.bandwidth = self.y_std * self.bandwidth
+
+    if self.parameter_selection == 'normal_reference':
+      self.bandwidth = self._normal_reference()
+    elif self.parameter_selection == 'cv_ml':
+      self.bandwidth, self.epsilon = self._cv_ml()
 
   def _log_pdf(self, X, Y):
     """ 1. Determine weights of the Gaussians """
@@ -163,9 +176,9 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     num_neighbors = np.sum(np.logical_not(mask), axis=1)
 
     # Extra treatment for X that are outside of the epsilon range
-    if np.any(num_neighbors <= 0):
-      for i in np.nditer(np.where(num_neighbors <= 0)): # if all points outside of epsilon region - take closest points
-        closest_indices = np.argsort(X_dist[i, :])[:N_POINT_OUT_OF_RANGE]
+    if np.any(num_neighbors <= _N_POINT_OUT_OF_RANGE):
+      for i in np.nditer(np.where(num_neighbors <= _N_POINT_OUT_OF_RANGE)): # if all points outside of epsilon region - take closest points
+        closest_indices = np.argsort(X_dist[i, :])[:_N_POINT_OUT_OF_RANGE]
         for j in np.nditer(closest_indices):
           mask[i,j] = False
 
@@ -211,6 +224,11 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     }
     return param_grid
 
+  def _normalize_x(self, X):
+    X_normalized = (X - self.x_mean) / self.x_std
+    assert X_normalized.shape == X.shape
+    return X_normalized
+
   def _normal_reference(self):
     X_dist = norm_along_axis_1(self.X_train, self.X_train, norm_dim=True)
 
@@ -219,10 +237,19 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     return 1.06 * self.y_std * avg_num_neighbors ** (- 1. / (4 + self.ndim_y))
 
-  def _normalize_x(self, X):
-    X_normalized = (X - self.x_mean) / self.x_std
-    assert X_normalized.shape == X.shape
-    return X_normalized
+  def _cv_ml(self):
+    bw = self._normal_reference() # use normal_reference as initialization for bandwidth
+    x0 = np.concatenate([bw, np.array([self.epsilon])], axis=0)
+
+    def loologli(x):
+      assert x.shape[0] == self.ndim_y + 1
+      bw = x[:self.ndim_y]
+      eps = float(x[self.ndim_y])
+      return - self.loo_likelihood(bw, epsilon=eps)
+
+    x_opt = optimize.fmin(loologli, x0=x0, maxiter=_MAX_ITER_CV_ML_OPTIMIZER, disp=0)
+    bw_opt, eps_opt = x_opt[:self.ndim_y], x_opt[self.ndim_y]
+    return bw_opt, eps_opt
 
   def __str__(self):
     return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
