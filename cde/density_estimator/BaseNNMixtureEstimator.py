@@ -9,7 +9,9 @@ from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.map_inference import MAP_inference
-
+from cde.utils.async_executor import AsyncExecutor
+import itertools
+from multiprocessing import Manager
 
 class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
@@ -288,7 +290,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
     return P
 
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None):
+  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, n_jobs=-1):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
@@ -311,44 +313,62 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         random_state: (int) seed used by the random number generator for shuffeling the data
 
       """
-      original_params = self.get_configuration()
+      original_params = self.get_params()
 
       if param_grid is None:
         param_grid = self._param_grid()
 
-      param_iterator = sklearn.model_selection.GridSearchCV(self, param_grid, fit_params=None, cv=n_folds)._get_param_iterator()
-      cv_scores = []
+      param_list = list(sklearn.model_selection.GridSearchCV(self, param_grid, fit_params=None, cv=n_folds)._get_param_iterator())
+      train_spits, test_splits = list(zip(*list(sklearn.model_selection.KFold(n_splits=n_folds, shuffle=False, random_state=random_state).split(X))))
 
-      for p in param_iterator:
-        cv = sklearn.model_selection.KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+      param_ids, fold_ids = list(zip(*itertools.product(range(len(param_list)), range(n_folds))))
 
-        scores = []
-        for train_idx, test_idx in cv.split(X, Y):
-          X_train, Y_train = X[train_idx], Y[train_idx]
-          X_test, Y_test = X[test_idx], Y[test_idx]
+      # multiprocessing setup
+      manager = Manager()
+      score_dict = manager.dict()
 
-          model = self.__class__(self.name, self.ndim_x, self.ndim_y)
-          model.set_params(**original_params).set_params(**p)
+      def _fit_eval(param_idx, fold_idx):
+        train_indices, test_indices = train_spits[fold_idx], test_splits[fold_idx]
+        X_train, Y_train = X[train_indices], Y[train_indices]
+        X_test, Y_test = X[test_indices], Y[test_indices]
+
+        with tf.Session():
+          kwargs_dict = {**original_params, **param_list[param_idx]}
+          kwargs_dict['name'] = 'cv_%i_%i_' % (param_idx, fold_idx) + self.name
+          model = self.__class__(**kwargs_dict)
 
           model.fit(X_train, Y_train, verbose=False)
-          scores.append(model.score(X_test, Y_test))
+          score_dict[(param_idx, fold_idx)] = model.score(X_test, Y_test)
 
-        cv_score = np.mean(scores)
-        cv_scores.append(cv_score)
+      # run the prepared tasks in multiple processes
+      exec = AsyncExecutor(n_jobs=n_jobs)
+      exec.run(_fit_eval, param_ids, fold_ids)
 
-        print("Completed cross-validation of model with params: {}".format(p))
-        print("Avg. conditional log likelihood: {}".format(cv_score))
-
-      # Determine parameter set with best conditional likelihood
-      best_idx = np.argmax(cv_scores)
-      selected_params = param_iterator[best_idx]
+      # Select the best parameter settin
+      assert len(score_dict.keys()) == len(param_list) * len(train_spits)
+      scores_array = np.zeros((len(param_list), len(train_spits)))
+      for (i, j), score in score_dict.items():
+        scores_array[i, j] = score
+      avg_scores = np.mean(scores_array, axis=-1)
+      best_idx = np.argmax(avg_scores)
+      selected_params = param_list[best_idx]
 
       print("Completed grid search - Selected params: {}".format(selected_params))
       print("Refitting model with selected params")
 
       # Refit with best parameter set
       self.set_params(**selected_params)
-      self.fit(X,Y, verbose=False)
+      self.reset_fit()
+      self.fit(X, Y, verbose=False)
+
+  def reset_fit(self):
+    """
+    resets all tensorflow objects and
+    :return:
+    """
+    tf.reset_default_graph()
+    self._build_model()
+    self.fitted = False
 
   def _handle_input_dimensionality(self, X, Y=None, fitting=False):
     assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))

@@ -101,9 +101,6 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     # build tensorflow model
     self._build_model()
 
-    # initialize LayersPowered --> provides functions for serializing tf models
-    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
-
   def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
     """ Fits the conditional density model with provided data
 
@@ -239,6 +236,9 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
       else:
         self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) # shape = (n_scales, ndim_y)
         self.locs_unnormalized = self.locs
+
+    # initialize LayersPowered --> provides functions for serializing tf models
+    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
 
   def _param_grid(self):
     n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]

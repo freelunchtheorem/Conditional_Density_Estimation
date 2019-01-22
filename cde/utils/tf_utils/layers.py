@@ -1130,7 +1130,7 @@ class GRUStepLayer(MergeLayer):
         self._gru_layer = recurrent_layer
 
     def get_params(self, **tags):
-        return self._gru_layer.get_params(**tags)
+        return self._gru_layer._get_params(**tags)
 
     def get_output_shape_for(self, input_shapes):
         n_batch = input_shapes[0][0]
@@ -1562,7 +1562,7 @@ class LSTMStepLayer(MergeLayer):
         self._recurrent_layer = recurrent_layer
 
     def get_params(self, **tags):
-        return self._recurrent_layer.get_params(**tags)
+        return self._recurrent_layer._get_params(**tags)
 
     def get_output_shape_for(self, input_shapes):
         n_batch = input_shapes[0][0]

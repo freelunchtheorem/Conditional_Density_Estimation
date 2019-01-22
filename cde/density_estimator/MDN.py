@@ -74,9 +74,6 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     # build tensorflow model
     self._build_model()
 
-    # initialize LayersPowered --> provides functions for serializing tf models
-    LayersPowered.__init__(self, [self.softmax_layer_weights, self.softplus_layer_scales, self.reshape_layer_locs, self.layer_in_y])
-
   def fit(self, X, Y, random_seed=None, verbose=True, eval_set=None, **kwargs):
     """ Fits the conditional density model with provided data
 
@@ -201,6 +198,10 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       else:
         self.scales_unnormalized = self.scales
         self.locs_unnormalized = self.locs
+
+    # initialize LayersPowered --> provides functions for serializing tf models
+    LayersPowered.__init__(self, [self.softmax_layer_weights, self.softplus_layer_scales, self.reshape_layer_locs,
+                                  self.layer_in_y])
 
   def _param_grid(self):
     n_centers = [1, 2, 4, 8, 16, 32]

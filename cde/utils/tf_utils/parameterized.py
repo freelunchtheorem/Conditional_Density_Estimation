@@ -29,7 +29,7 @@ class Parameterized(object):
         """
         raise NotImplementedError
 
-    def get_params(self, **tags):
+    def _get_params(self, **tags):
         """
         Get the list of parameters, filtered by the provided tags.
         Some common tags include 'regularizable' and 'trainable'
@@ -42,7 +42,7 @@ class Parameterized(object):
     def get_param_dtypes(self, **tags):
         tag_tuple = tuple(sorted(list(tags.items()), key=lambda x: x[0]))
         if tag_tuple not in self._cached_param_dtypes:
-            params = self.get_params(**tags)
+            params = self._get_params(**tags)
             param_values = tf.get_default_session().run(params)
             self._cached_param_dtypes[tag_tuple] = [val.dtype for val in param_values]
         return self._cached_param_dtypes[tag_tuple]
@@ -50,13 +50,13 @@ class Parameterized(object):
     def get_param_shapes(self, **tags):
         tag_tuple = tuple(sorted(list(tags.items()), key=lambda x: x[0]))
         if tag_tuple not in self._cached_param_shapes:
-            params = self.get_params(**tags)
+            params = self._get_params(**tags)
             param_values = tf.get_default_session().run(params)
             self._cached_param_shapes[tag_tuple] = [val.shape for val in param_values]
         return self._cached_param_shapes[tag_tuple]
 
     def get_param_values(self, **tags):
-        params = self.get_params(**tags)
+        params = self._get_params(**tags)
         param_values = tf.get_default_session().run(params)
         return flatten_tensors(param_values)
 
@@ -67,7 +67,7 @@ class Parameterized(object):
         ops = []
         feed_dict = dict()
         for param, dtype, value in zip(
-                self.get_params(**tags),
+                self._get_params(**tags),
                 self.get_param_dtypes(**tags),
                 param_values):
             if param not in self._cached_assign_ops:
@@ -95,7 +95,7 @@ class Parameterized(object):
         Serializable.__setstate__(self, d)
         global load_params
         if load_params:
-            tf.get_default_session().run(tf.variables_initializer(self.get_params()))
+            tf.get_default_session().run(tf.variables_initializer(self._get_params()))
             self.set_param_values(d["params"])
 
 
