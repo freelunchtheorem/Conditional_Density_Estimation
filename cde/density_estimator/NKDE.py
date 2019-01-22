@@ -37,10 +37,8 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.epsilon = epsilon
     self.weighted = weighted
     assert bandwidth is 'normal_reference' or isinstance(bandwidth, (int, float)) or isinstance(bandwidth, np.ndarray)
-    self.bw = bandwidth
+    self.bandwidth = bandwidth
     self.n_jobs = n_jobs
-
-
 
     self.fitted = False
 
@@ -134,12 +132,12 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.Y_train = Y
 
     # if desired determine bandwidth via normal reference
-    if self.bw == 'normal_reference':
-      self.bw = self._normal_reference()
-    elif isinstance(self.bw, (int, float)):
-      self.bw = np.ones(self.ndim_y) * self.bw
-    elif isinstance(self.bw, np.ndarray):
-      assert self.bw.shape[0] == (self.ndim_y,)
+    if self.bandwidth == 'normal_reference':
+      self.bandwidth = self._normal_reference()
+    elif isinstance(self.bandwidth, (int, float)):
+      self.bandwidth = self.y_std * self.bandwidth
+    elif isinstance(self.bandwidth, np.ndarray):
+      assert self.bandwidth.shape[0] == (self.ndim_y,)
 
     # prepare Gaussians centered in the Y points
     self.locs_array = np.vsplit(Y, self.n_train_points)
@@ -155,7 +153,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     conditional_densities = np.zeros(n_samples)
     for i in range(n_samples):
-      conditional_densities[i] = self._log_density(self.bw, kernel_weights[i, :], Y[i, :])
+      conditional_densities[i] = self._log_density(self.bandwidth, kernel_weights[i, :], Y[i, :])
 
     return conditional_densities
 
@@ -203,8 +201,8 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
   def _param_grid(self):
     mean_std_y = np.mean(self.y_std)
     mean_std_x = np.mean(self.x_std)
-    bandwidths = np.asarray([0.01, 0.1, 0.5, 1, 2, 5]) * mean_std_y
-    epsilons = np.asarray([0.001, 0.1, 0.5, 1]) * mean_std_x
+    bandwidths = np.asarray([0.2, 0.5, 0.7]) * mean_std_y
+    epsilons = np.asarray([0.05, 0.2, 0.4]) * mean_std_x
 
     param_grid = {
       "bandwidth": bandwidths,
@@ -228,7 +226,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
   def __str__(self):
     return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
-                                                                                         self.bw)
+                                                                                         self.bandwidth)
 
   def __unicode__(self):
     return self.__str__()

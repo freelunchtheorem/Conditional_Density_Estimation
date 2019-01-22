@@ -250,13 +250,6 @@ class ConditionalDensity(BaseEstimator):
     init_bound = init_bound * np.ones(x_cond.shape[0])
     return find_root_by_bounding(cdf_fun, left=-init_bound, right=init_bound, eps=eps)
 
-  def _quantile_cdf_old(self, x_cond, alpha=0.01, eps=10 ** -8):
-    # Newton Method for finding the alpha quantile of a conditional distribution -> slower than bounding method
-    cdf_fun = lambda y: self.cdf(x_cond, y) - alpha
-    pdf_fun = lambda y: self.pdf(x_cond, y)
-
-    return find_root_newton_method(fun=cdf_fun, grad=pdf_fun, x0=np.zeros(x_cond.shape[0]), eps=eps)
-
   """ CONDITONAL VALUE-AT-RISK """
 
   def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 6):

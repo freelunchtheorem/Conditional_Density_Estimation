@@ -272,7 +272,7 @@ class TestRiskMeasures(unittest.TestCase):
     est = SimulationDummy(mean=mu1, cov=sigma1, ndim_x=1, ndim_y=1, has_cdf=False)
 
     alpha = 0.01
-    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+    VaR_est = est.value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=10**7)
     VaR_true = stats.norm.ppf(alpha, loc=0, scale=1)
     self.assertAlmostEqual(VaR_est[0], VaR_true, places=2)
     self.assertAlmostEqual(VaR_est[1], VaR_true, places=2)

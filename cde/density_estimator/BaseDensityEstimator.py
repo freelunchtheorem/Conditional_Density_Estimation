@@ -38,7 +38,7 @@ class BaseDensityEstimator(ConditionalDensity):
     self.set_params(**estimator.best_params_)
     self.fit(X, Y)
 
-  def fit_by_cv_gridsearch(self, X, Y, n_folds=5, param_grid=None, verbose=True):
+  def fit_by_cv_gridsearch(self, X, Y, n_folds=5, param_grid=None, verbose=True, n_jobs=-1):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
       the conditional log-likelihood is used for evaluation_runs.
@@ -65,7 +65,7 @@ class BaseDensityEstimator(ConditionalDensity):
     if param_grid is None:
       param_grid = self._param_grid()
 
-    cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=-1, refit=True, cv=n_folds, verbose=verbose)
+    cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=n_jobs, refit=True, cv=n_folds, verbose=verbose, )
     with warnings.catch_warnings():
       warnings.simplefilter("ignore")  # don't print division by zero warning
       cv_model.fit(X, Y)
@@ -132,18 +132,9 @@ class BaseDensityEstimator(ConditionalDensity):
       Y: numpy array of y targets - shape: (n_query_samples, n_dim_y)
 
     Returns:
-      negative log likelihood of data
+      average log likelihood of data
     """
-    if hasattr(self, 'log_pdf'):
-      return(np.mean(self.log_pdf(X, Y)))
-    else:
-      X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-
-      assert self.fitted, "model must be fitted to compute likelihood score"
-      with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # don't print division by zero warning
-        conditional_log_likelihoods = np.log(self.pdf(X, Y))
-      return np.mean(conditional_log_likelihoods)
+    return np.mean(self.log_pdf(X, Y))
 
   def mean_(self, x_cond, n_samples=10**6):
     """ Mean of the fitted distribution conditioned on x_cond

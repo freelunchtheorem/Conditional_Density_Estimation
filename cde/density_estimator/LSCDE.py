@@ -22,6 +22,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
                             [all, random, distance, k_means, agglomerative]
       bandwidth: scale / bandwith of the gaussian kernels
       n_centers: Number of kernels to use in the output
+      regularization: regularization / damping parameter for solving the least-squares problem
       keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)
       n_jobs: (int) number of jobs to launch for calls with large batch sizes
       random_seed: (optional) seed (int) of the random number generators used
@@ -39,7 +40,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
     self.keep_edges = keep_edges
-    self.bw = bandwidth
+    self.bandwidth = bandwidth
     self.regularization = regularization
     self.n_jobs = n_jobs
 
@@ -66,7 +67,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.centr_y = centroids[:, self.ndim_x:]
 
     #prepare gaussians for sampling
-    self.gaussians_y = [stats.multivariate_normal(mean=center, cov=self.bw) for center in self.centr_y]
+    self.gaussians_y = [stats.multivariate_normal(mean=center, cov=self.bandwidth) for center in self.centr_y]
 
     assert self.centr_x.shape == (n_locs, self.ndim_x) and self.centr_y.shape == (n_locs, self.ndim_y)
 
@@ -93,7 +94,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     b = norm_along_axis_1(self.centr_y, self.centr_y)
     eta = 2 * np.add.outer(a,a) + b
 
-    self.H = (np.sqrt(np.pi) * self.bw) ** self.ndim_y * np.exp(- eta / (5 * self.bw ** 2))
+    self.H = (np.sqrt(np.pi) * self.bandwidth) ** self.ndim_y * np.exp(- eta / (5 * self.bandwidth ** 2))
 
     self.alpha = np.linalg.solve(self.H + self.regularization * np.identity(self.n_centers), self.h)
     self.alpha[self.alpha < 0] = 0
@@ -120,38 +121,6 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._pdf(X, Y)
-
-  def predict_density(self, X, Y=None, resolution=50):
-    """ Computes conditional density p(y|x) over a predefined grid of y target values
-
-      Args:
-         X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resulution: integer specifying the resolution of evaluation_runs grid
-
-       Returns: tuple (P, Y)
-          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
-          - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
-            in case it was provided as argument
-    """
-    assert X.ndim == 1 or X.shape[1] == self.ndim_x
-    X = self._handle_input_dimensionality(X)
-    if Y is None:
-      y_min = np.min(self.centr_y, axis=0)
-      y_max = np.max(self.centr_y, axis=0)
-      linspaces = []
-      for d in range(self.ndim_y):
-        x = np.linspace(y_min[d] - 2.5 * self.bw, y_max[d] + 2.5 * self.bw, num=resolution)
-        linspaces.append(x)
-      Y = np.asmatrix(list(itertools.product(linspaces[0], linspaces[1])))
-    assert Y.ndim == 1 or Y.shape[1] == self.ndim_y
-
-    density = np.zeros(shape=[X.shape[0],Y.shape[0]])
-    for i in range(X.shape[0]):
-      x = np.tile(X[i,:], (Y.shape[0],1))
-      density[i, :] = self.pdf(x, Y)
-
-    return density, Y
 
   def sample(self, X):
     """ sample from the conditional mixture distributions - requires the model to be fitted
@@ -181,9 +150,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     X_normalized, Y_normalized = self._normalize(X, Y)
 
     p = np.dot(self.alpha.T, self._gaussian_kernel(X_normalized, Y_normalized).T)
-    p_normalization = (np.sqrt(2 * np.pi) * self.bw) ** self.ndim_y * np.dot(self.alpha.T,
-                                                                             self._gaussian_kernel(X_normalized).T)
-
+    p_normalization = (np.sqrt(2 * np.pi) * self.bandwidth) ** self.ndim_y * np.dot(self.alpha.T,
+                                                                                    self._gaussian_kernel(X_normalized).T)
     return np.squeeze(p / p_normalization / np.product(self.y_std))
 
   def _normalize(self, X, Y):
@@ -207,27 +175,27 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
         sq_d_y = np.sum(np.square(Y - self.centr_y[i, :]), axis=1)
 
-        phi[:, i] = np.exp(- sq_d_x / (2 * self.bw ** 2)) * np.exp(- sq_d_y / (2 * self.bw ** 2))
+        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2)) * np.exp(- sq_d_y / (2 * self.bandwidth ** 2))
     else:
       for i in range(phi.shape[1]):
         # suqared distances from center point i
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
-        phi[:, i] = np.exp(- sq_d_x / (2 * self.bw ** 2))
+        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2))
 
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
 
   def _param_grid(self):
-    params = np.asarray([0.01, 0.05, 0.2, 0.5, 0.7, 1, 2])
 
     param_grid = {
-      "bandwidth": params,
+      "bandwidth": np.asarray([0.1, 0.2, 0.5, 0.7, 1.0]),
+      "regularization": np.asarray([0.1, 0.5, 1.0, 4.0, 8.0])
     }
     return param_grid
 
   def __str__(self):
     return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n".format(
-      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bw, self.regularization)
+      self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bandwidth, self.regularization)
 
   def __unicode__(self):
     return self.__str__()
