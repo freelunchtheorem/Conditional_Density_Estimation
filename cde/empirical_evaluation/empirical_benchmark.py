@@ -10,7 +10,10 @@ import pandas as pd
 from collections import OrderedDict
 
 VALIDATION_PORTION = 0.2
-CROSS_VALIDATION = True
+
+
+FIT_BY_CV = False  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
+EVALUATE_BY_CV = True #
 
 ndim_x = 14
 ndim_y = 1
@@ -31,7 +34,7 @@ def train_valid_split(valid_portion):
   return df_train, df_valid
 
 
-def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, cv=False):
+def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_fc=False, fit_by_cv=False):
   """
   Fits the estimator and, based on a left out validation splot, computes the
   Root Mean Squared Error (RMSE) between realized and estimated mean and std
@@ -57,10 +60,13 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, cv=False)
   std_realized = np.sqrt(df_valid['RealizedVariation'][1:])
 
   # fit density model
-  if cv:
+  if eval_by_fc and not fit_by_cv:
+    estimator.eval_by_cv(X_train, Y_train, n_splits=5)
+  elif not eval_by_fc and fit_by_cv:
     estimator.fit_by_cv(X_train, Y_train, n_splits=5)
   else:
     estimator.fit(X_train, Y_train)
+
 
   # compute avg. log likelihood
   mean_logli = np.mean(estimator.log_pdf(X_valid, Y_valid))
@@ -83,13 +89,13 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, cv=False)
   return mean_logli, mu_rmse, std_rmse
 
 
-def empirical_benchmark(model_dict, moment_r2=True, cv=True):
+def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False):
   result_dict = {}
 
   for model_name, model in model_dict.items():
     print("Running likelihood fit and validation for %s"%model_name)
     t = time.time()
-    result_dict[model_name] = empirical_evaluation(model, VALIDATION_PORTION, moment_r2=moment_r2, cv=cv)
+    result_dict[model_name] = empirical_evaluation(model, VALIDATION_PORTION, moment_r2=moment_r2, eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv)
     print('%s results:' % model_name, result_dict[model_name])
     print('Duration of %s:'%model_name, time.time() - t)
 
@@ -100,7 +106,16 @@ def empirical_benchmark(model_dict, moment_r2=True, cv=True):
 
 if __name__ == '__main__':
 
-  print("Fitting estimators {}".format("(by CV)" if CROSS_VALIDATION else ""))
+  if EVALUATE_BY_CV:
+    print("Evaluating estimators by CV")
+  else:
+    print("Evaluating estimators without CV")
+
+  if FIT_BY_CV:
+    print("Fitting estimators by CV")
+  else:
+    print("")
+
 
   model_dict = {
     'NKDE': NeighborKernelDensityEstimation('NKDE', ndim_x, ndim_y),
@@ -115,11 +130,11 @@ if __name__ == '__main__':
                                 random_seed=22, x_noise_std=None, y_noise_std=None),
 
     'LSCDE': LSConditionalDensityEstimation('CKDE', ndim_x, ndim_y),
-    'CKDE': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y, bandwidth='normal_reference' if not CROSS_VALIDATION else 'cv_ml')
+    'CKDE': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y, bandwidth='normal_reference' if not FIT_BY_CV else 'cv_ml')
   }
   model_dict = OrderedDict(list(model_dict.items()))
 
 
-  result_df = empirical_benchmark(model_dict, moment_r2=True, cv=CROSS_VALIDATION)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)
   print(result_df.to_latex())
   print(result_df)

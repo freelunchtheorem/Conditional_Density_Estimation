@@ -18,7 +18,7 @@ class BaseDensityEstimator(ConditionalDensity):
     """
     raise NotImplementedError
 
-  def fit_by_cv(self, X, Y, n_splits=5, verbose=True):
+  def eval_by_cv(self, X, Y, n_splits=5, verbose=True):
     """ Fits the conditional density model with cross-validation by using the score function of the BaseDensityEstimator for
     scoring the various splits.
 
@@ -38,7 +38,7 @@ class BaseDensityEstimator(ConditionalDensity):
     self.set_params(**estimator.best_params_)
     self.fit(X, Y)
 
-  def fit_by_cv_gridsearch(self, X, Y, n_folds=5, param_grid=None, verbose=True, n_jobs=-1):
+  def fit_by_cv(self, X, Y, n_folds=5, param_grid=None, verbose=True, n_jobs=-1):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
       the conditional log-likelihood is used for evaluation_runs.
