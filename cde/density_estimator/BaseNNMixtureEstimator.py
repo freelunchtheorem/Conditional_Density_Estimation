@@ -290,7 +290,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
     return P
 
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, n_jobs=-1):
+  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, verbose=False, n_jobs=-1):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
@@ -342,7 +342,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
       # run the prepared tasks in multiple processes
       exec = AsyncExecutor(n_jobs=n_jobs)
-      exec.run(_fit_eval, param_ids, fold_ids)
+      exec.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
 
       # Select the best parameter settin
       assert len(score_dict.keys()) == len(param_list) * len(train_spits)
@@ -353,8 +353,9 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       best_idx = np.argmax(avg_scores)
       selected_params = param_list[best_idx]
 
-      print("Completed grid search - Selected params: {}".format(selected_params))
-      print("Refitting model with selected params")
+      if verbose:
+        print("Completed grid search - Selected params: {}".format(selected_params))
+        print("Refitting model with selected params")
 
       # Refit with best parameter set
       self.set_params(**selected_params)

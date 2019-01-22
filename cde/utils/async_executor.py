@@ -2,6 +2,7 @@ from multiprocessing import Process
 from multiprocessing import Manager
 import multiprocessing
 import numpy as np
+from progressbar.bar import ProgressBar
 
 class AsyncExecutor:
 
@@ -10,19 +11,28 @@ class AsyncExecutor:
         self._pool = []
         self._populate_pool()
 
-    def run(self, target, *args_iter):
+    def run(self, target, *args_iter, verbose=False):
         workers_idle = [False] * self.num_workers
         tasks = list(zip(*args_iter))
+        n_tasks = len(tasks)
+
+        if verbose:
+          pbar = ProgressBar(max_value=n_tasks)
 
         while not all(workers_idle):
             for i in range(self.num_workers):
                 if not self._pool[i].is_alive():
                     self._pool[i].terminate()
                     if len(tasks) > 0:
+                        if verbose:
+                          pbar.update(n_tasks-len(tasks))
+                          #print(n_tasks-len(tasks))
                         next_task = tasks.pop(0)
                         self._pool[i] = _start_process(target, next_task)
                     else:
                         workers_idle[i] = True
+        if verbose:
+            pbar.finish()
 
     def _populate_pool(self):
         self._pool = [_start_process(_dummy_fun) for _ in range(self.num_workers)]
