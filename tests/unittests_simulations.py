@@ -6,25 +6,12 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 print(sys.path)
-from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump
+from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump, LinearStudentT
 from cde.utils.integration import mc_integration_student_t
 from .Dummies import SimulationDummy
 
 
 class TestArmaJump(unittest.TestCase):
-
-  def test_cdf_sample_consistency(self):
-    arj = ArmaJump(random_seed=8787)
-
-    x_cond = np.asarray([0.1 for _ in range(200000)])
-    _, y_sample = arj.simulate_conditional(x_cond)
-
-
-    cdf_callable = lambda y: arj.cdf(x_cond, y)
-    _, p_val = stats.kstest(y_sample, cdf_callable)
-    print("P-Val Kolmogorov:", p_val)
-
-    self.assertGreaterEqual(p_val, 0.5)
 
   def test_skewness(self):
     np.random.seed(22)
@@ -46,12 +33,12 @@ class TestArmaJump(unittest.TestCase):
     np.random.seed(22)
     arj = ArmaJump(c=0.1, jump_prob=0.00)
     x_cond = np.asarray([0.1])
-    mean = arj.mean_(x_cond)
-    self.assertAlmostEqual(mean, 0.1)
+    mean = arj.mean_(x_cond).flatten()
+    self.assertAlmostEqual(float(mean), 0.1)
 
     arj = ArmaJump(c=0.1, jump_prob=0.1)
-    mean = arj.mean_(x_cond)
-    self.assertLessEqual(mean, 0.1)
+    mean = arj.mean_(x_cond).flatten()
+    self.assertLessEqual(float(mean), 0.1)
 
   def test_cov(self):
     np.random.seed(22)
@@ -126,6 +113,20 @@ class TestGaussianMixture(unittest.TestCase):
     self.assertEqual(hash1, hash2)
 
 class TestEconDensity(unittest.TestCase):
+
+  def test_cdf_sample_consistency(self):
+    from statsmodels.distributions.empirical_distribution import ECDF
+    model = EconDensity()
+
+    x_cond = np.asarray([0.1 for _ in range(200000)])
+    _, y_sample = model.simulate_conditional(x_cond)
+
+    emp_cdf = ECDF(y_sample.flatten())
+    cdf = lambda y: model.cdf(x_cond, y)
+
+    mean_cdf_diff = np.mean(np.abs(emp_cdf(y_sample).flatten() - cdf(y_sample).flatten()))
+    self.assertLessEqual(mean_cdf_diff, 0.01)
+
   def test_pdf(self):
     sim_model = EconDensity()
     x = np.ones(shape=(2000,1))
@@ -263,6 +264,62 @@ class TestJumpDiffusionModel(unittest.TestCase):
     x_cond = np.array([[jdm.V_0, jdm.L_0, jdm.Psi_0]])
     VaR = jdm.value_at_risk(x_cond)[0]
     self.assertLessEqual(VaR, -0.01)
+
+class TestLinearStudentT(unittest.TestCase):
+
+  def test_cdf_sample_consistency(self):
+    from statsmodels.distributions.empirical_distribution import ECDF
+    model = LinearStudentT()
+
+    x_cond = np.asarray([-1 for _ in range(200000)])
+    _, y_sample = model.simulate_conditional(x_cond)
+
+    emp_cdf = ECDF(y_sample.flatten())
+    cdf = lambda y: model.cdf(x_cond, y)
+
+    mean_cdf_diff = np.mean(np.abs(emp_cdf(y_sample).flatten() - cdf(y_sample)))
+    self.assertLessEqual(mean_cdf_diff, 0.01)
+
+  def test_pdf_mean_consistency(self):
+    model = LinearStudentT(ndim_x=10)
+    x_cond = np.ones((1, model.ndim_x))
+    mean = float(model.mean_(x_cond).flatten())
+    mean_pdf = float(model._mean_pdf(x_cond).flatten())
+    self.assertAlmostEqual(mean, mean_pdf, places=2)
+
+  def test_pdf_std_consistency(self):
+    model = LinearStudentT(ndim_x=10)
+    x_cond = np.ones((1, model.ndim_x))
+    std = float(model.std(x_cond).flatten())
+    std_pdf = float(model._std_pdf(x_cond).flatten())
+    self.assertAlmostEqual(std_pdf, std, places=2)
+
+    x_cond = - np.ones((1, model.ndim_x))
+    std = float(model.std(x_cond).flatten())
+    std_pdf = float(model._std_pdf(x_cond).flatten())
+    self.assertAlmostEqual(std_pdf, std, places=2)
+
+  def test_shapes(self):
+    model = LinearStudentT(ndim_x=5)
+    X, Y = model.simulate(200)
+    assert X.shape == (200, model.ndim_x)
+    assert Y.shape == (200, model.ndim_y)
+
+    X, Y = model.simulate_conditional(X)
+    assert Y.shape == (200, model.ndim_y)
+
+    p = model.pdf(X, Y)
+    assert p.shape == (200,)
+
+    p = model.cdf(X, Y)
+    assert p.shape == (200,)
+
+    mean = model.mean_(X)
+    assert mean.shape == (200, model.ndim_y)
+
+    std = model.std_(X)
+    assert std.shape == (200, model.ndim_y)
+
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):

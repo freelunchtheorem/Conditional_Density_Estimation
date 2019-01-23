@@ -10,7 +10,7 @@ from pypmc.mix_adapt.pmc import student_t_pmc
 from pypmc.tools import History as _History
 import scipy.integrate as integrate
 
-from cde.utils.distribution import _multidim_t_pdf, _multidim_t_rvs, _multivariate_t_rvs
+from cde.utils.distribution import multidim_t_pdf, multidim_t_rvs, multivariate_t_rvs
 
 N_SAMPLES_ADAPT = 10**3
 
@@ -62,8 +62,8 @@ def mc_integration_student_t(func, ndim, n_samples=10 ** 6, batch_size=None, loc
 
 
     for j in range(n_batches):
-        samples = _multidim_t_rvs(loc_proposal, scale_proposal, dof=dof, N=batch_size)
-        f = np.expand_dims(_multidim_t_pdf(samples, loc_proposal, scale_proposal, dof), axis=1)
+        samples = multidim_t_rvs(loc_proposal, scale_proposal, dof=dof, N=batch_size)
+        f = np.expand_dims(multidim_t_pdf(samples, loc_proposal, scale_proposal, dof), axis=1)
         r = func(samples)
         assert r.ndim == 2, 'func must return a 2-dimensional numpy array'
         f = np.tile(f, (1, r.shape[1]))  # bring f into same shape like r
@@ -146,7 +146,7 @@ class _Student_t_Mixture_Density_Sampler():
     self.comps = student_t_mixture.components
 
   def propose(self, N, rng=None, trace=False):
-    t_samples = np.stack([_multivariate_t_rvs(comp.mu, comp.sigma, dof=comp.dof, n=N, random_state=rng) for comp in self.comps], axis=1)
+    t_samples = np.stack([multivariate_t_rvs(comp.mu, comp.sigma, dof=comp.dof, n=N, random_state=rng) for comp in self.comps], axis=1)
 
     if rng is None:
         rng = np.random.RandomState()

@@ -76,7 +76,10 @@ class GoodnessOfFitResults:
       axarr = fig.axes
     else:
       fig, axarr = plt.subplots(*layout, figsize=figsize)
-      axarr = axarr.flatten()
+      if isinstance(axarr, np.ndarray):
+        axarr = axarr.flatten()
+      else:
+        axarr = np.array([axarr])
     for i, (ax_title, graph_dicts) in enumerate(plot_dicts.items()):
 
       n_curves_to_plot = len(graph_dicts)
