@@ -14,7 +14,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
     random_seed: seed for the random_number generator
   """
 
-  def __init__(self, c=0.01, arma_a1=0.2, std=0.005, jump_prob=0.05, random_seed=None):
+  def __init__(self, c=0.1, arma_a1=0.9, std=0.05, jump_prob=0.05, random_seed=None):
     self.base_std = std
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
@@ -26,8 +26,8 @@ class ArmaJump(BaseConditionalDensitySimulation):
     # Jump component
     assert jump_prob >= 0 and jump_prob <= 1
     self.jump_prob = jump_prob
-    self.jump_mean = -1*c
-    self.jump_std = 3*std
+    self.jump_mean = -3*c
+    self.jump_std = 2*std
 
     self.ndim_x = 1
     self.ndim_y = 1
