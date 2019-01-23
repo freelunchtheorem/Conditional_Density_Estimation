@@ -9,7 +9,7 @@ import config
 
 from ml_logger import logger
 
-EXP_PREFIX = 'question4_benchmark_arma_jump'
+EXP_PREFIX = 'question4_benchmark_student10dim'
 RESULTS_FILE = 'results.pkl'
 
 N_MC_SAMPLES = int(2*10**5)
@@ -23,7 +23,7 @@ def question4():
       },
     'NeighborKernelDensityEstimation':
       {
-          'param_selection': ['normal_reference', 'cv_ml']
+        'param_selection': ['normal_reference', 'cv_ml']
       },
     'LSConditionalDensityEstimation':
       {},
@@ -32,8 +32,9 @@ def question4():
         'n_centers': [20],
         'n_training_epochs': [1000],
         'hidden_sizes': [(16, 16)],
-        'x_noise_std': [0.1, 0.2],
+        'x_noise_std': [0.1],
         'y_noise_std': [0.1],
+        'random_seed': [22]
       },
     'KernelMixtureNetwork':
       {'center_sampling_method': ["k_means"],
@@ -43,13 +44,13 @@ def question4():
        'train_scales': [True],
        'hidden_sizes': [(16, 16)],
        'n_training_epochs': [1000],
-       'x_noise_std': [0.1, 0.2],
+       'x_noise_std': [0.1],
        'y_noise_std': [0.1],
        },
   }
 
   simulators_params = {
-  'ArmaJump': {}
+  'LinearStudentT': {'ndim_x': [10]}
   }
 
   observations = 100 * np.logspace(2, 6, num=8, base=2.0, dtype=np.int32)

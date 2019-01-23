@@ -22,13 +22,13 @@ def question4():
           'bandwidth': ['normal_reference', 'cv_ml'],
       },
     'NeighborKernelDensityEstimation':
-      {},
+      {'param_selection': ['normal_reference', 'cv_ml']},
     'LSConditionalDensityEstimation':
       {},
     'MixtureDensityNetwork':
       {
         'n_centers': [20],
-        'n_training_epochs': [2000],
+        'n_training_epochs': [1000],
         'hidden_sizes': [(16, 16)],
         'x_noise_std': [0.1],
         'y_noise_std': [0.1],
@@ -51,7 +51,7 @@ def question4():
   'SkewNormal': {}
   }
 
-  observations = 100 * np.logspace(1, 6, num=7, base=2.0, dtype=np.int32)
+  observations = 100 * np.logspace(2, 6, num=8, base=2.0, dtype=np.int32)
 
   return estimator_params, simulators_params, observations
 
