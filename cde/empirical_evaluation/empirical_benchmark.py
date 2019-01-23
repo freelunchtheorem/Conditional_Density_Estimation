@@ -3,22 +3,26 @@ from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensity
 from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 from sklearn.model_selection import cross_validate
+from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
 
+from cde.evaluation.ConfigRunner import _create_configurations
 import numpy as np
 import time
 import pandas as pd
+import copy
 from collections import OrderedDict
 
 VALIDATION_PORTION = 0.2
 
 
-FIT_BY_CV = False  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
-EVALUATE_BY_CV = True #
+FIT_BY_CV = True  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
+EVALUATE_BY_CV = False #
 
 ndim_x = 14
 ndim_y = 1
 
 N_SAMPLES = 10**5
+N_SEEDS = 5
 
 def train_valid_split(valid_portion):
   assert 0 < valid_portion < 1
@@ -61,9 +65,10 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 
   # fit density model
   if eval_by_fc and not fit_by_cv:
-    estimator.eval_by_cv(X_train, Y_train, n_splits=5)
+    raise NotImplementedError
+    # todo: implement eval by cv with n_folds different train_valid_splits, average over mean log, rmse_mu, rmse_std
   elif not eval_by_fc and fit_by_cv:
-    estimator.fit_by_cv(X_train, Y_train, n_splits=5)
+    estimator.fit_by_cv(X_train, Y_train, n_folds=5)
   else:
     estimator.fit(X_train, Y_train)
 
@@ -89,8 +94,11 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
   return mean_logli, mu_rmse, std_rmse
 
 
-def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False):
+def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False, seeds=None):
   result_dict = {}
+
+  #if seeds is not None and isinstance(seeds, list):
+
 
   for model_name, model in model_dict.items():
     print("Running likelihood fit and validation for %s"%model_name)
@@ -104,37 +112,67 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   return df
 
 
+def _add_seeds_to_est_params(n_seeds, configs):
+  """ copies the configurations n_seeds times and adds seed numbers"""
+  seeds = [20 + i for i in range(n_seeds)]
+  for est_key in configs.keys():
+    config_list = []
+    for cfg in configs[est_key]:
+      cfg_list = [copy.copy(cfg) for _ in range(n_seeds)]
+      for i, cfg_i in enumerate(cfg_list):
+        cfg_i['random_seed'] = seeds[i]
+
+      config_list.append(cfg_list)
+    configs[est_key] = config_list
+
+  return configs
+
+
+def create_seeds_model_dict(model_dict):
+  """ duplicate model configs and assign seeds """
+  configs = _create_configurations(model_dict)
+  configs_w_seeds = _add_seeds_to_est_params(N_SEEDS, configs)
+
+  """ initialize models """
+  for estimator_name, estimator_params in configs_w_seeds.items():
+    for seed_i, estimator_pack in enumerate(estimator_params):
+      for cfg_variation_j, estimator in enumerate(estimator_pack):
+        estimator["name"] = estimator_name + "_" + str(seed_i) + "_" + str(cfg_variation_j)
+        configs_w_seeds[estimator_name][seed_i][cfg_variation_j] = globals()[estimator_name](**estimator)
+
+  return configs_w_seeds
+
+
 if __name__ == '__main__':
 
-  if EVALUATE_BY_CV:
+  if EVALUATE_BY_CV and not FIT_BY_CV:
     print("Evaluating estimators by CV")
-  else:
-    print("Evaluating estimators without CV")
-
-  if FIT_BY_CV:
-    print("Fitting estimators by CV")
-  else:
-    print("")
-
+  elif EVALUATE_BY_CV and FIT_BY_CV:
+    print("Evaluating & fitting estimators by CV")
+  elif not EVALUATE_BY_CV and FIT_BY_CV:
+    print("Fitting estimators by CV for model selection")
 
   model_dict = {
-    'NKDE': NeighborKernelDensityEstimation('NKDE', ndim_x, ndim_y),
-    'MDN w/ noise smoothing': MixtureDensityNetwork('mdn1', ndim_x, ndim_y, n_centers=20, n_training_epochs=2000,
-                                random_seed=22, x_noise_std=0.2, y_noise_std=0.1),
-    'MDN w/o noise smoothing': MixtureDensityNetwork('mdn2', ndim_x, ndim_y, n_centers=20,
-                                n_training_epochs=2000, random_seed=22, x_noise_std=None, y_noise_std=None),
+    'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
+                                           'random_seed': [None]},
+    'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
+    'NeighborKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
 
-    'KMN w/ noise smoothing': KernelMixtureNetwork('kmn1', ndim_x, ndim_y, n_centers=50, n_training_epochs=2000, init_scales=[0.7, 0.3],
-                                random_seed=22, x_noise_std=0.2, y_noise_std=0.1),
-    'KMN w/o noise smoothing':  KernelMixtureNetwork('kmn2', ndim_x, ndim_y, n_centers=50, n_training_epochs=2000, init_scales=[0.7, 0.3],
-                                random_seed=22, x_noise_std=None, y_noise_std=None),
 
-    'LSCDE': LSConditionalDensityEstimation('CKDE', ndim_x, ndim_y),
-    'CKDE': ConditionalKernelDensityEstimation('ckde', ndim_x, ndim_y, bandwidth='normal_reference' if not FIT_BY_CV else 'cv_ml')
+    'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
+                              'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+                              },
+    'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
+                             'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+                             }
   }
+
+
+
+  model_dict = create_seeds_model_dict(model_dict)
+  #todo:
   model_dict = OrderedDict(list(model_dict.items()))
 
-
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV, seeds=[22, 23, 24, 25, 26])
   print(result_df.to_latex())
   print(result_df)
