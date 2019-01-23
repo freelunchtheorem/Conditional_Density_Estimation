@@ -1,10 +1,32 @@
 import numpy as np
-from scipy.special._ufuncs import gamma
+from scipy.special import gamma, gammaln, stdtr
 
 """ Multivariate Student-t pdf and rvs """
 
+def batched_univ_t_pdf(x, loc, scale, dof):
+  x, loc, scale, dof = np.squeeze(x), np.squeeze(loc), np.squeeze(scale), np.squeeze(dof)
+  assert x.shape == loc.shape == scale.shape == dof.shape and x.ndim == 1
+  x_norm = (x - loc) / scale
+  p = _standard_student_t_pdf(x_norm, dof)
+  return p / scale
 
-def _multidim_t_pdf(x, mu, sigma, dof):
+def batched_univ_t_cdf(x, loc, scale, dof):
+  x, loc, scale, dof = np.squeeze(x), np.squeeze(loc), np.squeeze(scale), np.squeeze(dof)
+  assert x.shape == loc.shape == scale.shape == dof.shape and x.ndim == 1
+  x_norm = (x - loc) / scale
+  p = stdtr(dof, x_norm)
+  return p
+
+def batched_univ_t_rvs(loc, scale, dof, random_state=None):
+  loc, scale, dof = np.squeeze(loc), np.squeeze(scale), np.squeeze(dof)
+  assert loc.shape == scale.shape == dof.shape and loc.ndim == 1
+  if random_state is None:
+    random_state = np.random.RandomState(None)
+  rvs = random_state.standard_t(df=dof)
+  return rvs * scale + loc
+
+
+def multidim_t_pdf(x, mu, sigma, dof):
     '''
     Multidimensional t-student density:
 
@@ -27,7 +49,7 @@ def _multidim_t_pdf(x, mu, sigma, dof):
     return p
 
 
-def _multidim_t_rvs(mu, sigma, dof, N=1, random_state=None):
+def multidim_t_rvs(mu, sigma, dof, N=1, random_state=None):
     ''' generates random variables of multidmensional (diagonal covariance matrix)
         t distribution
 
@@ -44,10 +66,9 @@ def _multidim_t_rvs(mu, sigma, dof, N=1, random_state=None):
             random variable
     '''
 
-    return _multivariate_t_rvs(mu, np.diag(sigma), dof, N, random_state=random_state)
+    return multivariate_t_rvs(mu, np.diag(sigma), dof, N, random_state=random_state)
 
-
-def _multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
+def multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
     ''' generates random variables of multivariate t distribution
         Parameters
 
@@ -73,3 +94,8 @@ def _multivariate_t_rvs(loc, cov, dof=np.inf, n=1, random_state=None):
         x = random_state.chisquare(dof, n) / dof
     z = random_state.multivariate_normal(np.zeros(d), cov, (n,))
     return loc + z / np.sqrt(x)[:, None]
+
+def _standard_student_t_pdf(x, dof):
+  p = np.exp(gammaln((dof + 1) / 2) - gammaln(dof / 2))
+  p /= np.sqrt(dof * np.pi) * (1 + (x ** 2) / dof) ** ((dof + 1) / 2)
+  return p

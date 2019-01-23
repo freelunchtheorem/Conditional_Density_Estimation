@@ -13,6 +13,7 @@ from cde.utils.center_point_select import sample_center_points
 from cde.utils.misc import norm_along_axis_1
 from cde.utils.integration import mc_integration_student_t, numeric_integation
 from cde.utils.async_executor import execute_batch_async_pdf
+from cde.utils.distribution import batched_univ_t_pdf, batched_univ_t_cdf, batched_univ_t_rvs
 
 
 class TestHelpers(unittest.TestCase):
@@ -82,20 +83,6 @@ class TestHelpers(unittest.TestCase):
     self.assertAlmostEqual(1, integral[0], places=2)
     self.assertAlmostEqual(2, integral[1], places=2)
 
-  def test_multidim_cauchy(self):
-    from scipy.stats import t
-    from cde.utils.distribution import _multidim_t_pdf
-    mu = 5 * np.ones(3)
-    sigma = 3 * np.ones(3)
-    dof = 6
-
-    x = np.random.uniform(-10, 10, size=(100, 3))
-    p1 = np.prod(t.pdf(x, loc=5, scale=3, df=dof), axis=-1)
-
-    p2 = _multidim_t_pdf(x, mu, sigma, dof)
-
-    self.assertLessEqual(np.sum((p1 - p2)**2), 0.0001)
-
 class TestExecAsyncBatch(unittest.TestCase):
 
   def test_batch_exec_1(self):
@@ -142,6 +129,63 @@ class TestIntegration(unittest.TestCase):
     result = numeric_integation(kurt, n_samples=10**5)
     print("kurt", result)
     self.assertAlmostEqual(float(result), 3, places=1)
+
+class TestDistribution(unittest.TestCase):
+
+  def test_multidim_student_t(self):
+    from scipy.stats import t
+    from cde.utils.distribution import multidim_t_pdf
+    mu = 5 * np.ones(3)
+    sigma = 3 * np.ones(3)
+    dof = 6
+
+    x = np.random.uniform(-10, 10, size=(100, 3))
+    p1 = np.prod(t.pdf(x, loc=5, scale=3, df=dof), axis=-1)
+
+    p2 = multidim_t_pdf(x, mu, sigma, dof)
+
+    self.assertLessEqual(np.sum((p1 - p2)**2), 0.0001)
+
+  def test_batched_student_t_pdf(self):
+    locs = np.random.normal(0, 3, size=10)
+    scales = np.random.uniform(0.1, 10, size=10)
+    dofs = np.random.uniform(3, 10, size=10)
+    x = np.random.normal(0, 3, size=10)
+
+    p = batched_univ_t_pdf(x, locs, scales, dofs)
+    assert p.shape == (10,)
+
+    for i in range(10):
+      p_check = stats.t.pdf(x[i], df=dofs[i], loc=locs[i], scale=scales[i])
+      self.assertAlmostEqual(p_check, p[i])
+
+  def test_batched_student_t_cdf(self):
+    locs = np.random.normal(0, 3, size=10)
+    scales = np.random.uniform(0.1, 10, size=10)
+    dofs = np.random.uniform(3, 10, size=10)
+    x = np.random.normal(0, 3, size=10)
+
+    p = batched_univ_t_cdf(x, locs, scales, dofs)
+    assert p.shape == (10,)
+
+    for i in range(10):
+      p_check = stats.t.cdf(x[i], df=dofs[i], loc=locs[i], scale=scales[i])
+      self.assertAlmostEqual(p_check, p[i])
+
+  def test_batched_student_t_rvs(self):
+    np.random.seed(123)
+    n = 5000
+    locs = np.ones(n) * 5
+    scales = np.ones(n) * 2
+    dofs = np.ones(n) * 4
+
+    rvs = batched_univ_t_rvs(locs, scales, dofs)
+
+    cdf_callable = lambda y: stats.t.cdf(y, df=4, loc=5, scale=2)
+    _, p_val = stats.kstest(rvs, cdf_callable)
+    print("P-Val Kolmogorov:", p_val)
+
+    self.assertGreaterEqual(p_val, 0.1)
 
 def suite():
   suite = unittest.TestSuite()
