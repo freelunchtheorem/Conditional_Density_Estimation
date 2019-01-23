@@ -299,6 +299,28 @@ class TestLinearStudentT(unittest.TestCase):
     std_pdf = float(model._std_pdf(x_cond).flatten())
     self.assertAlmostEqual(std_pdf, std, places=2)
 
+  def test_shapes(self):
+    model = LinearStudentT(ndim_x=5)
+    X, Y = model.simulate(200)
+    assert X.shape == (200, model.ndim_x)
+    assert Y.shape == (200, model.ndim_y)
+
+    X, Y = model.simulate_conditional(X)
+    assert Y.shape == (200, model.ndim_y)
+
+    p = model.pdf(X, Y)
+    assert p.shape == (200,)
+
+    p = model.cdf(X, Y)
+    assert p.shape == (200,)
+
+    mean = model.mean_(X)
+    assert mean.shape == (200, model.ndim_y)
+
+    std = model.std_(X)
+    assert std.shape == (200, model.ndim_y)
+
+
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):
     # prepare estimator dummy
