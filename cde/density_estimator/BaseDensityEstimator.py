@@ -29,13 +29,13 @@ class BaseDensityEstimator(ConditionalDensity):
       verbose: the verbosity level
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
-    cv_results = cross_validate(self, X=X, y=Y, cv=n_splits, return_estimator=False, verbose=verbose)
+    cv_results = cross_validate(self, X=X, y=Y, cv=n_splits, return_estimator=True, verbose=verbose)
 
     test_scores = cv_results['test_score']
-    test_scores_max_idx = np.argmax(test_scores)
+    test_scores_max_idx = np.nanargmax(test_scores)
     estimator = cv_results['estimator'][test_scores_max_idx]
 
-    self.set_params(**estimator.best_params_)
+    self.set_params(**estimator.get_params())
     self.fit(X, Y)
 
   def fit_by_cv(self, X, Y, n_folds=5, param_grid=None, verbose=True, n_jobs=-1):

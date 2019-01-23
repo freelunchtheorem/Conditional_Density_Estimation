@@ -26,7 +26,7 @@ def numeric_integation(func, n_samples=10 ** 5, bound_lower=-10**3, bound_upper=
        approximated integral - numpy array of shape (ndim_out,)
     """
   # proposal distribution
-  y_samples = np.linspace(bound_lower, bound_upper, num=n_samples)
+  y_samples = np.squeeze(np.linspace(bound_lower, bound_upper, num=n_samples))
   values = func(y_samples)
   integral = integrate.trapz(values, y_samples)
   return integral
