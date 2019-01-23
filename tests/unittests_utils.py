@@ -84,7 +84,7 @@ class TestHelpers(unittest.TestCase):
 
   def test_multidim_cauchy(self):
     from scipy.stats import t
-    from cde.utils.integration import _multidim_t_pdf
+    from cde.utils.distribution import _multidim_t_pdf
     mu = 5 * np.ones(3)
     sigma = 3 * np.ones(3)
     dof = 6
