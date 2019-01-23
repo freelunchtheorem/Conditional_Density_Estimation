@@ -11,6 +11,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
   y = N(y | mean = mu_slope*x+mu, scale = std_slope*x+std)
 
   Args:
+    ndim_x: number of dimensions of x
     mu: the intercept of the mean line
     mu_slope: the slope of the mean line
     std: the intercept of the std dev. line
@@ -18,7 +19,7 @@ class LinearGaussian(BaseConditionalDensitySimulation):
     random_seed: seed for the random_number generator
   """
 
-  def __init__(self, mu=0.0, ndim_x=1, mu_slope=0.005, std=0.01, std_slope=0.002, random_seed=None):
+  def __init__(self, ndim_x=1, mu=0.0, mu_slope=0.005, std=0.01, std_slope=0.002, random_seed=None):
     assert std > 0
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
