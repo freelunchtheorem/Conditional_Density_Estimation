@@ -106,9 +106,13 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
       mean_logli_list = []
       mu_rmse_list = []
       std_rmse_list = []
+
       for seed_i in configuration_list:
         mean_logli, mu_rmse, std_rmse = empirical_evaluation(seed_i, VALIDATION_PORTION, moment_r2=moment_r2, eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv)
-        mean_logli_list.append(mean_logli), mu_rmse_list.append(mu_rmse), std_rmse_list.append(std_rmse)
+
+        mean_logli_list.append(mean_logli)
+        mu_rmse_list.append(mu_rmse)
+        std_rmse_list.append(std_rmse)
 
       mean_logli = np.mean(mean_logli_list)
       mu_rmse = np.mean(mu_rmse_list)
@@ -141,7 +145,6 @@ def _add_seeds_to_est_params(n_seeds, configs):
 
 def create_seeds_model_dict(model_dict, verbose=False):
   """ duplicate model configs and assign seeds """
-
   configs = _create_configurations(model_dict)
   configs_w_seeds = _add_seeds_to_est_params(N_SEEDS, configs)
 
@@ -166,20 +169,18 @@ if __name__ == '__main__':
   elif not EVALUATE_BY_CV and FIT_BY_CV:
     print("Fitting estimators by CV for model selection")
 
-  """ cross product style """
   model_dict = {
-    # todo: remove 2
-    #'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
-    #                                       'random_seed': [None]},
-    #'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
+    'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
+                                           'random_seed': [None]},
+    'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
     'NeighborKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
 
-    #'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
-    #                          'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-    #                          },
-    #'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
-    #                        'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-    #                         }
+    'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
+                              'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+                              },
+    'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
+                            'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+                             }
   }
 
   model_dict = create_seeds_model_dict(model_dict, verbose=VERBOSE)
