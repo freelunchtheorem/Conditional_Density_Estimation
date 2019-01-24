@@ -14,10 +14,10 @@ install:
 
 # command to run tests
 script:
-  - python -m tests.unittests_estimators
-  - python -m tests.unittests_evaluations
-  - python -m tests.unittests_simulations
-  - python -m tests.unittests_utils
+  - python tests/unittests_estimators.py
+  - python tests/unittests_evaluations.py
+  - python tests/unittests_simulations.py
+  - python tests/unittests_utils.py
 
 notifications:
   email:

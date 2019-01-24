@@ -187,18 +187,14 @@ class TestDistribution(unittest.TestCase):
 
     self.assertGreaterEqual(p_val, 0.1)
 
-def suite():
-  suite = unittest.TestSuite()
-  suite.addTest(TestHelpers())
-  suite.addTest(TestExecAsyncBatch())
-  return suite
-
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   testmodules = [
-   'unittests_estimators.TestHelpers',
-   'unittests_estimators.TestExecAsyncBatch',
+    'unittests_estimators.TestHelpers',
+    'unittests_estimators.TestExecAsyncBatch',
+    'unittests_estimators.TestIntegration',
+    'unittests_estimators.TestDistribution',
    ]
   suite = unittest.TestSuite()
   for t in testmodules:

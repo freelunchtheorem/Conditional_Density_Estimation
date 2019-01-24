@@ -320,6 +320,14 @@ class TestLinearStudentT(unittest.TestCase):
     std = model.std_(X)
     assert std.shape == (200, model.ndim_y)
 
+  def test_serializarion(self):
+    import pickle, dill
+    model = LinearStudentT(ndim_x=5, mu=5, random_seed=22)
+    X, Y = model.simulate(200)
+
+    pkl_str = dill.dumps(model)
+    model_loaded = dill.loads(pkl_str)
+
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):

@@ -631,20 +631,15 @@ class TestLogProbability(unittest.TestCase):
 #     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
-def suite():
-  suite = unittest.TestSuite()
-  suite.addTest(TestConditionalDensityEstimators_2d_gaussian())
-  #suite.addTest(TestConditionalDensityEstimators_fit_by_crossval())
-  return suite
 
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   testmodules = [
-   'unittests_estimators.TestRiskMeasures',
    'unittests_estimators.TestConditionalDensityEstimators_2d_gaussian',
    'unittests_estimators.TestRegularization',
-   #'unittests_estimators.TestConditionalDensityEstimators_fit_by_crossval'
+   'unittests_estimators.TestSerializationDensityEstimators',
+    'unittests_estimators.TestLogProbability'
    ]
   suite = unittest.TestSuite()
   for t in testmodules:
