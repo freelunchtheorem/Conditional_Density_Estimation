@@ -37,6 +37,7 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.n_jobs = n_jobs
+    self.random_seed = random_seed
 
     assert bandwidth in ['normal_reference', 'cv_ml', 'cv_ls']
     self.bandwidth = bandwidth
@@ -109,20 +110,16 @@ class ConditionalKernelDensityEstimation(BaseDensityEstimator):
 
   def _param_grid(self):
     mean_std_y = np.mean(self.y_std)
-    mean_std_x = np.mean(self.x_std)
     bandwidths = np.asarray([0.01, 0.1, 0.5, 1, 2, 5]) * mean_std_y
-    epsilons = np.asarray([0.001, 0.1, 0.5, 1]) * mean_std_x
 
     param_grid = {
-      "bandwidth": bandwidths,
-      "epsilon": epsilons,
-      "weighted": [True, False]
+      "bandwidth": bandwidths
     }
     return param_grid
 
 
   def __str__(self):
-    return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
+    return "\n Estimator type: {}\n ndim_x: {}\n ndim_y: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.ndim_x, self.ndim_y,
                                                                                              self.bandwidth)
 
   def __unicode__(self):

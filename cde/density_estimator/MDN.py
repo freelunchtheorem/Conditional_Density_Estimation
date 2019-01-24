@@ -45,6 +45,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
 
+    self.random_seed = random_seed
     self.random_state = np.random.RandomState(seed=random_seed)
     tf.set_random_seed(random_seed)
 
@@ -219,3 +220,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     assert locs.shape[2] == scales.shape[2] == self.ndim_y
     assert locs.ndim == 3 and scales.ndim == 3 and weights.ndim == 2
     return weights, locs, scales
+
+  def __str__(self):
+    return "\nEstimator type: {}\n n_centers: {}\n entropy_reg_coef: {}\n data_normalization: {} \n weight_normalization: {}\n" \
+             "n_training_epochs: {}\n x_noise_std: {}\n y_noise_std: {}\n ".format(self.__class__.__name__, self.n_centers, self.entropy_reg_coef,
+                                                  self.data_normalization, self.weight_normalization, self.n_training_epochs, self.x_noise_std, self.y_noise_std)

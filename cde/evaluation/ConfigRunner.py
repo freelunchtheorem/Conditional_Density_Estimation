@@ -365,14 +365,15 @@ def _add_seeds_to_sim_est_params(n_seeds, sim_params, est_params):
     est_params[est_instance]['random_seed'] = seeds
   return sim_params, est_params
 
+
 def _create_configurations(params_dict):
   confs = {}
   for conf_instance, conf_dict in params_dict.items():
     conf_product = list(itertools.product(*list(conf_dict.values())))
     conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
     confs[conf_instance] = conf_product_dicts
-
   return confs
+
 
 def _hash_task_dict(task_dict):
   assert {'simulator_name', 'simulator_config', 'estimator_name', 'estimator_config', 'x_cond', 'n_mc_samples', 'n_obs'} < set(task_dict.keys())
@@ -431,6 +432,7 @@ def load_dumped_estimators(gof_result, task_id=None):
       gof_result.single_results_dict[key] = single_result
 
   return gof_result
+
 
 def load_dumped_estimator(dict_entry):
   assert len(dict_entry) == 1
