@@ -60,6 +60,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
 
+    self.random_seed = random_seed
     self.random_state = np.random.RandomState(seed=random_seed)
     tf.set_random_seed(random_seed)
 

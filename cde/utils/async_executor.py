@@ -76,8 +76,8 @@ def execute_batch_async_pdf(pdf_fun, X, Y, n_jobs=-1, batch_size=None):
         result_dict[batch_idx] = p
 
     # compute pdf for batches asynchronously
-    exec = AsyncExecutor(n_jobs=n_jobs)
-    exec.run(run_pdf_async, X_batches, Y_batches, indices)
+    executer = AsyncExecutor(n_jobs=n_jobs)
+    executer.run(run_pdf_async, X_batches, Y_batches, indices)
 
     # concatenate results
     p_final = np.concatenate([result_dict[i] for i in indices], axis=0)

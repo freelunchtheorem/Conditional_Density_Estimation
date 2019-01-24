@@ -24,6 +24,8 @@ ndim_y = 1
 N_SAMPLES = 10**5
 N_SEEDS = 5
 
+VERBOSE = True
+
 def train_valid_split(valid_portion):
   assert 0 < valid_portion < 1
   df = make_overall_eurostoxx_df()
@@ -94,18 +96,27 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
   return mean_logli, mu_rmse, std_rmse
 
 
-def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False, seeds=None):
+def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False):
   result_dict = {}
 
-  #if seeds is not None and isinstance(seeds, list):
-
-
   for model_name, model in model_dict.items():
-    print("Running likelihood fit and validation for %s"%model_name)
-    t = time.time()
-    result_dict[model_name] = empirical_evaluation(model, VALIDATION_PORTION, moment_r2=moment_r2, eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv)
-    print('%s results:' % model_name, result_dict[model_name])
-    print('Duration of %s:'%model_name, time.time() - t)
+    print("Running likelihood fit and validation for %s" % model_name)
+    for configuration_list in model:
+      t = time.time()
+      mean_logli_list = []
+      mu_rmse_list = []
+      std_rmse_list = []
+      for seed_i in configuration_list:
+        mean_logli, mu_rmse, std_rmse = empirical_evaluation(seed_i, VALIDATION_PORTION, moment_r2=moment_r2, eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv)
+        mean_logli_list.append(mean_logli), mu_rmse_list.append(mu_rmse), std_rmse_list.append(std_rmse)
+
+      mean_logli = np.mean(mean_logli_list)
+      mu_rmse = np.mean(mu_rmse_list)
+      std_rmse = np.mean(std_rmse_list)
+
+      result_dict[str(configuration_list[0])] = mean_logli, mu_rmse, std_rmse
+      print('%s results:' % model_name, result_dict[model_name])
+      print('Duration of %s:' % model_name, time.time() - t)
 
   df = pd.DataFrame.from_dict(result_dict, 'index')
   df.columns = ['log_likelihood', 'rmse_mean', 'rmse_std']
@@ -128,8 +139,9 @@ def _add_seeds_to_est_params(n_seeds, configs):
   return configs
 
 
-def create_seeds_model_dict(model_dict):
+def create_seeds_model_dict(model_dict, verbose=False):
   """ duplicate model configs and assign seeds """
+
   configs = _create_configurations(model_dict)
   configs_w_seeds = _add_seeds_to_est_params(N_SEEDS, configs)
 
@@ -137,7 +149,9 @@ def create_seeds_model_dict(model_dict):
   for estimator_name, estimator_params in configs_w_seeds.items():
     for seed_i, estimator_pack in enumerate(estimator_params):
       for cfg_variation_j, estimator in enumerate(estimator_pack):
-        estimator["name"] = estimator_name + "_" + str(seed_i) + "_" + str(cfg_variation_j)
+        est_name = estimator_name + "_" + str(seed_i) + "_" + str(cfg_variation_j)
+        if verbose: print("instantiating ", est_name)
+        estimator["name"] = est_name
         configs_w_seeds[estimator_name][seed_i][cfg_variation_j] = globals()[estimator_name](**estimator)
 
   return configs_w_seeds
@@ -152,27 +166,25 @@ if __name__ == '__main__':
   elif not EVALUATE_BY_CV and FIT_BY_CV:
     print("Fitting estimators by CV for model selection")
 
+  """ cross product style """
   model_dict = {
-    'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
-                                           'random_seed': [None]},
-    'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
+    # todo: remove 2
+    #'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
+    #                                       'random_seed': [None]},
+    #'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
     'NeighborKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
 
-
-    'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
-                              'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-                              },
-    'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
-                             'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-                             }
+    #'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
+    #                          'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+    #                          },
+    #'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
+    #                        'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
+    #                         }
   }
 
-
-
-  model_dict = create_seeds_model_dict(model_dict)
-  #todo:
+  model_dict = create_seeds_model_dict(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV, seeds=[22, 23, 24, 25, 26])
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)
   print(result_df.to_latex())
   print(result_df)

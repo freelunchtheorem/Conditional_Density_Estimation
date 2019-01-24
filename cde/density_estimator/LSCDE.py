@@ -36,6 +36,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
     self.random_state = np.random.RandomState(seed=random_seed)
+    self.random_seed = random_seed
 
     self.center_sampling_method = center_sampling_method
     self.n_centers = n_centers
@@ -186,7 +187,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return phi
 
   def _param_grid(self):
-
+    # todo: add n_centers?
     param_grid = {
       "bandwidth": np.asarray([0.1, 0.2, 0.5, 0.7, 1.0]),
       "regularization": np.asarray([0.1, 0.5, 1.0, 4.0, 8.0])
@@ -194,7 +195,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return param_grid
 
   def __str__(self):
-    return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n".format(
+    return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n bandwidth: {}\n regularization: {}\n ".format(
       self.__class__.__name__, self.center_sampling_method, self.n_centers, self.keep_edges, self.bandwidth, self.regularization)
 
   def __unicode__(self):

@@ -46,6 +46,8 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     self.ndim_x = ndim_x
     self.ndim_y = ndim_y
 
+    self.random_seed = random_seed
+
     self.epsilon = epsilon
     self.bandwidth = bandwidth
     self.parameter_selection = param_selection
@@ -252,7 +254,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     return bw_opt, eps_opt
 
   def __str__(self):
-    return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n".format(self.__class__.__name__, self.epsilon, self.weighted,
+    return "\nEstimator type: {}\n  epsilon: {}\n weighted: {}\n bandwidth: {}\n ".format(self.__class__.__name__, self.epsilon, self.weighted,
                                                                                          self.bandwidth)
 
   def __unicode__(self):
