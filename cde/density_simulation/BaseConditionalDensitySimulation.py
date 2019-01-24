@@ -172,6 +172,42 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError()
 
+  def skewness(self, x_cond, n_samples=10 ** 6):
+    """ Skewness of the fitted distribution conditioned on x_cond
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+       Returns:
+         Skewness Skew[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+       """
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
+    if self.has_pdf:
+      return self._skewness_pdf(x_cond, n_samples=n_samples)
+    elif self.can_sample:
+      return self._skewness_pdf(x_cond, n_samples=n_samples)
+    else:
+      raise NotImplementedError()
+
+  def kurtosis(self, x_cond, n_samples=10 ** 6):
+    """ Kurtosis of the fitted distribution conditioned on x_cond
+
+       Args:
+         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
+
+       Returns:
+         Kurtosis Kurt[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+       """
+    x_cond = self._handle_input_dimensionality(x_cond)
+    assert x_cond.ndim == 2
+    if self.has_pdf:
+      return self._kurtosis_pdf(x_cond, n_samples=n_samples)
+    elif self.can_sample:
+      return self._kurtosis_mc(x_cond, n_samples=n_samples)
+    else:
+      raise NotImplementedError()
+
   def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
