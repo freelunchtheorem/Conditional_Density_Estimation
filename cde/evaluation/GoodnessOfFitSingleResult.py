@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from numbers import Number
 
 class GoodnessOfFitSingleResult:
   def __init__(self, x_cond, estimator_params, probabilistic_model_params):
@@ -37,14 +38,16 @@ class GoodnessOfFitSingleResult:
       report_dict = OrderedDict()
       for key in keys_of_interest:
         if key in full_dict:
-          report_dict[key] = full_dict[key]
+          value = full_dict[key]
         elif key in self.estimator_params:
-          report_dict[key] = self.estimator_params[key]
+          value = self.estimator_params[key]
         elif key in self.probabilistic_model_params:
-          report_dict[key] = self.probabilistic_model_params[key]
+          value = self.probabilistic_model_params[key]
         else:
-          report_dict[key] = None
-
+           value = None
+        if isinstance(value, list) and len(value) > 1:
+          value = str(value)
+        report_dict[key] = value
       return report_dict
     else:
       return full_dict

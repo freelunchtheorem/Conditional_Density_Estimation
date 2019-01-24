@@ -23,8 +23,9 @@ class GoodnessOfFitResults:
 
   def generate_results_dataframe(self, keys_of_interest):
     dfs = []
-    for single_result in self.single_results_dict.values():
-      dfs.append(pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest)))
+    for i, single_result in enumerate(self.single_results_dict.values()):
+      df = pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest))
+      dfs.append(df)
 
     self.results_df = pd.concat(dfs, axis=0)
     return self.results_df
@@ -94,8 +95,8 @@ class GoodnessOfFitResults:
 
         sub_df = self.results_df.loc[(self.results_df[list(graph_dict)] == pd.Series(graph_dict)).all(axis=1)]
 
-        metric_values_mean = sub_df.groupby(by='n_observations').mean()[metric]
-        metric_values_std = sub_df.groupby(by='n_observations').std()[metric]
+        metric_values_mean = sub_df.groupby(by='n_observations')[metric].mean()
+        metric_values_std = sub_df.groupby(by='n_observations')[metric].std()
         n_obs = metric_values_mean.index
 
 
