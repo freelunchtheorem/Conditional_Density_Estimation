@@ -17,16 +17,16 @@ N_MC_SAMPLES = int(2*10**5)
 
 def question4():
   estimator_params = {
-    'ConditionalKernelDensityEstimation':
+        'ConditionalKernelDensityEstimation':
       {
-          'bandwidth': ['normal_reference', 'cv_ml'],
+        'bandwidth': ['normal_reference', 'cv_ml'],
       },
     'NeighborKernelDensityEstimation':
       {
-          'param_selection': ['normal_reference', 'cv_ml']
+        'param_selection': ['normal_reference', 'cv_ml']
       },
     'LSConditionalDensityEstimation':
-      {},
+      {'random_seed': [22]},
     'MixtureDensityNetwork':
       {
         'n_centers': [20],
@@ -34,6 +34,7 @@ def question4():
         'hidden_sizes': [(16, 16)],
         'x_noise_std': [0.1, 0.2],
         'y_noise_std': [0.1],
+        'random_seed': [22]
       },
     'KernelMixtureNetwork':
       {'center_sampling_method': ["k_means"],

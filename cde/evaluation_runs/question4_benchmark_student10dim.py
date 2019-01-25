@@ -19,20 +19,20 @@ def question4():
   estimator_params = {
     'ConditionalKernelDensityEstimation':
       {
-          'bandwidth': ['normal_reference', 'cv_ml'],
+        'bandwidth': ['normal_reference', 'cv_ml'],
       },
     'NeighborKernelDensityEstimation':
       {
         'param_selection': ['normal_reference', 'cv_ml']
       },
     'LSConditionalDensityEstimation':
-      {},
+      {'random_seed': [22]},
     'MixtureDensityNetwork':
       {
         'n_centers': [20],
         'n_training_epochs': [1000],
         'hidden_sizes': [(16, 16)],
-        'x_noise_std': [0.1],
+        'x_noise_std': [0.1, 0.2],
         'y_noise_std': [0.1],
         'random_seed': [22]
       },
@@ -44,7 +44,7 @@ def question4():
        'train_scales': [True],
        'hidden_sizes': [(16, 16)],
        'n_training_epochs': [1000],
-       'x_noise_std': [0.1],
+       'x_noise_std': [0.1, 0.2],
        'y_noise_std': [0.1],
        },
   }

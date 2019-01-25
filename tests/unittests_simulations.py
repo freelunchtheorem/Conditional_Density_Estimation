@@ -328,6 +328,18 @@ class TestLinearStudentT(unittest.TestCase):
     pkl_str = dill.dumps(model)
     model_loaded = dill.loads(pkl_str)
 
+  def test_mean_std(self):
+    model = LinearStudentT(ndim_x=5)
+    x_cond = np.ones((2, 5))
+    mean1 = model.mean_(x_cond)[0][0]
+    mean2 = model._mean_pdf(x_cond)[0][0]
+
+    self.assertAlmostEqual(mean1, mean2, places=2)
+
+    std1 = model.std_(x_cond)[0][0]
+    std2 = model._std_pdf(x_cond)[0][0]
+
+    self.assertAlmostEqual(std1, std2, places=2)
 
 class TestRiskMeasures(unittest.TestCase):
   def test_value_at_risk_mc(self):

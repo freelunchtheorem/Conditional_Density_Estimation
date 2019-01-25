@@ -69,7 +69,7 @@ class ConfigRunner():
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
-    sim_params, est_params = _add_seeds_to_sim_est_params(n_seeds, sim_params, est_params)
+    sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
     self.observations = observations
     self.n_mc_samples = n_mc_samples
@@ -357,13 +357,11 @@ class ConfigRunner():
 
 
 
-def _add_seeds_to_sim_est_params(n_seeds, sim_params, est_params):
+def _add_seeds_to_sim_params(n_seeds, sim_params):
   seeds = [20 + i for i in range(n_seeds)]
   for sim_instance in sim_params.keys():
     sim_params[sim_instance]['random_seed'] = seeds
-  for est_instance in est_params.keys():
-    est_params[est_instance]['random_seed'] = seeds
-  return sim_params, est_params
+  return sim_params
 
 
 def _create_configurations(params_dict):
