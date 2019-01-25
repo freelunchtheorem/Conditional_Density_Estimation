@@ -29,7 +29,7 @@ class LinearStudentT(BaseConditionalDensitySimulation):
     self.random_seed = random_seed
 
     self.mu = mu
-    self.base_std = std
+    self.std = std
     self.mu_slope = mu_slope
     self.std_slope = std_slope
     self.dof_low = dof_low
@@ -116,19 +116,20 @@ class LinearStudentT(BaseConditionalDensitySimulation):
     x_cond = self._handle_input_dimensionality(x_cond)
     return self._loc(x_cond)
 
-  def std(self, x_cond, n_samples=None):
+  def std_(self, x_cond, n_samples=None):
     """ Standard deviation of the distribution conditioned on x_cond
 
       Args:
         x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
 
       Returns:
-        Conditional standard deviations Std[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
+        Conditional standard deviations Std[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)
     """
     assert x_cond.ndim == 2 and x_cond.shape[1] == self.ndim_x
+    x_cond = self._handle_input_dimensionality(x_cond)
     loc, scale, dof = self._loc_scale_dof_mapping(x_cond)
-    std = scale * np.sqrt(dof / (dof - 2))
-    return std.reshape((std.shape[0], self.ndim_y))
+    std = scale * np.sqrt(dof / (dof - 2)).reshape((x_cond.shape[0], self.ndim_y))
+    return std
 
   def _loc_scale_dof_mapping(self, X):
     return self._loc(X), self._scale(X), self._dof(X)
@@ -137,13 +138,13 @@ class LinearStudentT(BaseConditionalDensitySimulation):
     return np.expand_dims(self.mu + np.mean(self.mu_slope * X, axis=-1), axis=-1)
 
   def _scale(self, X):
-    return np.expand_dims(self.base_std + np.mean(self.std_slope * np.abs(X), axis=-1), axis=-1)
+    return np.expand_dims(self.std + np.mean(self.std_slope * np.abs(X), axis=-1), axis=-1)
 
   def _dof(self, X):
     return self.dof_low + (self.dof_high - self.dof_low) * _sigmoid(- 2 * np.mean(X, axis=-1))
 
   def __str__(self):
-    return "\nProbabilistic model type: {}\n base_std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.base_std, self.ndim_x,
+    return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
                                                                                                 self.ndim_y)
 
   def __unicode__(self):

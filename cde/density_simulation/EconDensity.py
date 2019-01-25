@@ -21,7 +21,7 @@ class EconDensity(BaseConditionalDensitySimulation):
     self.random_state = np.random.RandomState(seed=random_seed)
     self.random_seed = random_seed
 
-    self.base_std = std
+    self.std = std
     self.ndim_x = 1
     self.ndim_y = 1
     self.ndim = self.ndim_x + self.ndim_y
@@ -179,14 +179,14 @@ class EconDensity(BaseConditionalDensitySimulation):
 
   def _std(self, X):
     if self.heteroscedastic:
-      std = self.base_std * (1 + X)
+      std = self.std * (1 + X)
     else:
-      std = self.base_std * np.ones(X.shape)
+      std = self.std * np.ones(X.shape)
     return std
 
   def __str__(self):
-    return "\nProbabilistic model type: {}\n base_std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.base_std, self.ndim_x,
-                                                                                           self.ndim_y)
+    return "\nProbabilistic model type: {}\n std: {}\n n_dim_x: {}\n n_dim_y: {}\n".format(self.__class__.__name__, self.std, self.ndim_x,
+                                                                                                self.ndim_y)
 
   def __unicode__(self):
     return self.__str__()
