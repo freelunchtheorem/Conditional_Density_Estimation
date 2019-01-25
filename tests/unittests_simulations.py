@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 print(sys.path)
 from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump, LinearStudentT
 from cde.utils.integration import mc_integration_student_t
-from dummiesummies import SimulationDummy
+from dummies import SimulationDummy
 
 
 class TestArmaJump(unittest.TestCase):

@@ -191,10 +191,10 @@ if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   testmodules = [
-    'unittests_estimators.TestHelpers',
-    'unittests_estimators.TestExecAsyncBatch',
-    'unittests_estimators.TestIntegration',
-    'unittests_estimators.TestDistribution',
+    'unittests_utils.TestHelpers',
+    'unittests_utils.TestExecAsyncBatch',
+    'unittests_utils.TestIntegration',
+    'unittests_utils.TestDistribution',
    ]
   suite = unittest.TestSuite()
   for t in testmodules:

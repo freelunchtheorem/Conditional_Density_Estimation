@@ -7,120 +7,16 @@ import scipy.stats as stats
 from scipy.stats import norm
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit
 from dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
-from cde.utils.integration import mc_integration_adaptive
 from cde.evaluation.divergences import kl_divergence_pdf, js_divergence_pdf, hellinger_distance_pdf, divergence_measures_pdf
 
 alpha = 0.05
 
-class TestAdaptiveMonteCarloIntegration(unittest.TestCase):
-
-  def test_adaptive_importance_sampling(self):
-    skew = lambda x: x ** 3
-    log_prob =  lambda x: stats.norm.logpdf(x).flatten()
-
-    result = mc_integration_adaptive(skew, log_prob, ndim=1, n_samples=10 ** 6, adaptive=True)
-    print("skew", result)
-    self.assertAlmostEqual(float(result), 0.0, places=1)
-
-    kurt = lambda x: x**4
-
-    result = mc_integration_adaptive(kurt, log_prob, ndim=1, n_samples=10 ** 6, adaptive=True)
-    print("kurt", result)
-    self.assertAlmostEqual(float(result), 3, places=1)
-
-  def test_adaptive_importance_sampling_seed(self):
-    var = lambda x: x ** 2
-    log_prob = lambda x: stats.norm.logpdf(x).flatten()
-
-    rng1 = np.random.RandomState(22)
-    result1 = mc_integration_adaptive(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng1)
-
-    rng2 = np.random.RandomState(22)
-    result2 = mc_integration_adaptive(var, log_prob, ndim=1, n_samples=10 ** 4, random_state=rng2)
-
-    self.assertAlmostEqual(float(result1), float(result2))
-
-  def test_gaussian_dummy_hellinger_distance_mc(self):
-    mu1 = np.array([0, 0])
-    mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2)*2
-    sigma2 = np.identity(n=2)*1
-
-    # Analytical form Hellinger Distance
-    hd_squared_analytic_result = np.sqrt(1 - (2**0.5 / 1.5))
-
-    x = np.asarray([[0, 0], [1,1]])
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
-
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10**7)
-    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc()[0], places=2)
-    self.assertAlmostEqual(hd_squared_analytic_result, gof1.hellinger_distance_mc()[1], places=2)
-
-  def test_gaussian_dummy_kl_divergence_mc(self):
-    mu1 = np.array([0, 0])
-    mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2) * 2
-    sigma2 = np.identity(n=2) * 1
-
-    # Analytical form Hellinger Distance
-    kl_divergence_analytical = 0.5 * (1 - 2 + np.log(4))
-
-    x = np.asarray([[0, 0], [1, 1]])
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
-
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
-    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc()[0], places=2)
-    self.assertAlmostEqual(kl_divergence_analytical, gof1.kl_divergence_mc()[1], places=2)
-
-  def test_gaussian_dummy_js_divergence_mc(self):
-    mu1 = np.array([0, 0])
-    mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2) * 2
-    sigma2 = np.identity(n=2) * 1
-
-    x = np.asarray([[0, 0], [1, 1]])
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
-
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
-    self.assertGreaterEqual(1, gof1.js_divergence_mc()[0])
-    self.assertLessEqual(0, gof1.js_divergence_mc()[0])
-
-  def test_gaussian_dummy_divergence_measures_pdf(self):
-    mu1 = np.array([0, 0])
-    mu2 = np.array([0, 0])
-    sigma1 = np.identity(n=2)*2
-    sigma2 = np.identity(n=2)*1
-
-    # Analytical form Hellinger Distance
-    hd_squared_analytic_result = np.sqrt(1 - (2**0.5 / 1.5))
-
-    # Analytical form Hellinger Distance
-    kl_divergence_analytical = 0.5 * (1 - 2 + np.log(4))
-
-    x = np.asarray([[0, 0], [1,1]])
-
-    est = GaussianDummy(mean=mu1, cov=sigma1, ndim_x=2, ndim_y=2)
-    prob_model1 = SimulationDummy(mean=mu2, cov=sigma2, ndim_x=2, ndim_y=2)
-
-    gof1 = GoodnessOfFit(est, prob_model1, None, None, n_observations=10000, x_cond=x, n_mc_samples=10 ** 7)
-
-    hell_dist_mc, kl_div_mc, js_div_mc = gof1.divergence_measures_pdf()
-
-    self.assertAlmostEqual(hd_squared_analytic_result, hell_dist_mc[0], places=2)
-    self.assertAlmostEqual(kl_divergence_analytical, kl_div_mc[0], places=2)
-    self.assertGreaterEqual(1, js_div_mc[0])
-    self.assertLessEqual(0, js_div_mc[0])
-
 class TestRiskMeasures(unittest.TestCase):
+
+  def setUp(self):
+    np.random.seed(23)
 
   def get_samples(self, std=1.0):
     np.random.seed(22)
@@ -186,7 +82,7 @@ class TestRiskMeasures(unittest.TestCase):
       alpha = 0.02
 
       CVaR_true = mu - sigma / alpha * norm.pdf(norm.ppf(alpha))
-      CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha)
+      CVaR_est = est.conditional_value_at_risk(x_cond=np.array([[0], [1]]), alpha=alpha, n_samples=2*10**6)
 
       self.assertAlmostEqual(CVaR_est[0], CVaR_true, places=2)
       self.assertAlmostEqual(CVaR_est[1], CVaR_true, places=2)
@@ -526,7 +422,6 @@ if __name__ == '__main__':
   warnings.filterwarnings("ignore")
 
   testmodules = [
-    'unittests_evaluations.TestAdaptiveMonteCarloIntegration',
     'unittests_evaluations.TestDivergenceMeasures',
     'unittests_evaluations.TestRiskMeasures',
                  ]
