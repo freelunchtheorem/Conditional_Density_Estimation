@@ -1,1 +1,1 @@
-from .Dummies import *
+from dummiesummies import *
