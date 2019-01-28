@@ -84,7 +84,7 @@ class GoodnessOfFitResults:
     for i, (ax_title, graph_dicts) in enumerate(plot_dicts.items()):
 
       n_curves_to_plot = len(graph_dicts)
-      color_iter = iter(cm.rainbow(np.linspace(0, 1, n_curves_to_plot))) if color is None else copy.deepcopy(color)
+      color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot))) if color is None else copy.deepcopy(color)
 
 
       # d_keys = list(graph_dicts.values()[0].keys())

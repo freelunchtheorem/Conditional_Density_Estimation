@@ -40,11 +40,7 @@ def question1():
   'EconDensity': {'std': [1],
                   'heteroscedastic': [True],
                   },
-  'ArmaJump': {'c': [0.1],
-               'arma_a1': [0.9],
-               'std': [0.05],
-               'jump_prob': [0.05],
-              },
+  'ArmaJump': {},
   'SkewNormal': {}
   }
 

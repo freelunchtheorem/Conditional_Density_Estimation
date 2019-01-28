@@ -44,16 +44,16 @@ color = iter(cm.rainbow(np.linspace(0, 1, 6))[:2])
 plot_dict = dict([(simulator,
                    {"KDE-normal-reference": {"simulator": simulator, "estimator": "ConditionalKernelDensityEstimation", "bandwidth_selection": "normal_reference"},
                      "KDE-ml-cv": {"simulator": simulator, "estimator": "ConditionalKernelDensityEstimation", "bandwidth_selection": "cv_ml"}
-                    }) for simulator in ["EconDensity", "ArmaJump", "GaussianMixture", "SkewNormal"]])
+                    }) for simulator in ["EconDensity", "ArmaJump", "SkewNormal"]])
 
-fig = gof_result.plot_metric(plot_dict, metric="js_divergence", figsize=(14,10), layout=(2,2), color=color)
+fig = gof_result.plot_metric(plot_dict, metric="js_divergence", figsize=(14, 5), layout=(1, 3), color=color)
 plt.suptitle(title, fontsize=TITLE_SIZE)
 plt.tight_layout(h_pad=2, rect=[0, 0, 1, 0.95])
 
 # add KMN and MDN plots
 logger.configure(
   '/home/jonasrothfuss/Dropbox/Eigene_Dateien/Uni/WS17_18/Density_Estimation/Nonparametric_Density_Estimation/data/cluster',
-  "question1_noise_reg_x")
+  "question1_noise_reg_x_v1")
 
 results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
 gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
@@ -62,10 +62,10 @@ _ = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
 plot_dict = dict([(simulator,
                    {"MDN": {"simulator": simulator, "estimator": "MixtureDensityNetwork", "x_noise_std": 0.2, "y_noise_std": 0.1, "n_centers": 10},
                      "KMN": {"simulator": simulator, "estimator": "KernelMixtureNetwork", "x_noise_std": 0.2, "y_noise_std": 0.1, "n_centers": 20},
-                    }) for simulator in ["EconDensity", "ArmaJump", "GaussianMixture", "SkewNormal"]])
+                    }) for simulator in ["EconDensity", "ArmaJump", "SkewNormal"]])
 
 color = iter(cm.rainbow(np.linspace(0, 1, 4))[2:])
-fig = gof_result.plot_metric(plot_dict, metric="js_divergence", fig=fig, color=color)
+fig = gof_result.plot_metric(plot_dict, metric="hellinger_distance", fig=fig, color=color)
 
 plt.savefig("kde_vs_nn_based")
 plt.clf()
