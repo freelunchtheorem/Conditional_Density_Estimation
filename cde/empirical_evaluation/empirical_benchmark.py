@@ -10,19 +10,22 @@ import numpy as np
 import time
 import pandas as pd
 import copy
+import itertools
 from collections import OrderedDict
+from multiprocessing import Manager
+from cde.utils.async_executor import AsyncExecutor
 
 VALIDATION_PORTION = 0.2
 
 
-FIT_BY_CV = True  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
+FIT_BY_CV = False  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
 EVALUATE_BY_CV = False #
 
 ndim_x = 14
 ndim_y = 1
 
 N_SAMPLES = 10**5
-N_SEEDS = 5
+SEEDS = [22, 23, 24, 25, 26]
 
 VERBOSE = True
 
@@ -99,65 +102,59 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False):
   result_dict = {}
 
-  for model_name, model in model_dict.items():
+  # multiprocessing setup
+  manager = Manager()
+  result_list_model = manager.list()
+  exec = AsyncExecutor(n_jobs=len(SEEDS))
+  eval = lambda est: result_list_model.append(empirical_evaluation(est, VALIDATION_PORTION, moment_r2=moment_r2,
+                                                             eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv))
+
+  for model_name, models in model_dict.items():
     print("Running likelihood fit and validation for %s" % model_name)
-    for configuration_list in model:
-      t = time.time()
-      mean_logli_list = []
-      mu_rmse_list = []
-      std_rmse_list = []
+    t = time.time()
 
-      for seed_i in configuration_list:
-        mean_logli, mu_rmse, std_rmse = empirical_evaluation(seed_i, VALIDATION_PORTION, moment_r2=moment_r2, eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv)
+    # Multiprocessing calls
+    exec.run(eval, models)
 
-        mean_logli_list.append(mean_logli)
-        mu_rmse_list.append(mu_rmse)
-        std_rmse_list.append(std_rmse)
+    assert len(result_list_model) == len(models)
+    mean_logli_list, mu_rmse_list, std_rmse_list = list(zip(*list(result_list_model)))
 
-      mean_logli = np.mean(mean_logli_list)
-      mu_rmse = np.mean(mu_rmse_list)
-      std_rmse = np.mean(std_rmse_list)
+    # clear result list
+    for _ in range(len(result_list_model)):
+      del result_list_model[0]
+    assert len(result_list_model) == 0
 
-      result_dict[str(configuration_list[0])] = mean_logli, mu_rmse, std_rmse
-      print('%s results:' % model_name, result_dict[model_name])
-      print('Duration of %s:' % model_name, time.time() - t)
+    mean_logli, mean_logli_dev = np.mean(mean_logli_list), np.std(mean_logli_list)
+    mu_rmse, mu_rmse_dev = np.mean(mu_rmse_list), np.std(mu_rmse_list)
+    std_rmse, std_rmse_dev = np.mean(std_rmse_list), np.std(std_rmse_list)
+
+    result_dict[model_name] = mean_logli, mean_logli_dev, mu_rmse, mu_rmse_dev, std_rmse, std_rmse_dev
+    print('%s results:' % model_name, result_dict[model_name])
+    print('Duration of %s:' % model_name, time.time() - t)
 
   df = pd.DataFrame.from_dict(result_dict, 'index')
-  df.columns = ['log_likelihood', 'rmse_mean', 'rmse_std']
+  df.columns = ['log_likelihood', 'log_likelihood_dev', 'rmse_mean', 'rmse_mean_dev', 'rmse_std', 'rmse_std_dev']
   return df
 
 
-def _add_seeds_to_est_params(n_seeds, configs):
-  """ copies the configurations n_seeds times and adds seed numbers"""
-  seeds = [20 + i for i in range(n_seeds)]
-  for est_key in configs.keys():
-    config_list = []
-    for cfg in configs[est_key]:
-      cfg_list = [copy.copy(cfg) for _ in range(n_seeds)]
-      for i, cfg_i in enumerate(cfg_list):
-        cfg_i['random_seed'] = seeds[i]
-
-      config_list.append(cfg_list)
-    configs[est_key] = config_list
-
-  return configs
-
-
-def create_seeds_model_dict(model_dict, verbose=False):
-  """ duplicate model configs and assign seeds """
-  configs = _create_configurations(model_dict)
-  configs_w_seeds = _add_seeds_to_est_params(N_SEEDS, configs)
+def initialized_models(model_dict, verbose=False):
+  ''' make kartesian product of listed parameters per model '''
+  model_configs = {}
+  for model_key, conf_dict in model_dict.items():
+    print(model_key)
+    model_configs[model_key] = [dict(zip(conf_dict.keys(), value_tuple)) for value_tuple in
+                                list(itertools.product(*list(conf_dict.values())))]
 
   """ initialize models """
-  for estimator_name, estimator_params in configs_w_seeds.items():
-    for seed_i, estimator_pack in enumerate(estimator_params):
-      for cfg_variation_j, estimator in enumerate(estimator_pack):
-        est_name = estimator_name + "_" + str(seed_i) + "_" + str(cfg_variation_j)
-        if verbose: print("instantiating ", est_name)
-        estimator["name"] = est_name
-        configs_w_seeds[estimator_name][seed_i][cfg_variation_j] = globals()[estimator_name](**estimator)
-
-  return configs_w_seeds
+  configs_initialized = {}
+  for model_key, model_conf_list in model_configs.items():
+    configs_initialized[model_key] = []
+    for i, conf in enumerate(model_conf_list):
+      conf['name'] = model_key.replace(' ', '_') + '_%i' % i
+      if verbose: print("instantiating ", conf['name'])
+      estimator = conf.pop('estimator')
+      configs_initialized[model_key].append(globals()[estimator](**conf))
+  return configs_initialized
 
 
 if __name__ == '__main__':
@@ -170,20 +167,30 @@ if __name__ == '__main__':
     print("Fitting estimators by CV for model selection")
 
   model_dict = {
-    'ConditionalKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],
-                                           'random_seed': [None]},
-    'LSConditionalDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
-    'NeighborKernelDensityEstimation': {'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [None]},
+    'CKDE normal reference': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                               'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'], 'random_seed': [1]},
 
-    'MixtureDensityNetwork': {'name': ['MDN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [20], 'n_training_epochs': [200],
-                              'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-                              },
-    'KernelMixtureNetwork': {'name': ['KMN'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50], 'n_training_epochs': [200],
-                            'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2, None], 'y_noise_std': [0.1, None], 'random_seed': [None]
-                             }
+    'LSCDE': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': SEEDS},
+
+    'NKDE': {'estimator': ['NeighborKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+             'param_selection': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],  'random_seed': [1]},
+
+    'MDN w/ noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1], 'random_seed': SEEDS},
+
+    'MDN w/0 noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None], 'random_seed': SEEDS},
+
+    'KMN w/ noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
+                     'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
+                     'random_seed': SEEDS},
+
+    'KMN w/0 noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
+                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None], 'y_noise_std': [None],
+                      'random_seed': SEEDS},
   }
 
-  model_dict = create_seeds_model_dict(model_dict, verbose=VERBOSE)
+  model_dict = initialized_models(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
   result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)
