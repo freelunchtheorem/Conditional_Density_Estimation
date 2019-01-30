@@ -49,7 +49,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
           random_seed: (optional) seed (int) of the random number generators used
   """
 
-  def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=200, keep_edges=False,
+  def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=200, keep_edges=True,
                init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
                n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
 
@@ -242,15 +242,13 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
 
   def _param_grid(self):
-    n_centers = [int(self.n_samples / 10), 50, 20, 10, 5]
 
     param_grid = {
-        "n_centers": n_centers,
-        "center_sampling_method": ["k_means", "random"],
-        "keep_edges": [True, False]
+        "n_centers": [20, 50, 200],
+        "x_noise_std": [0.1, 0.15, 0.2, 0.3],
+        "y_noise_std": [0.5, 0.1, 0.15, 0.2]
     }
     return param_grid
-
 
   def _get_mixture_components(self, X):
     assert self.fitted

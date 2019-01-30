@@ -205,10 +205,11 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
                                   self.layer_in_y])
 
   def _param_grid(self):
-    n_centers = [1, 2, 4, 8, 16, 32]
 
     param_grid = {
-        "n_centers": n_centers,
+        "n_centers": [5, 10, 20],
+        "x_noise_std": [0.1, 0.15, 0.2, 0.3],
+        "y_noise_std": [0.5, 0.1, 0.15, 0.2]
     }
     return param_grid
 
