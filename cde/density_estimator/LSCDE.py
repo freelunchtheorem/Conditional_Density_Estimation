@@ -63,7 +63,8 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
 
     n_locs = self.n_centers
     X_Y_normalized = np.concatenate(list(self._normalize(X, Y)), axis=1)
-    centroids = sample_center_points(X_Y_normalized, method=self.center_sampling_method, k=n_locs, keep_edges=self.keep_edges)
+    centroids = sample_center_points(X_Y_normalized, method=self.center_sampling_method, k=n_locs,
+                                     keep_edges=self.keep_edges, random_state=self.random_state)
     self.centr_x = centroids[:, 0:self.ndim_x]
     self.centr_y = centroids[:, self.ndim_x:]
 

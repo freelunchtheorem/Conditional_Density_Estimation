@@ -125,7 +125,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
 
     # sample locations and assign them to tf locs variable
     sampled_locs = sample_center_points(Y_normalized, method=self.center_sampling_method, k=self.n_centers,
-                                     keep_edges=self.keep_edges)
+                                     keep_edges=self.keep_edges, random_state=self.random_state)
     self.sess.run(tf.assign(self.locs, sampled_locs))
 
     # train the model

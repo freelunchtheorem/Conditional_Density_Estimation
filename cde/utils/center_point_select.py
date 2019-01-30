@@ -3,17 +3,21 @@ import pandas as pd
 import numpy as np
 
 
-def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=False):
+def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=False, random_state=None):
     """ function to define kernel centers with various downsampling alternatives
 
     Args:
       Y: numpy array from which kernel centers shall be selected - shape (n_samples,) or (n_samples, n_dim)
       method: kernel center selection method - choices: [all, random, distance, k_means, agglomerative]
       k: number of centers to be returned (not relevant for 'all' method)
+      random_state: numpy.RandomState object
 
     Returns: selected center points - numpy array of shape (k, n_dim). In case method is 'all' k is equal to n_samples
     """
     assert k <= Y.shape[0], "k must not exceed the number of samples in Y"
+
+    if random_state is None:
+        random_state = np.random.RandomState()
 
     n_jobs = 1
     if parallelize:
@@ -45,7 +49,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
         centers = np.empty([0, 0])
 
     if method == 'random':
-        cluster_centers = Y[np.random.choice(range(Y.shape[0]), k, replace=False)]
+        cluster_centers = Y[random_state.choice(range(Y.shape[0]), k, replace=False)]
 
     # iteratively remove part of pairs that are closest together until everything is at least 'd' apart
     elif method == 'distance':
@@ -53,7 +57,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
 
     # use 1-D k-means clustering
     elif method == 'k_means':
-        model = KMeans(n_clusters=k, n_jobs=n_jobs)
+        model = KMeans(n_clusters=k, n_jobs=n_jobs, random_state=random_state)
         model.fit(Y)
         cluster_centers = model.cluster_centers_
 
