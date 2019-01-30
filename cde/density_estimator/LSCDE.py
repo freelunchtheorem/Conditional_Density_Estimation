@@ -1,6 +1,7 @@
 import itertools
 import numpy as np
 import scipy.stats as stats
+from scipy.special import logsumexp
 
 from cde.utils.center_point_select import sample_center_points
 from cde.utils.misc import norm_along_axis_1
@@ -99,7 +100,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     self.H = (np.sqrt(np.pi) * self.bandwidth) ** self.ndim_y * np.exp(- eta / (5 * self.bandwidth ** 2))
 
     self.alpha = np.linalg.solve(self.H + self.regularization * np.identity(self.n_centers), self.h)
-    self.alpha[self.alpha < 0] = 0
+    self.alpha[self.alpha <= 0] = 1e-10 # set to small value instead of 0 for numerical stability
 
     self.fitted = True
 
@@ -123,6 +124,27 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       return execute_batch_async_pdf(self._pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._pdf(X, Y)
+
+  def log_pdf(self, X, Y):
+    """ Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.
+
+          Args:
+            X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+            Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+
+          Returns:
+             conditional log-probability density log p(y|x) - numpy array of shape (n_query_samples, )
+
+        """
+    assert self.fitted, "model must be fitted for predictions"
+
+    X, Y = self._handle_input_dimensionality(X, Y)
+
+    n_samples = X.shape[0]
+    if n_samples >= MULTIPROC_THRESHOLD:
+      return execute_batch_async_pdf(self._log_pdf, X, Y, n_jobs=self.n_jobs)
+    else:
+      return self._log_pdf(X, Y)
 
   def sample(self, X):
     """ sample from the conditional mixture distributions - requires the model to be fitted
@@ -149,12 +171,15 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     return X, Y
 
   def _pdf(self, X, Y):
-    X_normalized, Y_normalized = self._normalize(X, Y)
+   return np.exp(self._log_pdf(X, Y))
 
-    p = np.dot(self.alpha.T, self._gaussian_kernel(X_normalized, Y_normalized).T)
-    p_normalization = (np.sqrt(2 * np.pi) * self.bandwidth) ** self.ndim_y * np.dot(self.alpha.T,
-                                                                                    self._gaussian_kernel(X_normalized).T)
-    return np.squeeze(p / p_normalization / np.product(self.y_std))
+  def _log_pdf(self, X, Y):
+    X_normalized, Y_normalized = self._normalize(X, Y)
+    log_p = logsumexp(np.log(self.alpha.T) + self._log_gaussian_kernel(X_normalized, Y_normalized), axis=1)
+    log_normalization = (0.5 * np.log(2 *np.pi) + np.log(self.bandwidth)) * self.ndim_y + \
+                        logsumexp(np.log(self.alpha.T) + self._log_gaussian_kernel(X_normalized), axis=1)
+
+    return np.squeeze(log_p - log_normalization - np.sum(np.log(self.y_std)))
 
   def _normalize(self, X, Y):
     X_normalized = (X - self.x_mean) / self.x_std
@@ -168,6 +193,15 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     :param Y: numpy array of size (n_samples, ndim_y)
     :return: phi -  numpy array of size (n_samples, n_centers)
     """
+    return np.exp(self._log_gaussian_kernel(X, Y))
+
+  def _log_gaussian_kernel(self, X, Y=None):
+    """
+    if Y is set returns the sum of the gaussian log-kernels for X and Y, else only the gaussian log-kernel for X
+    :param X: numpy array of size (n_samples, ndim_x)
+    :param Y: numpy array of size (n_samples, ndim_y)
+    :return: phi -  numpy array of size (n_samples, n_centers)
+    """
     phi = np.zeros(shape=(X.shape[0], self.n_centers))
 
     if Y is not None:
@@ -177,19 +211,19 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
         sq_d_y = np.sum(np.square(Y - self.centr_y[i, :]), axis=1)
 
-        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2)) * np.exp(- sq_d_y / (2 * self.bandwidth ** 2))
+        phi[:, i] = - sq_d_x / (2 * self.bandwidth ** 2) - sq_d_y / (2 * self.bandwidth ** 2)
     else:
       for i in range(phi.shape[1]):
         # suqared distances from center point i
         sq_d_x = np.sum(np.square(X - self.centr_x[i, :]), axis=1)
-        phi[:, i] = np.exp(- sq_d_x / (2 * self.bandwidth ** 2))
+        phi[:, i] = - sq_d_x / (2 * self.bandwidth ** 2)
 
     assert phi.shape == (X.shape[0], self.n_centers)
     return phi
 
   def _param_grid(self):
-    # todo: add n_centers?
     param_grid = {
+      "n_centers": np.asarray([100, 500, 1000]),
       "bandwidth": np.asarray([0.1, 0.2, 0.5, 0.7, 1.0]),
       "regularization": np.asarray([0.1, 0.5, 1.0, 4.0, 8.0])
     }
