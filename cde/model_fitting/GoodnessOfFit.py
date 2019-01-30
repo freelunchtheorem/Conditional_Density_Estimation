@@ -6,8 +6,8 @@ from ml_logger import logger
 
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 from cde.density_simulation import BaseConditionalDensitySimulation
-from cde.evaluation.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
-from cde.evaluation.divergences import divergence_measures_pdf
+from cde.model_fitting.GoodnessOfFitSingleResult import GoodnessOfFitSingleResult
+from cde.model_fitting.divergences import divergence_measures_pdf
 
 
 class GoodnessOfFit:

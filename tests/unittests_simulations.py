@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 print(sys.path)
 from cde.density_simulation import SkewNormal, GaussianMixture, EconDensity, JumpDiffusionModel, ArmaJump, LinearStudentT
 from cde.utils.integration import mc_integration_student_t
-from dummies import SimulationDummy
+from tests.dummies import SimulationDummy
 
 
 class TestArmaJump(unittest.TestCase):
@@ -89,7 +89,7 @@ class TestGaussianMixture(unittest.TestCase):
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 
   def test_sampling_consistency(self):
-    from cde.evaluation.ConfigRunner import make_hash_sha256
+    from cde.model_fitting.ConfigRunner import make_hash_sha256
     gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
     x1, y1 = gmm1.simulate(n_samples=10 ** 3)
     hash_x1 = make_hash_sha256(x1)
@@ -105,7 +105,7 @@ class TestGaussianMixture(unittest.TestCase):
     self.assertEqual(hash_y1, hash_y2)
 
   def test_hash(self):
-    from cde.evaluation.ConfigRunner import make_hash_sha256
+    from cde.model_fitting.ConfigRunner import make_hash_sha256
     gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
     gmm2 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
     hash1 = make_hash_sha256(gmm1)
@@ -290,12 +290,12 @@ class TestLinearStudentT(unittest.TestCase):
   def test_pdf_std_consistency(self):
     model = LinearStudentT(ndim_x=10)
     x_cond = np.ones((1, model.ndim_x))
-    std = float(model.std(x_cond).flatten())
+    std = float(model.std_(x_cond).flatten())
     std_pdf = float(model._std_pdf(x_cond).flatten())
     self.assertAlmostEqual(std_pdf, std, places=2)
 
     x_cond = - np.ones((1, model.ndim_x))
-    std = float(model.std(x_cond).flatten())
+    std = float(model.std_(x_cond).flatten())
     std_pdf = float(model._std_pdf(x_cond).flatten())
     self.assertAlmostEqual(std_pdf, std, places=2)
 

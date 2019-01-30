@@ -160,7 +160,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
 
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
-      n_samples: number of samples for monte carlo evaluation
+      n_samples: number of samples for monte carlo model_fitting
 
     Returns:
       Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)
@@ -214,7 +214,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
       alpha: quantile percentage of the distribution
-      n_samples: number of samples for monte carlo evaluation
+      n_samples: number of samples for monte carlo model_fitting
 
     Returns:
        VaR values for each x to condition on - numpy array of shape (n_values)
@@ -235,7 +235,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
        Args:
          x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
          alpha: quantile percentage of the distribution
-         n_samples: number of samples for monte carlo evaluation
+         n_samples: number of samples for monte carlo model_fitting
 
        Returns:
          CVaR values for each x to condition on - numpy array of shape (n_values)
@@ -259,7 +259,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
         Args:
           x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
           alpha: quantile percentage of the distribution
-          n_samples: number of samples for monte carlo evaluation
+          n_samples: number of samples for monte carlo model_fitting
 
         Returns:
           - VaR values for each x to condition on - numpy array of shape (n_values)

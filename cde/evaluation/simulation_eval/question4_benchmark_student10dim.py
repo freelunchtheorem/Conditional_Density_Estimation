@@ -2,9 +2,9 @@ import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-from cde.evaluation_runs import base_experiment
-import cde.evaluation.ConfigRunner as ConfigRunner
+from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation.simulation_eval import base_experiment
+import cde.model_fitting.ConfigRunner as ConfigRunner
 import config
 
 from ml_logger import logger

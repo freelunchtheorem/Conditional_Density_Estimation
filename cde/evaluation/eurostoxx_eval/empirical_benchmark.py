@@ -1,11 +1,11 @@
 from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensityEstimation, MixtureDensityNetwork, \
   NeighborKernelDensityEstimation, LSConditionalDensityEstimation
-from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
+from cde.evaluation.eurostoxx_eval.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 from sklearn.model_selection import cross_validate
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
 
-from cde.evaluation.ConfigRunner import _create_configurations
+from cde.model_fitting.ConfigRunner import _create_configurations
 import numpy as np
 import time
 import pandas as pd
@@ -105,7 +105,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   # multiprocessing setup
   manager = Manager()
   result_list_model = manager.list()
-  exec = AsyncExecutor(n_jobs=len(SEEDS))
+  executor = AsyncExecutor(n_jobs=len(SEEDS))
   eval = lambda est: result_list_model.append(empirical_evaluation(est, VALIDATION_PORTION, moment_r2=moment_r2,
                                                              eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv))
 
@@ -114,7 +114,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
     t = time.time()
 
     # Multiprocessing calls
-    exec.run(eval, models)
+    executor.run(eval, models)
 
     assert len(result_list_model) == len(models)
     mean_logli_list, mu_rmse_list, std_rmse_list = list(zip(*list(result_list_model)))
@@ -137,13 +137,9 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   return df
 
 
-def initialized_models(model_dict, verbose=False):
-  ''' make kartesian product of listed parameters per model '''
-  model_configs = {}
-  for model_key, conf_dict in model_dict.items():
-    print(model_key)
-    model_configs[model_key] = [dict(zip(conf_dict.keys(), value_tuple)) for value_tuple in
-                                list(itertools.product(*list(conf_dict.values())))]
+def initialize_models(model_dict, verbose=False):
+  ''' make cartesian product of listed parameters per model '''
+  model_configs = _create_configurations(model_dict, verbose=True)
 
   """ initialize models """
   configs_initialized = {}
@@ -152,6 +148,7 @@ def initialized_models(model_dict, verbose=False):
     for i, conf in enumerate(model_conf_list):
       conf['name'] = model_key.replace(' ', '_') + '_%i' % i
       if verbose: print("instantiating ", conf['name'])
+      """ remove estimator entry from dict to instantiate it"""
       estimator = conf.pop('estimator')
       configs_initialized[model_key].append(globals()[estimator](**conf))
   return configs_initialized
@@ -176,21 +173,21 @@ if __name__ == '__main__':
              'param_selection': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],  'random_seed': [1]},
 
     'MDN w/ noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1], 'random_seed': SEEDS},
+           'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1], 'random_seed': SEEDS},
 
     'MDN w/0 noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None], 'random_seed': SEEDS},
+           'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None], 'random_seed': SEEDS},
 
     'KMN w/ noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
-                     'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
-                     'random_seed': SEEDS},
+                    'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
+                    'random_seed': SEEDS},
 
     'KMN w/0 noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
-                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None], 'y_noise_std': [None],
-                      'random_seed': SEEDS},
+                     'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None], 'y_noise_std': [None],
+                     'random_seed': SEEDS},
   }
 
-  model_dict = initialized_models(model_dict, verbose=VERBOSE)
+  model_dict = initialize_models(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
   result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)

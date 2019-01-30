@@ -8,8 +8,8 @@ import os
 from ml_logger import logger
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from cde.evaluation.ConfigRunner import ConfigRunner
-from cde.evaluation_runs.question1_noise_reg_xy import question1
+from cde.model_fitting.ConfigRunner import ConfigRunner
+from cde.evaluation.simulation_eval.question1_noise_reg_xy import question1
 
 NUM_CONFIGS_TO_TEST = 1
 

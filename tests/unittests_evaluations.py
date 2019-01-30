@@ -7,9 +7,9 @@ import scipy.stats as stats
 from scipy.stats import norm
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
+from tests.dummies import GaussianDummy, SimulationDummy, SkewNormalDummy
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, BaseDensityEstimator
-from cde.evaluation.divergences import kl_divergence_pdf, js_divergence_pdf, hellinger_distance_pdf, divergence_measures_pdf
+from cde.model_fitting.divergences import kl_divergence_pdf, js_divergence_pdf, hellinger_distance_pdf, divergence_measures_pdf
 
 alpha = 0.05
 

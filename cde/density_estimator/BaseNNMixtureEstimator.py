@@ -156,7 +156,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       Args:
          X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
          Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resolution: integer specifying the resolution of evaluation_runs grid
+         resolution: integer specifying the resolution of simulation_eval grid
 
        Returns: tuple (P, Y)
           - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
@@ -196,7 +196,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         Args:
           x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
           alpha: quantile percentage of the distribution
-          n_samples: number of samples for monte carlo evaluation
+          n_samples: number of samples for monte carlo model_fitting
 
         Returns:
           - VaR values for each x to condition on - numpy array of shape (n_values)
@@ -294,7 +294,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-        the conditional log-likelihood is used for evaluation_runs.
+        the conditional log-likelihood is used for simulation_eval.
       - Fits the model with the previously selected hyperparameter configuration
 
       Args:

@@ -7,8 +7,8 @@ import traceback
 """ do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
 from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel, SkewNormal, LinearGaussian, LinearStudentT
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit, sample_x_cond
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.model_fitting.GoodnessOfFit import GoodnessOfFit, sample_x_cond
+from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
 from cde.utils import io
 from cde.utils.async_executor import AsyncExecutor
 from ml_logger import logger
@@ -186,7 +186,7 @@ class ConfigRunner():
 
     """
     self.dump_models = dump_models
-    ''' Asserts, Setup and Applying Filters/Limits  '''
+    ''' Asserts, Setup and applying Filters/Limits  '''
     assert len(self.configs) > 0
     self._apply_filters(estimator_filter)
 
@@ -207,8 +207,8 @@ class ConfigRunner():
     iters = range(len(tasks))
 
     if multiprocessing:
-      exec = AsyncExecutor(n_jobs=n_workers)
-      exec.run(self._run_single_task, iters, tasks)
+      executor = AsyncExecutor(n_jobs=n_workers)
+      executor.run(self._run_single_task, iters, tasks)
 
     else:
       for i, task in zip(iters, tasks):
@@ -364,9 +364,10 @@ def _add_seeds_to_sim_params(n_seeds, sim_params):
   return sim_params
 
 
-def _create_configurations(params_dict):
+def _create_configurations(params_dict, verbose=False):
   confs = {}
   for conf_instance, conf_dict in params_dict.items():
+    if verbose: print(conf_instance)
     conf_product = list(itertools.product(*list(conf_dict.values())))
     conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
     confs[conf_instance] = conf_product_dicts
@@ -438,7 +439,7 @@ def load_dumped_estimator(dict_entry):
     dict_entry = list(dict_entry.values())[0]
 
   with tf.Session(graph=tf.Graph()) as sess:
-    dict_entry.estimator = logger.load_pkl(f"model_dumps/" + dict_entry.task_name + ".pkl")
+    dict_entry.estimator = logger.load_pkl("model_dumps/" + dict_entry.task_name + ".pkl")
     print("loaded estimator for entry " + dict_entry.task_name)
 
   return dict_entry

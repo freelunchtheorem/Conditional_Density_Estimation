@@ -2,19 +2,19 @@ import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-from cde.evaluation_runs import base_experiment
+from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation.simulation_eval import base_experiment
 
 from ml_logger import logger
 
-EXP_PREFIX = 'question3_NNvsCKDE_Econ_GMM'
+EXP_PREFIX = 'question3_NNvsCKDE_Arma_Skew'
 RESULTS_FILE = 'results.pkl'
 
 
 
 
 def question3():
-    # todo: add KMN & MDN
+    #todo: add KMN & MDN
 
     estimator_params = {
     'ConditionalKernelDensityEstimation':
@@ -25,16 +25,15 @@ def question3():
     }
 
     simulators_params = {
-        'EconDensity': {
-            'std': [1],
-            'heteroscedastic': [True]
+        'ArmaJump': {
+            'c': [0.1],
+            'arma_a1': [0.9],
+            'std': [0.05],
+            'jump_prob': [0.05],
         },
 
-        'GaussianMixture': {
-            'n_kernels' : [10],
-            'ndim_x': [2],
-            'ndim_y': [2],
-            'means_std': [1.5]
+        'SkewNormal': {
+
         }
     }
 

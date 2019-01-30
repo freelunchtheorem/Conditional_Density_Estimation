@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from collections import OrderedDict
 from cde.utils import io
-#from cde.evaluation.ConfigRunner import ConfigRunner
+#from cde.model_fitting.ConfigRunner import ConfigRunner
 
 
 class GoodnessOfFitResults:
