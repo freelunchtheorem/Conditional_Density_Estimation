@@ -9,17 +9,13 @@ from cde.evaluation.ConfigRunner import _create_configurations
 import numpy as np
 import time
 import pandas as pd
-import copy
+import argparse
 import itertools
 from collections import OrderedDict
 from multiprocessing import Manager
 from cde.utils.async_executor import AsyncExecutor
 
 VALIDATION_PORTION = 0.2
-
-
-FIT_BY_CV = False  # gridsearch # train/test split --> fit + evaluate --> nur ein train/test split
-EVALUATE_BY_CV = False #
 
 ndim_x = 14
 ndim_y = 1
@@ -66,12 +62,11 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 
   # realized moments
   mu_realized = df_valid['log_ret_last_period'][1:]
-  std_realized = np.sqrt(df_valid['RealizedVariation'][1:])
+  std_realized_intraday = np.sqrt(df_valid['RealizedVariation'][1:])
 
   # fit density model
   if eval_by_fc and not fit_by_cv:
     raise NotImplementedError
-    # todo: implement eval by cv with n_folds different train_valid_splits, average over mean log, rmse_mu, rmse_std
   elif not eval_by_fc and fit_by_cv:
     estimator.fit_by_cv(X_train, Y_train, n_folds=5)
   else:
@@ -80,7 +75,7 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 
   # compute avg. log likelihood
   mean_logli = np.mean(estimator.log_pdf(X_valid, Y_valid))
-
+  #
   if moment_r2:
     # predict mean and std
     mu_predicted, std_predicted = estimator.mean_std(X_valid, n_samples=N_SAMPLES)
@@ -88,24 +83,30 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
     std_predicted = std_predicted.flatten()[:-1]
 
     assert mu_realized.shape == mu_predicted.shape
-    assert std_realized.shape == std_realized.shape
+    assert std_realized_intraday.shape == std_realized_intraday.shape
+
+    # compute realized std
+    std_realized = np.abs(mu_predicted - mu_realized)
 
     # compute RMSE
     mu_rmse = np.sqrt(np.mean((mu_realized - mu_predicted) ** 2))
     std_rmse = np.sqrt(np.mean((std_realized - std_predicted) ** 2))
+    std_intraday_rmse = np.sqrt(np.mean((std_realized_intraday - std_predicted) ** 2))
   else:
-    mu_rmse, std_rmse = None, None
+    mu_rmse, std_rmse, std_intraday_rmse = None, None, None
 
-  return mean_logli, mu_rmse, std_rmse
+  return mean_logli, mu_rmse, std_rmse, std_intraday_rmse
 
 
-def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False):
+def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False, n_jobs=-1):
   result_dict = {}
 
   # multiprocessing setup
   manager = Manager()
   result_list_model = manager.list()
-  exec = AsyncExecutor(n_jobs=len(SEEDS))
+  if n_jobs == -1:
+    n_jobs = len(SEEDS)
+  exec = AsyncExecutor(n_jobs=n_jobs)
   eval = lambda est: result_list_model.append(empirical_evaluation(est, VALIDATION_PORTION, moment_r2=moment_r2,
                                                              eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv))
 
@@ -117,7 +118,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
     exec.run(eval, models)
 
     assert len(result_list_model) == len(models)
-    mean_logli_list, mu_rmse_list, std_rmse_list = list(zip(*list(result_list_model)))
+    mean_logli_list, mu_rmse_list, std_rmse_list, std_intraday_rmse_list = list(zip(*list(result_list_model)))
 
     # clear result list
     for _ in range(len(result_list_model)):
@@ -127,13 +128,14 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
     mean_logli, mean_logli_dev = np.mean(mean_logli_list), np.std(mean_logli_list)
     mu_rmse, mu_rmse_dev = np.mean(mu_rmse_list), np.std(mu_rmse_list)
     std_rmse, std_rmse_dev = np.mean(std_rmse_list), np.std(std_rmse_list)
+    std_intraday_rmse, std_intraday_rmse_dev = np.mean(std_intraday_rmse_list), np.std(std_intraday_rmse_list)
 
-    result_dict[model_name] = mean_logli, mean_logli_dev, mu_rmse, mu_rmse_dev, std_rmse, std_rmse_dev
+    result_dict[model_name] = mean_logli, mean_logli_dev, mu_rmse, mu_rmse_dev, std_rmse, std_rmse_dev, std_intraday_rmse, std_intraday_rmse_dev
     print('%s results:' % model_name, result_dict[model_name])
     print('Duration of %s:' % model_name, time.time() - t)
 
   df = pd.DataFrame.from_dict(result_dict, 'index')
-  df.columns = ['log_likelihood', 'log_likelihood_dev', 'rmse_mean', 'rmse_mean_dev', 'rmse_std', 'rmse_std_dev']
+  df.columns = ['log_likelihood', 'log_likelihood_dev', 'rmse_mean', 'rmse_mean_dev', 'rmse_std', 'rmse_std_dev', 'rmse_std_intraday', 'rmse_std_intraday_dev']
   return df
 
 
@@ -157,42 +159,97 @@ def initialized_models(model_dict, verbose=False):
   return configs_initialized
 
 
-if __name__ == '__main__':
+# run methods
 
-  if EVALUATE_BY_CV and not FIT_BY_CV:
-    print("Evaluating estimators by CV")
-  elif EVALUATE_BY_CV and FIT_BY_CV:
-    print("Evaluating & fitting estimators by CV")
-  elif not EVALUATE_BY_CV and FIT_BY_CV:
-    print("Fitting estimators by CV for model selection")
+def run_benchmark_train_test():
+  print("Normal fit & Evaluation")
 
   model_dict = {
-    'CKDE normal reference': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                               'bandwidth': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'], 'random_seed': [1]},
+    'CKDE': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                               'bandwidth': ['normal_reference'], 'random_seed': [None]},
 
-    'LSCDE': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': SEEDS},
+    'LSCDE': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+              'random_seed': SEEDS},
 
     'NKDE': {'estimator': ['NeighborKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-             'param_selection': ['normal_reference'] if not FIT_BY_CV else ['cv_ml'],  'random_seed': [1]},
+                  'param_selection': ['normal_reference'], 'random_seed': [None]},
 
     'MDN w/ noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1], 'random_seed': SEEDS},
+                     'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
+                     'random_seed': SEEDS},
 
     'MDN w/0 noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-            'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None], 'random_seed': SEEDS},
+                      'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None],
+                      'random_seed': SEEDS},
 
     'KMN w/ noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
-                     'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
+                     'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2],
+                     'y_noise_std': [0.1],
                      'random_seed': SEEDS},
 
     'KMN w/0 noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
-                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None], 'y_noise_std': [None],
+                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None],
+                      'y_noise_std': [None],
                       'random_seed': SEEDS},
   }
 
   model_dict = initialized_models(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=EVALUATE_BY_CV, fit_by_cv=FIT_BY_CV)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)
   print(result_df.to_latex())
   print(result_df)
+
+def run_benchmark_train_test_fit_by_cv():
+  print("Fit by cv & Evaluation")
+  model_dict_fit_by_cv = {
+    'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                 'random_seed': SEEDS},
+
+    'MDN_cv': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+               'n_training_epochs': [1000], 'random_seed': SEEDS},
+
+    'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+               'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'random_seed': SEEDS},
+  }
+
+  model_dict = initialized_models(model_dict_fit_by_cv, verbose=VERBOSE)
+  model_dict = OrderedDict(list(model_dict.items()))
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=True, n_jobs=1)
+
+  print(result_df.to_latex())
+  print(result_df)
+
+def run_benchmark_train_test_cv_ml():
+  print("Fit by cv_ml & Evaluation")
+  model_dict_cv_ml = {
+    'CKDE_cv_ml': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                   'bandwidth': ['cv_ml'], 'random_seed': [22]},
+
+    'NKDE_cv_ml': {'estimator': ['NeighborKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                  'param_selection': ['cv_ml'], 'random_seed': [22]},
+  }
+
+  model_dict = initialized_models(model_dict_cv_ml, verbose=VERBOSE)
+  model_dict = OrderedDict(list(model_dict.items()))
+  result_df_cv_ml = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)
+  print(result_df_cv_ml)
+  print(result_df_cv_ml.to_latex())
+
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='Empirical evaluation')
+  parser.add_argument('--mode', default='normal',
+                      help='mode of empirical evaluation evaluation')
+
+  args = parser.parse_args()
+
+  if args.mode == 'normal':
+    run_benchmark_train_test()
+  elif args.mode == 'cv':
+    run_benchmark_train_test_fit_by_cv()
+  elif args.mode == 'cv_ml':
+    run_benchmark_train_test_cv_ml()
+  else:
+    raise NotImplementedError()
