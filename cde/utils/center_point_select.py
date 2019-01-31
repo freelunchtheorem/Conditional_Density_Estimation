@@ -1,4 +1,5 @@
 from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
 import pandas as pd
 import numpy as np
 
@@ -34,26 +35,41 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
 
     # retain outer points to ensure expressiveness at the target borders
     if keep_edges:
-        y_s = pd.DataFrame(Y)
-        # calculate distance of datapoint from "center of mass"
-        dist = pd.Series(np.linalg.norm(Y - Y.mean(axis=0), axis=1), name='distance')
-        df = pd.concat([dist, y_s], axis=1).sort_values('distance')
+        ndim_y = Y.shape[1]
+        n_edge_points = min(2 * ndim_y, k//2)
 
-        # Y sorted by their distance to the
-        Y = df[np.arange(Y.shape[1])].values
-        centers = np.array([Y[0], Y[-1]])
-        Y = Y[1:-1]
+        # select 2*n_edge_points that are the farthest away from mean
+        fathest_points_idx = np.argsort(np.linalg.norm(Y - Y.mean(axis=0), axis=1))[-2 * n_edge_points:]
+        Y_farthest = Y[np.ix_(fathest_points_idx)]
+
+        # choose points among Y farthest so that pairwise cosine similarity maximized
+        dists = cosine_distances(Y_farthest)
+        selected_indices = [0]
+        for _ in range(1, n_edge_points):
+            idx_greatest_distance = \
+            np.argsort(np.min(dists[np.ix_(range(Y_farthest.shape[0]), selected_indices)], axis=1), axis=0)[-1]
+            selected_indices.append(idx_greatest_distance)
+        centers_at_edges = Y_farthest[np.ix_(selected_indices)]
+
+        # remove selected centers from Y
+        indices_to_remove = fathest_points_idx[np.ix_(selected_indices)]
+        Y = np.delete(Y, indices_to_remove, axis=0)
+
         # adjust k such that the final output has size k
-        k -= 2
-    else:
-        centers = np.empty([0, 0])
+        k -= n_edge_points
 
     if method == 'random':
         cluster_centers = Y[random_state.choice(range(Y.shape[0]), k, replace=False)]
 
     # iteratively remove part of pairs that are closest together until everything is at least 'd' apart
     elif method == 'distance':
-        raise NotImplementedError  # TODO
+        dists = euclidean_distances(Y)
+        selected_indices = [0]
+        for _ in range(1, k):
+            idx_greatest_distance = np.argsort(np.min(dists[np.ix_(range(Y.shape[0]), selected_indices)], axis=1), axis=0)[-1]
+            selected_indices.append(idx_greatest_distance)
+        cluster_centers = Y[np.ix_(selected_indices)]
+
 
     # use 1-D k-means clustering
     elif method == 'k_means':
@@ -74,7 +90,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
         raise ValueError("unknown method '{}'".format(method))
 
     if keep_edges:
-        return np.concatenate([centers, cluster_centers], axis=0)
+        return np.concatenate([centers_at_edges, cluster_centers], axis=0)
     else:
         return cluster_centers
 

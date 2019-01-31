@@ -21,22 +21,35 @@ class TestHelpers(unittest.TestCase):
   """ sample center points """
 
   def test_1_shape_center_point(self):
-    methods = ["all", "random", "k_means" , "agglomerative"]
+    methods = ["all", "random", "k_means" , "agglomerative", "distance"]
     for m in methods:
       Y = np.random.uniform(size=(120,2))
       centers = sample_center_points(Y, method=m, k=50)
       self.assertEqual(centers.ndim, Y.ndim)
       self.assertEqual(centers.shape[1], Y.shape[1])
 
-  def test_1_shape_center_point_k_means(self):
+  def test_1_center_point_k_means(self):
     Y = np.asarray([1.0, 2.0])
     centers = sample_center_points(Y, method="k_means", k=1)
     self.assertAlmostEqual(Y.mean(), centers.mean())
 
-  def test_1_shape_center_point_agglomerative(self):
+  def test_1_center_point_agglomerative(self):
     Y = np.random.uniform(size=[20,3])
     centers = sample_center_points(Y, method="agglomerative", k=1)
     self.assertAlmostEqual(Y.mean(), centers.mean())
+
+  def test_1_shape_center_point_distance(self):
+    Y = np.asarray([1.0, 1.2, 1.7, 1.9, 2.0])
+    centers = sample_center_points(Y, method="distance", k=2)
+    self.assertAlmostEqual(centers.mean(), 1.5)
+
+    Y = np.asarray([1.0, 1.2, 1.5, 1.7, 1.9, 2.0])
+    centers = sample_center_points(Y, method="distance", k=3)
+    self.assertAlmostEqual(centers.mean(), 1.5)
+
+    Y = np.asarray(list(reversed([1.0, 1.2, 1.7, 1.9, 2.0])))
+    centers = sample_center_points(Y, method="distance", k=2)
+    self.assertAlmostEqual(centers.mean(), 1.5)
 
   def test_1_shape_center_point_keep_edges(self):
     methods = ["random", "k_means", "agglomerative"]
