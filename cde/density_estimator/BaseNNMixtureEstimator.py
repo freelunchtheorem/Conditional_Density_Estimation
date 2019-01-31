@@ -341,8 +341,8 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
           score_dict[(param_idx, fold_idx)] = model.score(X_test, Y_test)
 
       # run the prepared tasks in multiple processes
-      exec = AsyncExecutor(n_jobs=n_jobs)
-      exec.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
+      executor = AsyncExecutor(n_jobs=n_jobs)
+      executor.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
 
       # Select the best parameter settin
       assert len(score_dict.keys()) == len(param_list) * len(train_spits)
