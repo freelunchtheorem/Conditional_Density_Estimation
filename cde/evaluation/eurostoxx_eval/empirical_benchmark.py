@@ -201,7 +201,7 @@ def run_benchmark_train_test():
   print(result_df.to_latex())
   print(result_df)
 
-def run_benchmark_train_test_fit_by_cv():
+def run_benchmark_train_test_fit_by_cv(model_key=None):
   print("Fit by cv & Evaluation")
   model_dict_fit_by_cv = {
     'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
@@ -214,7 +214,11 @@ def run_benchmark_train_test_fit_by_cv():
                'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'random_seed': SEEDS},
   }
 
-  model_dict = initialized_models(model_dict_fit_by_cv, verbose=VERBOSE)
+  # exclude all other models except model_key
+  if model_key in list(model_dict_fit_by_cv.keys()):
+    model_dict_fit_by_cv = {model_key: model_dict_fit_by_cv[model_key]}
+
+  model_dict = initialize_models(model_dict_fit_by_cv, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
   result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=True, n_jobs=1)
 
@@ -231,7 +235,7 @@ def run_benchmark_train_test_cv_ml():
                   'param_selection': ['cv_ml'], 'random_seed': [22]},
   }
 
-  model_dict = initialized_models(model_dict_cv_ml, verbose=VERBOSE)
+  model_dict = initialize_models(model_dict_cv_ml, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
   result_df_cv_ml = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)
   print(result_df_cv_ml)
@@ -243,13 +247,15 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Empirical evaluation')
   parser.add_argument('--mode', default='normal',
                       help='mode of empirical evaluation evaluation')
+  parser.add_argument('--model', default=None,
+                      help='model for which to run empirical evaluation evaluation')
 
   args = parser.parse_args()
 
   if args.mode == 'normal':
     run_benchmark_train_test()
   elif args.mode == 'cv':
-    run_benchmark_train_test_fit_by_cv()
+    run_benchmark_train_test_fit_by_cv(args.model)
   elif args.mode == 'cv_ml':
     run_benchmark_train_test_cv_ml()
   else:
