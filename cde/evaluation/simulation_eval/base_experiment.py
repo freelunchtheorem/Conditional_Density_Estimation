@@ -1,6 +1,6 @@
 import argparse
 
-from cde.evaluation.ConfigRunner import ConfigRunner
+from cde.model_fitting.ConfigRunner import ConfigRunner
 
 
 RESULTS_FILE = 'results.pkl'

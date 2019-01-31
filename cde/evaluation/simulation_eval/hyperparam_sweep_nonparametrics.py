@@ -2,7 +2,7 @@ import matplotlib as mpl
 import numpy as np
 mpl.use("PS") #handles X11 server detection (required to run on console)
 
-from cde.evaluation_runs import base_experiment
+from cde.evaluation.simulation_eval import base_experiment
 
 EXP_PREFIX = 'hyperparam_sweep_nonparam'
 N_MC_SAMPLES = int(10**5)

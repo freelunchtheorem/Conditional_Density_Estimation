@@ -1,11 +1,11 @@
 from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensityEstimation, MixtureDensityNetwork, \
   NeighborKernelDensityEstimation, LSConditionalDensityEstimation
-from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
+from cde.evaluation.eurostoxx_eval.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 from sklearn.model_selection import cross_validate
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
 
-from cde.evaluation.ConfigRunner import _create_configurations
+from cde.model_fitting.ConfigRunner import _create_configurations
 import numpy as np
 import time
 import pandas as pd
@@ -75,7 +75,7 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 
   # compute avg. log likelihood
   mean_logli = np.mean(estimator.log_pdf(X_valid, Y_valid))
-  #
+
   if moment_r2:
     # predict mean and std
     mu_predicted, std_predicted = estimator.mean_std(X_valid, n_samples=N_SAMPLES)
@@ -106,7 +106,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   result_list_model = manager.list()
   if n_jobs == -1:
     n_jobs = len(SEEDS)
-  exec = AsyncExecutor(n_jobs=n_jobs)
+  executor = AsyncExecutor(n_jobs=n_jobs)
   eval = lambda est: result_list_model.append(empirical_evaluation(est, VALIDATION_PORTION, moment_r2=moment_r2,
                                                              eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv))
 
@@ -115,7 +115,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
     t = time.time()
 
     # Multiprocessing calls
-    exec.run(eval, models)
+    executor.run(eval, models)
 
     assert len(result_list_model) == len(models)
     mean_logli_list, mu_rmse_list, std_rmse_list, std_intraday_rmse_list = list(zip(*list(result_list_model)))
@@ -139,7 +139,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   return df
 
 
-def initialized_models(model_dict, verbose=False):
+def initialize_models(model_dict, verbose=False):
   ''' make kartesian product of listed parameters per model '''
   model_configs = {}
   for model_key, conf_dict in model_dict.items():
@@ -154,6 +154,7 @@ def initialized_models(model_dict, verbose=False):
     for i, conf in enumerate(model_conf_list):
       conf['name'] = model_key.replace(' ', '_') + '_%i' % i
       if verbose: print("instantiating ", conf['name'])
+      """ remove estimator entry from dict to instantiate it"""
       estimator = conf.pop('estimator')
       configs_initialized[model_key].append(globals()[estimator](**conf))
   return configs_initialized
@@ -193,7 +194,7 @@ def run_benchmark_train_test():
                       'random_seed': SEEDS},
   }
 
-  model_dict = initialized_models(model_dict, verbose=VERBOSE)
+  model_dict = initialize_models(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
   result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)

@@ -7,7 +7,7 @@ from cde.utils.io import load_time_series_csv
 
 
 
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../data'))
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../data'))
 
 EURO_OIS_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eur_ois.csv")
 EUROSTOXX_CSV = os.path.join(DATA_DIR, "2_Eurostoxx50/eurostoxx50_prices_eod.csv")

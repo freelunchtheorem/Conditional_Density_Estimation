@@ -2,14 +2,14 @@ import matplotlib as mpl
 mpl.use("PS") #handles X11 server detection (required to run on console)
 import numpy as np
 
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-from cde.evaluation_runs import base_experiment
-import cde.evaluation.ConfigRunner as ConfigRunner
+from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.evaluation.simulation_eval import base_experiment
+import cde.model_fitting.ConfigRunner as ConfigRunner
 import config
 
 from ml_logger import logger
 
-EXP_PREFIX = 'question4_benchmark_arma_jump'
+EXP_PREFIX = 'question4_benchmark_skew'
 RESULTS_FILE = 'results.pkl'
 
 N_MC_SAMPLES = int(2*10**5)
@@ -17,7 +17,7 @@ N_MC_SAMPLES = int(2*10**5)
 
 def question4():
   estimator_params = {
-        'ConditionalKernelDensityEstimation':
+    'ConditionalKernelDensityEstimation':
       {
         'bandwidth': ['normal_reference', 'cv_ml'],
       },
@@ -50,7 +50,7 @@ def question4():
   }
 
   simulators_params = {
-  'ArmaJump': {}
+  'SkewNormal': {}
   }
 
   observations = 100 * np.logspace(2, 6, num=8, base=2.0, dtype=np.int32)

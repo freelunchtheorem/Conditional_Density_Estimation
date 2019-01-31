@@ -1,5 +1,5 @@
 from cde.density_estimator.MDN import MixtureDensityNetwork
-from cde.empirical_evaluation.load_dataset import make_overall_eurostoxx_df, target_feature_split
+from cde.evaluation.eurostoxx_eval.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 from sklearn.decomposition import PCA
 import numpy as np

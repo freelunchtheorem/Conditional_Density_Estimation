@@ -1,10 +1,10 @@
 from cde.density_simulation import *
 from cde.density_estimator import *
-from cde.evaluation_runs import base_experiment
+from cde.evaluation.simulation_eval import base_experiment
 from ml_logger import logger
 from cde.utils.misc import take_of_type
-from cde.evaluation.GoodnessOfFitResults import GoodnessOfFitResults
-import cde.evaluation.ConfigRunner as ConfigRunner
+from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
+import cde.model_fitting.ConfigRunner as ConfigRunner
 import tensorflow as tf
 import os
 import pickle
@@ -126,11 +126,11 @@ if __name__ == "__main__":
   # simulator = EconDensity(std=1, heteroscedastic=True)
   # estimator = KernelMixtureNetwork('kmn', 1, 1, center_sampling_method='all', n_centers=2000)
   # fit_and_plot_estimated_vs_original_2D(estimator, simulator, 2000)
-  #plot_dumped_model('/home/jonasrothfuss/Documents/evaluation_runs/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle')
+  #plot_dumped_model('/home/jonasrothfuss/Documents/simulation_eval/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle')
 
   #sim = ArmaJump().plot(xlim=(-0.2, 0.2), ylim=(-0.1, 0.1))
 
-  #pickle_path = '/home/jonasrothfuss/Documents/evaluation_runs/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle'
+  #pickle_path = '/home/jonasrothfuss/Documents/simulation_eval/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle'
 
 
   with open(pickle_path, 'rb') as f:

@@ -1,1 +1,1 @@
-from dummies import *
+from tests.dummies import *

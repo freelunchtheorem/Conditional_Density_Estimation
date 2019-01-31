@@ -5,7 +5,7 @@ from cde.density_estimator import LSConditionalDensityEstimation, NeighborKernel
 from matplotlib.lines import Line2D
 import pandas as pd
 from cde.density_simulation import GaussianMixture, EconDensity
-from cde.evaluation.GoodnessOfFit import GoodnessOfFit
+from cde.model_fitting.GoodnessOfFit import GoodnessOfFit
 from cde.density_simulation.toy_densities import build_toy_dataset, build_toy_dataset2
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
