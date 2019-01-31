@@ -162,7 +162,7 @@ def initialize_models(model_dict, verbose=False):
 
 # run methods
 
-def run_benchmark_train_test():
+def run_benchmark_train_test(n_jobs=-1):
   print("Normal fit & Evaluation")
 
   model_dict = {
@@ -197,11 +197,11 @@ def run_benchmark_train_test():
   model_dict = initialize_models(model_dict, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
 
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False, n_jobs=n_jobs)
   print(result_df.to_latex())
   print(result_df)
 
-def run_benchmark_train_test_fit_by_cv(model_key=None):
+def run_benchmark_train_test_fit_by_cv(model_key=None, n_jobs=-1):
   print("Fit by cv & Evaluation")
   model_dict_fit_by_cv = {
     'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
@@ -220,12 +220,12 @@ def run_benchmark_train_test_fit_by_cv(model_key=None):
 
   model_dict = initialize_models(model_dict_fit_by_cv, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=True, n_jobs=1)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=True, n_jobs=n_jobs)
 
   print(result_df.to_latex())
   print(result_df)
 
-def run_benchmark_train_test_cv_ml():
+def run_benchmark_train_test_cv_ml(n_jobs=-1):
   print("Fit by cv_ml & Evaluation")
   model_dict_cv_ml = {
     'CKDE_cv_ml': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
@@ -237,7 +237,7 @@ def run_benchmark_train_test_cv_ml():
 
   model_dict = initialize_models(model_dict_cv_ml, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
-  result_df_cv_ml = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False)
+  result_df_cv_ml = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False, n_jobs=n_jobs)
   print(result_df_cv_ml)
   print(result_df_cv_ml.to_latex())
 
@@ -249,6 +249,9 @@ if __name__ == '__main__':
                       help='mode of empirical evaluation evaluation')
   parser.add_argument('--model', default=None,
                       help='model for which to run empirical evaluation evaluation')
+  parser.add_argument('--n_jobs', default=None,
+                      help='specifies the maximum number of concurrent jobs')
+
 
   args = parser.parse_args()
 
