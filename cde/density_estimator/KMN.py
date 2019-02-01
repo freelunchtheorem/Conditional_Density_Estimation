@@ -69,9 +69,6 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.hidden_sizes = hidden_sizes
     self.hidden_nonlinearity = hidden_nonlinearity
 
-    self.train_loss = np.empty(0)
-    self.test_loss = np.empty(0)
-
     self.n_training_epochs = n_training_epochs
 
     # center sampling parameters
@@ -145,13 +142,11 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
       info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
 
       train_loss = info_dict['loss'] / len(Y)
-      self.train_loss = np.append(self.train_loss, -train_loss)
 
       if eval_set is not None:
         X_test, y_test = eval_set
         test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.Y_ph: y_test}) / len(
           y_test)
-        self.test_loss = np.append(self.test_loss, -test_loss)
 
       # only print progress for the initial fit, not for additional updates
       if not self.fitted and verbose:
