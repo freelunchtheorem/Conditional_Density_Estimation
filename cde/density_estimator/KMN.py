@@ -89,9 +89,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         init_scales = np.array([1.0])
 
     self.n_scales = len(init_scales)
-    # Transform scales so that the softplus will result in passed init_scales
-    self.init_scales = [math.log(math.exp(s) - 1) for s in init_scales]
     self.train_scales = train_scales
+    self.init_scales = init_scales
+    # Transform scales so that the softplus will result in passed init_scales
+    self.init_scales_softplus = [np.log(np.exp(s) - 1) for s in init_scales]
 
     self.can_sample = True
     self.has_pdf = True
@@ -202,8 +203,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
 
       # scales of the gaussian kernels
       log_scales_layer = L.VariableLayer(core_network.input_layer, (self.n_scales,),
-                                      variable=tf.Variable(self.init_scales, dtype=tf.float32, trainable=self.train_scales),
-                                      name="log_scales", trainable=self.train_scales)
+                                         variable=tf.Variable(self.init_scales_softplus, dtype=tf.float32, trainable=self.train_scales),
+                                         name="log_scales", trainable=self.train_scales)
 
       self.scales_layer = L.NonlinearityLayer(log_scales_layer, nonlinearity=tf.nn.softplus)
       self.scales = L.get_output(self.scales_layer)
@@ -267,5 +268,5 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
   def __str__(self):
     return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \
              "n_training_epochs: {}\n x_noise_std: {}\n y_noise_std: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers,
-                                                  self.keep_edges, self.init_scales, self.train_scales, self.n_training_epochs, self.x_noise_std,
+                                                                                  self.keep_edges, self.init_scales_softplus, self.train_scales, self.n_training_epochs, self.x_noise_std,
                                                                                   self.y_noise_std)
