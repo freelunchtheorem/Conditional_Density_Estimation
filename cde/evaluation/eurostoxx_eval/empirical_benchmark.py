@@ -141,11 +141,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
 
 def initialize_models(model_dict, verbose=False):
   ''' make kartesian product of listed parameters per model '''
-  model_configs = {}
-  for model_key, conf_dict in model_dict.items():
-    print(model_key)
-    model_configs[model_key] = [dict(zip(conf_dict.keys(), value_tuple)) for value_tuple in
-                                list(itertools.product(*list(conf_dict.values())))]
+  model_configs = _create_configurations(model_dict, verbose=verbose)
 
   """ initialize models """
   configs_initialized = {}
@@ -207,11 +203,11 @@ def run_benchmark_train_test_fit_by_cv(model_key=None, n_jobs=-1):
     'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
                  'random_seed': SEEDS},
 
-    'MDN_cv': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-               'n_training_epochs': [1000], 'random_seed': SEEDS},
-
-    'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-               'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'random_seed': SEEDS},
+    # 'MDN_cv': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+    #            'n_training_epochs': [1000], 'random_seed': SEEDS},
+    #
+    # 'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+    #            'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'random_seed': SEEDS},
   }
 
   # exclude all other models except model_key
