@@ -1,8 +1,11 @@
-import numpy as np
 from scipy.stats import norm, multivariate_normal
 from sklearn.mixture import GaussianMixture
+from multiprocessing import Manager
+import numpy as np
 import tensorflow as tf
 import sklearn
+import os
+import itertools
 
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 from cde.utils.tf_utils.layers_powered import LayersPowered
@@ -10,8 +13,6 @@ from cde.utils.serializable import Serializable
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.map_inference import MAP_inference
 from cde.utils.async_executor import AsyncExecutor
-import itertools
-from multiprocessing import Manager
 
 class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
@@ -290,7 +291,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         P[i] += weights[i, j] * multivariate_normal.cdf(Y[i], mean=locs[i,j,:], cov=np.diag(scales[i,j,:]))
     return P
 
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, verbose=False, n_jobs=-1):
+  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, verbose=True, n_jobs=-1):
       """ Fits the conditional density model with hyperparameter search and cross-validation.
 
       - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
@@ -313,6 +314,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         random_state: (int) seed used by the random number generator for shuffeling the data
 
       """
+      os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
       original_params = self.get_params()
 
       if param_grid is None:

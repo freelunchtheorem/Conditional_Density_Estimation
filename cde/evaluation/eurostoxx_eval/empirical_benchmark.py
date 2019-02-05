@@ -157,7 +157,6 @@ def initialize_models(model_dict, verbose=False):
 
 
 # run methods
-
 def run_benchmark_train_test(n_jobs=-1):
   print("Normal fit & Evaluation")
 
@@ -245,17 +244,17 @@ if __name__ == '__main__':
                       help='mode of empirical evaluation evaluation')
   parser.add_argument('--model', default=None,
                       help='model for which to run empirical evaluation evaluation')
-  parser.add_argument('--n_jobs', default=None,
+  parser.add_argument('--n_jobs', type=int, default=-1,
                       help='specifies the maximum number of concurrent jobs')
 
 
   args = parser.parse_args()
 
   if args.mode == 'normal':
-    run_benchmark_train_test()
+    run_benchmark_train_test(n_jobs=args.n_jobs)
   elif args.mode == 'cv':
-    run_benchmark_train_test_fit_by_cv(args.model)
+    run_benchmark_train_test_fit_by_cv(model_key=args.model, n_jobs=args.n_jobs)
   elif args.mode == 'cv_ml':
-    run_benchmark_train_test_cv_ml()
+    run_benchmark_train_test_cv_ml(n_jobs=args.n_jobs)
   else:
     raise NotImplementedError()

@@ -73,6 +73,7 @@ for estimator, n_centers in [("MixtureDensityNetwork", 10), ("KernelMixtureNetwo
   plt.clf()
 
 """ XY-Noise Regularization"""
+color = iter(['red', 'orange', 'blue', 'green'])
 title = "Effect of XY-Noise Regularization (x_noise_std=0.2, y_noise_std=0.1)"
 plot_dict = dict([(simulator,
     {
@@ -85,53 +86,56 @@ plot_dict = dict([(simulator,
     },
 ) for simulator in ["EconDensity", "ArmaJump", "SkewNormal"]])
 
-fig = gof_result.plot_metric(plot_dict, metric="hellinger_distance", figsize=(14, 6), layout=(1, 3))
-plt.suptitle(title, fontsize=TITLE_SIZE)
-plt.tight_layout(h_pad=2, rect=[0, 0, 1, 0.90])
-plt.savefig(EXP_PREFIX + "/" + "xy_noise_overview")
+fig = gof_result.plot_metric(plot_dict, metric="hellinger_distance", figsize=(14, 4.5), layout=(1, 3), color=color)
+#plt.suptitle(title, fontsize=TITLE_SIZE)
+
+for i, ax in enumerate(fig.axes):
+  if i != 2:
+    ax.get_legend().remove()
+  ax.set_ylabel('Hellinger distance')
+  ax.set_xlabel('number of training samples')
+  ax.set_xticks([200, 500, 1000, 2000, 5000])
+  ax.set_xticklabels([200, 500, 1000, 2000, 5000])
+
+
+plt.tight_layout(h_pad=2, rect=[0, 0, 1, 1])
+plt.savefig(EXP_PREFIX + "/" + "xy_noise_overview.png")
+plt.savefig(EXP_PREFIX + "/" + "xy_noise_overview.pdf")
 plt.clf()
 
+""" X-Y Noise Reg heatplots"""
 """ X-Y Noise Reg heatplots"""
 n_samples = 1600
 metric = 'hellinger_distance'
 x_noise_vals = list(reversed([None, 0.1, 0.2, 0.4]))
 y_noise_vals = [None, 0.01, 0.02, 0.05, 0.1, 0.2]
-
 for estimator, n_centers in [("MixtureDensityNetwork", 10), ("KernelMixtureNetwork", 20)]:
-  fig, axarr = plt.subplots(2, 2, figsize=(12, 8))
+  fig, axarr = plt.subplots(2, 2, figsize=(12, 7.5))
   axarr = axarr.flatten()
   for k, simulator in enumerate(["EconDensity", "ArmaJump", "GaussianMixture", "SkewNormal"]):
-
     result_grid = np.empty((len(x_noise_vals), len(y_noise_vals)))
-
     for i, x_noise_std in enumerate(x_noise_vals):
       for j, y_noise_std in enumerate(y_noise_vals):
-
         graph_dict = {"estimator": estimator, "x_noise_std": x_noise_std, "y_noise_std": y_noise_std,
                         "n_centers": n_centers, "simulator": simulator, 'n_observations': n_samples}
-
         sub_df = results_df.loc[(results_df[list(graph_dict)] == pd.Series(graph_dict)).all(axis=1)]
-
         result_grid[i,j] = sub_df[metric].mean()
-
     im = axarr[k].imshow(result_grid)
-
     # annotate pixels
     for i, x_noise_std in enumerate(x_noise_vals):
       for j, y_noise_std in enumerate(y_noise_vals):
         axarr[k].text(j, i, "%.3f"%result_grid[i, j],
                       ha="center", va="center", color="w")
-
-    axarr[k].set_ylabel("x_noise_std")
-    axarr[k].set_xlabel("y_noise_std")
+    axarr[k].set_ylabel("x-noise std")
+    axarr[k].set_xlabel("y-noise std")
     axarr[k].set_yticks(np.arange(len(x_noise_vals)))
     axarr[k].set_xticks(np.arange(len(y_noise_vals)))
     axarr[k].set_yticklabels([str(val) for val in x_noise_vals])
     axarr[k].set_xticklabels([str(val) for val in y_noise_vals])
-    cbar = axarr[k].figure.colorbar(im, ax=axarr[k], shrink=0.7)
-    cbar.ax.set_ylabel("Hellinger Distance", rotation=-90, va="bottom")
+    cbar = axarr[k].figure.colorbar(im, ax=axarr[k], shrink=0.8)
+    cbar.ax.set_ylabel("Hellinger distance", rotation=-90, va="bottom")
     axarr[k].set_title(simulator)
-
-  plt.tight_layout(w_pad=1, rect=[0, 0, 1, 0.90])
-  plt.suptitle("Hellinger Distance X-Y-Noise:\n%s (%i centers) - %i observations"%(estimator, n_centers, n_samples), fontsize=TITLE_SIZE)
+  plt.tight_layout(w_pad=3.5, rect=[0, 0, 1, 1])
+  #plt.suptitle("Hellinger Distance X-Y-Noise:\n%s (%i centers) - %i observations"%(estimator, n_centers, n_samples), fontsize=TITLE_SIZE)
   plt.savefig(EXP_PREFIX + "/" +"%s_%i_%iobs_xy_noise_heatmap.png" % (estimator, n_centers, n_samples))
+  plt.savefig(EXP_PREFIX + "/" + "%s_%i_%iobs_xy_noise_heatmap.pdf" % (estimator, n_centers, n_samples))

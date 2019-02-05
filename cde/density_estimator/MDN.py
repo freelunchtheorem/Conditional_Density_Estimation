@@ -54,9 +54,6 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.hidden_sizes = hidden_sizes
     self.hidden_nonlinearity = hidden_nonlinearity
 
-    self.train_loss = np.empty(0)
-    self.test_loss = np.empty(0)
-
     self.n_training_epochs = n_training_epochs
 
     # regularization parameters
@@ -109,12 +106,10 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
 
         train_loss = info_dict['loss'] / len(Y)
-        self.train_loss = np.append(self.train_loss, -train_loss)
 
         if eval_set is not None:
             X_test, y_test = eval_set
             test_loss = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(y_test)
-            self.test_loss = np.append(self.test_loss, -test_loss)
 
         #scales = self.sess.run(self.scales, feed_dict={self.X_ph: X[:2,:]})
         #print(scales[1])
