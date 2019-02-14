@@ -238,10 +238,9 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
 
   def _param_grid(self):
-
     param_grid = {
-        "n_centers": [20, 50, 200],
-        "x_noise_std": [0.1, 0.15, 0.2, 0.3],
+        "n_centers": [50, 200],
+        "x_noise_std": [0.15, 0.2, 0.3],
         "y_noise_std": [0.5, 0.1, 0.15, 0.2]
     }
     return param_grid
