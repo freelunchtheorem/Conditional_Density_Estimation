@@ -25,7 +25,6 @@ setup(name='cde',
         'scikit_learn>=0.19.1',
         'dask>=1.0.0',
         'statsmodels',
-        'pypmc',
         'ml_logger<=99.99',
         'progressbar2'
       ],

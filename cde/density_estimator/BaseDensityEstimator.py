@@ -73,8 +73,9 @@ class BaseDensityEstimator(ConditionalDensity):
     if verbose: print("Cross-Validation terminated")
     if verbose: print("Best likelihood score: %.4f" % cv_model.best_score_)
     if verbose: print("Best params:", best_params)
-    self.set_params(**cv_model.best_params_)
+    self.set_params(**best_params)
     self.fit(X, Y)
+    return best_params
 
   def pdf(self, X, Y):
     """ Predicts the conditional likelihood p(y|x). Requires the model to be fitted.

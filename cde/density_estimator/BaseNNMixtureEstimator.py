@@ -346,8 +346,13 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       executor = AsyncExecutor(n_jobs=n_jobs)
       executor.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
 
-      # Select the best parameter settin
+      # check if all results are available and rerun failed fit_evals
+      for i, j in zip(param_ids, fold_ids):
+        if (i, j) not in set(score_dict.keys()):
+          _fit_eval(i,j)
       assert len(score_dict.keys()) == len(param_list) * len(train_spits)
+
+      # Select the best parameter setting
       scores_array = np.zeros((len(param_list), len(train_spits)))
       for (i, j), score in score_dict.items():
         scores_array[i, j] = score
@@ -363,6 +368,7 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
       self.set_params(**selected_params)
       self.reset_fit()
       self.fit(X, Y, verbose=False)
+      return selected_params
 
   def reset_fit(self):
     """
