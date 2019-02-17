@@ -40,11 +40,8 @@ class configrunner(unittest.TestCase):
 
     conf_runner.configs = random.sample(conf_runner.configs, NUM_CONFIGS_TO_TEST)
 
-    results_from_configrunner, _ = conf_runner.run_configurations(dump_models=True, multiprocessing=False)
-    results_from_pkl_file = dict(logger.load_pkl(RESULTS_FILE))
-
-    """ check results pickle """
-    self.assertTrue(results_from_pkl_file.keys() == results_from_configrunner.keys())
+    conf_runner.run_configurations(dump_models=True, multiprocessing=False)
+    results_from_pkl_file = dict({logger.load_pkl(RESULTS_FILE)})
 
     """ check if model dumps have all been created """
     dump_dir = os.path.join(logger.log_directory, logger.prefix, 'model_dumps')

@@ -320,6 +320,7 @@ class TestSerializationDensityEstimators(unittest.TestCase):
     diff = np.sum(np.abs(pdf_after - pdf_before))
     self.assertAlmostEqual(diff, 0, places=2)
 
+
 class TestRegularization(unittest.TestCase):
 
   def get_samples(self, std=1.0, mean=2):
@@ -332,18 +333,19 @@ class TestRegularization(unittest.TestCase):
   def test1_KMN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 
-    model_no_noise = KernelMixtureNetwork("kmn_no_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
-    model_no_noise.fit(X, Y)
-    var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+    with tf.Session():
+      model_no_noise = KernelMixtureNetwork("kmn_no_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
+      model_no_noise.fit(X, Y)
+      var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = KernelMixtureNetwork("kmn_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=1)
-    model_noise.fit(X, Y)
-    var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+      model_noise = KernelMixtureNetwork("kmn_noise_y", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=1)
+      model_noise.fit(X, Y)
+      var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    print("Training w/o noise:", var_no_noise)
-    print("Training w/ noise:", var_noise)
+      print("Training w/o noise:", var_no_noise)
+      print("Training w/ noise:", var_noise)
 
-    self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
+      self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
 
   def test2_KMN_with_2d_gaussian_noise_x(self):
     np.random.seed(22)
@@ -354,34 +356,36 @@ class TestRegularization(unittest.TestCase):
     x_test_4 = np.ones(100) * 4
     y_test = np.linspace(1, 5, num=100)
 
-    model_no_noise = KernelMixtureNetwork("kmn_no_noise_x", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
-    model_no_noise.fit(X, Y)
-    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+    with tf.Session():
+      model_no_noise = KernelMixtureNetwork("kmn_no_noise_x", 1, 1, n_centers=5, x_noise_std=None, y_noise_std=None)
+      model_no_noise.fit(X, Y)
+      pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
 
-    model_noise = KernelMixtureNetwork("kmn_noise_x", 1, 1, n_centers=5, x_noise_std=2, y_noise_std=None)
-    model_noise.fit(X, Y)
-    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+      model_noise = KernelMixtureNetwork("kmn_noise_x", 1, 1, n_centers=5, x_noise_std=2, y_noise_std=None)
+      model_noise.fit(X, Y)
+      pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
 
-    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
-    print("Training w/ noise - pdf distance", pdf_distance_noise)
+      print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+      print("Training w/ noise - pdf distance", pdf_distance_noise)
 
-    self.assertGreaterEqual(pdf_distance_no_noise / pdf_distance_noise, 2.0)
+      self.assertGreaterEqual(pdf_distance_no_noise / pdf_distance_noise, 2.0)
 
   def test3_MDN_with_2d_gaussian_noise_y(self):
     X, Y = self.get_samples(std=0.5)
 
-    model_no_noise = MixtureDensityNetwork("mdn_no_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
-    model_no_noise.fit(X, Y)
-    var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+    with tf.Session():
+      model_no_noise = MixtureDensityNetwork("mdn_no_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
+      model_no_noise.fit(X, Y)
+      var_no_noise = model_no_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    model_noise = MixtureDensityNetwork("mdn_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=1)
-    model_noise.fit(X, Y)
-    var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
+      model_noise = MixtureDensityNetwork("mdn_noise_y", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=1)
+      model_noise.fit(X, Y)
+      var_noise = model_noise.covariance(x_cond=np.array([[2]]))[0][0][0]
 
-    print("Training w/o noise:", var_no_noise)
-    print("Training w/ noise:", var_noise)
+      print("Training w/o noise:", var_no_noise)
+      print("Training w/ noise:", var_noise)
 
-    self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
+      self.assertGreaterEqual(var_noise - var_no_noise, 0.1)
 
   def test4_MDN_with_2d_gaussian_noise_x(self):
     np.random.seed(22)
@@ -392,18 +396,19 @@ class TestRegularization(unittest.TestCase):
     x_test_4 = np.ones(100) * 4
     y_test = np.linspace(1,5,num=100)
 
-    model_no_noise = MixtureDensityNetwork("mdn_no_noise_x", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
-    model_no_noise.fit(X, Y)
-    pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
+    with tf.Session():
+      model_no_noise = MixtureDensityNetwork("mdn_no_noise_x", 1, 1, n_centers=1, x_noise_std=None, y_noise_std=None)
+      model_no_noise.fit(X, Y)
+      pdf_distance_no_noise = np.mean(np.abs(model_no_noise.pdf(x_test_2, y_test) - model_no_noise.pdf(x_test_4, y_test)))
 
-    model_noise = MixtureDensityNetwork("mdn_noise_x", 1, 1, n_centers=1, x_noise_std=2, y_noise_std=None)
-    model_noise.fit(X, Y)
-    pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
+      model_noise = MixtureDensityNetwork("mdn_noise_x", 1, 1, n_centers=1, x_noise_std=2, y_noise_std=None)
+      model_noise.fit(X, Y)
+      pdf_distance_noise = np.mean(np.abs(model_noise.pdf(x_test_2, y_test) - model_noise.pdf(x_test_4, y_test)))
 
-    print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
-    print("Training w/ noise - pdf distance", pdf_distance_noise)
+      print("Training w/o noise - pdf distance:", pdf_distance_no_noise)
+      print("Training w/ noise - pdf distance", pdf_distance_noise)
 
-    self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
+      self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
 
   def test5_MDN_entropy_regularization(self):
     X1, Y1 = self.get_samples(std=1, mean=2)
@@ -584,51 +589,51 @@ class TestLogProbability(unittest.TestCase):
     log_prob = model.log_pdf(x, y)
     self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
 
-#
-# class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
-#   def get_samples(self):
-#     np.random.seed(22)
-#     data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
-#     X = data[:, 0]
-#     Y = data[:, 1]
-#     return X, Y
-#
-#   def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
-#     X, Y = self.get_samples()
-#
-#     param_grid = {
-#       "n_centers": [3, 10],
-#       "center_sampling_method": ["k_means"],
-#       "keep_edges": [True]
-#     }
-#
-#     model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
-#     model.fit_by_cv(X, Y, param_grid=param_grid)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertEqual(model.get_params()["n_centers"], 10)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
-#
-#
-#   def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
-#     X, Y = self.get_samples()
-#
-#     param_grid = {
-#       "n_centers": [2, 10, 50]
-#     }
-#
-#     model = MixtureDensityNetwork()
-#     model.fit_by_cv(X, Y, param_grid=param_grid)
-#
-#     y = np.arange(-1, 5, 0.5)
-#     x = np.asarray([2 for i in range(y.shape[0])])
-#     p_est = model.pdf(x, y)
-#     p_true = norm.pdf(y, loc=2, scale=1)
-#     self.assertEqual(model.get_params()["n_centers"], 10)
-#     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
+class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
+  def get_samples(self):
+    np.random.seed(22)
+    data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
+    X = data[:, 0]
+    Y = data[:, 1]
+    return X, Y
+
+  def test_1_KMN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
+
+    param_grid = {
+      "n_centers": [3, 10],
+      "center_sampling_method": ["k_means"],
+      "keep_edges": [True]
+    }
+
+    model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
+    model.fit_by_cv(X, Y, param_grid=param_grid)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
+
+  def test_2_MDN_with_2d_gaussian_fit_by_crossval(self):
+    X, Y = self.get_samples()
+
+    param_grid = {
+      "n_centers": [2, 10, 50]
+    }
+
+    model = MixtureDensityNetwork()
+    model.fit_by_cv(X, Y, param_grid=param_grid)
+
+    y = np.arange(-1, 5, 0.5)
+    x = np.asarray([2 for i in range(y.shape[0])])
+    p_est = model.pdf(x, y)
+    p_true = norm.pdf(y, loc=2, scale=1)
+    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
 

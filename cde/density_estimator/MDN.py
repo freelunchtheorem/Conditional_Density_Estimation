@@ -7,7 +7,6 @@ from cde.utils.tf_utils.network import MLP
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
-from cde.utils.tf_utils.map_inference import MAP_inference
 
 #import matplotlib.pyplot as plt
 

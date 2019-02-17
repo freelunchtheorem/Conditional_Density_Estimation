@@ -20,7 +20,7 @@ VALIDATION_PORTION = 0.2
 ndim_x = 14
 ndim_y = 1
 
-N_SAMPLES = 10**5
+N_SAMPLES = 10**1
 SEEDS = [22, 23, 24, 25, 26]
 
 VERBOSE = True
@@ -83,10 +83,11 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
     std_predicted = std_predicted.flatten()[:-1]
 
     assert mu_realized.shape == mu_predicted.shape
-    assert std_realized_intraday.shape == std_realized_intraday.shape
 
     # compute realized std
     std_realized = np.abs(mu_predicted - mu_realized)
+
+    assert std_realized.shape == std_realized_intraday.shape
 
     # compute RMSE
     mu_rmse = np.sqrt(np.mean((mu_realized - mu_predicted) ** 2))

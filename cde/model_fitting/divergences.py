@@ -72,7 +72,7 @@ def divergence_measures_pdf(p, q, x_cond, n_samples=10**5):
   fun_div_measures_stack = lambda p, q: np.stack([_FUN_HELLINGER_2(p,q), _FUN_KL(p,q), _FUN_JS(p,q)], axis=1) # np.sqrt(_FUN_HELLINGER_2(p,q))
   div_measure_stack = _divergence_mc(p, q, x_cond, fun_div_measures_stack, n_samples, n_measures=3)
   assert div_measure_stack.shape == (x_cond.shape[0], 3)
-  h_divs, kl_divs, js_divs = div_measure_stack[:, 0], div_measure_stack[:,1], div_measure_stack[:, 2]
+  h_divs, kl_divs, js_divs = div_measure_stack[:, 0], div_measure_stack[:, 1], div_measure_stack[:, 2]
   return np.sqrt(0.5 * h_divs), kl_divs, js_divs
 
 def _divergence_mc(p, q, x_cond, divergenc_fun, n_samples=10 ** 5, n_measures=1):

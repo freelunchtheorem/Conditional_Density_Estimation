@@ -378,6 +378,7 @@ class TestDivergenceMeasures(unittest.TestCase):
   def test_divmeasures_mc_1d(self):
     np.random.seed(22)
     x_cond = np.array([[0.0, 1.0], [2.0, 0.5]])
+    # todo: check, indeterministic behavior (sometimes fails)
     h_est, kl_est, js_est = divergence_measures_pdf(self.gaussian1, self.gaussian2, x_cond=x_cond)
 
     js_true = 0.5 * _kl_gaussians(self.mu1, self.cov1, self.mu2, self.cov2) + 0.5 * _kl_gaussians(self.mu2, self.cov2, self.mu1, self.cov1)

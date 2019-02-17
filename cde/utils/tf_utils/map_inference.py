@@ -1,7 +1,5 @@
-import edward as ed
 import six
-import tensorflow as tf
-from edward.models import RandomVariable, PointMass
+import edward as ed
 from edward.util import copy, transform
 import tensorflow as tf
 
@@ -24,8 +22,8 @@ class MAP_inference(ed.MAP):
     dict_swap = {z: qz.value()
                  for z, qz in six.iteritems(self.latent_vars)}
     for x, qx in six.iteritems(self.data):
-      if isinstance(x, RandomVariable):
-        if isinstance(qx, RandomVariable):
+      if isinstance(x, ed.RandomVariable):
+        if isinstance(qx, ed.RandomVariable):
           dict_swap[x] = qx.value()
         else:
           dict_swap[x] = qx
@@ -37,7 +35,7 @@ class MAP_inference(ed.MAP):
           self.scale.get(z, 1.0) * z_copy.log_prob(dict_swap[z]))
 
     for x in six.iterkeys(self.data):
-      if isinstance(x, RandomVariable):
+      if isinstance(x, ed.RandomVariable):
         if dict_swap:
           x_copy = copy(x, dict_swap, scope=scope)
         else:
