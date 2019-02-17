@@ -25,7 +25,7 @@ To use the library, either clone the GitHub repository and import it into your p
 pip install cde
 ```
 ## Documentation
-See the documentation [here](https://jonasrothfuss.github.io/Conditional_Density_Estimation).
+See the documentation [here](https://ferreira-rothfuss.github.io/Conditional_Density_Estimation).
 
 
 ## Citing
@@ -38,6 +38,6 @@ If you use CDE in your research, you can cite it as follows:
     year = {2019},
     publisher = {GitHub},
     journal = {GitHub repository},
-    howpublished = {\url{https://github.com/jonasrothfuss/Conditional_Density_Estimation}},
+    howpublished = {\url{https://github.com/ferreira-fabio/Conditional_Density_Estimation}},
 }
 ```
