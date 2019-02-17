@@ -16,6 +16,7 @@ before_install:
 # command to install dependencies
 install:
   - pip install .
+  - pip install -q tensorflow==$TENSORFLOW_VERSION
 
 # command to run tests
 script:
