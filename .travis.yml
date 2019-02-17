@@ -1,6 +1,7 @@
 language: python
 
 python:
+  - "3.5"
   - "3.6"
   - "3.6-dev"  # 3.6 development branch
 
@@ -21,5 +22,6 @@ notifications:
   email:
     recipients:
       - jonas.rothfuss@gmail.com
+      - fabioferreira@mailbox.org
     on_success: never
     on_failure: never
