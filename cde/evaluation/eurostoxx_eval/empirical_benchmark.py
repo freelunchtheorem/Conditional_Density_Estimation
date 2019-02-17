@@ -20,7 +20,7 @@ VALIDATION_PORTION = 0.2
 ndim_x = 14
 ndim_y = 1
 
-N_SAMPLES = 10**1
+N_SAMPLES = 10**5
 SEEDS = [22, 23, 24, 25, 26]
 
 VERBOSE = True
