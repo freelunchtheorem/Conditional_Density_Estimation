@@ -5,6 +5,12 @@ python:
   - "3.6"
   - "3.6-dev"  # 3.6 development branch
 
+env:
+  - TENSORFLOW_VERSION=1.4
+  - TENSORFLOW_VERSION=1.5
+  - TENSORFLOW_VERSION=1.6
+  - TENSORFLOW_VERSION=1.7
+
 before_install:
 
 # command to install dependencies
