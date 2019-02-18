@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/ferreira-rothfuss/Conditional_Density_Estimation.svg?branch=master)](https://travis-ci.org/ferreira-rothfuss/Conditional_Density_Estimation)
+[![Build Status](https://travis-ci.org/freelunchtheorem/Conditional_Density_Estimation.svg?branch=master)](https://travis-ci.org/freelunchtheorem/Conditional_Density_Estimation)
 
 # Conditional Density Estimation (CDE)
 
