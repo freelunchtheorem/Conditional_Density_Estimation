@@ -10,7 +10,7 @@ Implementations of various methods for conditional density estimation
     * Kernel Density Estimation (KMN)
 * **Nonparametric methods**
     * Conditional Kernel Density Estimation (CKDE)
-    * $$\epsilon$$-Neighborhood Kernel Density Estimation (NKDE)
+    * Neighborhood Kernel Density Estimation (NKDE)
 * **Semiparametric methods**
     * Least Squares Conditional Density Estimation (LSKDE)
     
@@ -21,11 +21,11 @@ Beyond estimating conditional probability densities, the package features extens
 
 ## Installation
 To use the library, either clone the GitHub repository and run 
-```.bash
+```bash
 pip install .
 ``` 
 in the package folder or directly use the python package index:
-```.bash
+```bash
 pip install cde
 ```
 Note that the package only supports tensorflow versions between 1.4 and 1.7.
@@ -34,7 +34,7 @@ See the documentation [here](https://freelunchtheorem.github.io/Conditional_Dens
 
 ## Usage
 The following code snipped holds an easy example that demonstrates how to use the cde package.
-```.python
+```python
 from cde.density_simulation import SkewNormal
 from cde.density_estimator import KernelMixtureNetwork
 import numpy as np
