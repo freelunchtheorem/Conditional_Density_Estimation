@@ -72,3 +72,6 @@ If you use CDE in your research, you can cite it as follows:
     howpublished = {\url{https://github.com/ferreira-fabio/Conditional_Density_Estimation}},
 }
 ```
+
+## Todo
+- creating a branch just for our conditional estimators + python package
