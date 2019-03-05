@@ -27,5 +27,5 @@ setup(name='cde',
         'ml_logger<=99.99',
         'progressbar2'
       ],
-      dependency_links=["https://github.com/jonasrothfuss/ml_logger/archive/2d373835ea159587fc323140ed0e8a8ea1bf9843.zip#egg=ml_logger-99.99"],
+      dependency_links=["https://github.com/jonasrothfuss/ml_logger/archive/9db50b24af8c5b29f229346325825328711f1aed.zip#egg=ml_logger-99.99"],
       zip_safe=False)
