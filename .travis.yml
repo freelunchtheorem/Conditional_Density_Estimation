@@ -1,13 +1,9 @@
 language: python
 
-os:
-  - windows
-  - linux
-  - osx
-
 python:
   - "3.5"
   - "3.6"
+  - "3.6-dev"  # 3.6 development branch
 
 env:
   - TENSORFLOW_VERSION=1.4
