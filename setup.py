@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='cde',
-      version='0.4',
+      version='0.5.1',
       long_description=long_description,
       description='Framework for conditional density estimation',
       url='https://jonasrothfuss.github.io/Nonparametric_Density_Estimation',
