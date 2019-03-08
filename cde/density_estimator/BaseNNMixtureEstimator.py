@@ -234,10 +234,9 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
     if verbose:
       train_loss = info_dict['loss'] / len(Y)
-      test_loss = info_dict['eval_loss'] / len(Y_test)
-
       print("mean log-loss train: {:.4f}".format(train_loss))
       if eval_set is not None:
+        test_loss = info_dict['eval_loss'] / len(Y_test)
         print("mean log-loss valid: {:.4f}".format(test_loss))
 
   def _conditional_value_at_risk_mixture(self, VaRs, x_cond, alpha=0.01,):
