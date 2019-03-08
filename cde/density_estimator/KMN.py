@@ -99,17 +99,19 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     # build tensorflow model
     self._build_model()
 
-  def fit(self, X, Y, random_seed=None, verbose=True, **kwargs):
+  def fit(self, X, Y, eval_set=None, verbose=True):
     """ Fits the conditional density model with provided data
 
       Args:
         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        n_folds: number of cross-validation folds (positive integer)
+        eval_set: (tuple) eval/test set - tuple (X_test, Y_test)
         verbose: (boolean) controls the verbosity (console output)
-
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+
+    if eval_set is not None:
+      eval_set = self._handle_input_dimensionality(*eval_set)
 
     self._setup_inference_and_initialize()
 
@@ -126,36 +128,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.sess.run(tf.assign(self.locs, sampled_locs))
 
     # train the model
-    self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
+    self._partial_fit(X, Y, n_epoch=self.n_training_epochs, eval_set=eval_set, verbose=verbose)
     self.fitted = True
 
-  def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
-    """
-    update model
-    """
-    # loop over epochs
-    for i in range(n_epoch):
-
-      # run inference, update trainable variables of the model
-
-      info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
-
-      train_loss = info_dict['loss'] / len(Y)
-
-      if eval_set is not None:
-        X_test, y_test = eval_set
-        test_loss, X_test_fed, y_test_fed = self.sess.run(self.inference.loss, X_test, y_test, feed_dict={self.X_ph: X_test, self.Y_ph: y_test}) / len(
-          y_test)
-
-      # only print progress for the initial fit, not for additional updates
-      if not self.fitted and verbose:
-        self.inference.print_progress(info_dict)
-
     if verbose:
-      print("mean log-loss train: {:.3f}".format(train_loss))
-      if eval_set is not None:
-        print("mean log-loss test: {:.3f}".format(test_loss))
-
       print("optimal scales: {}".format(self.sess.run(self.scales)))
 
   def _build_model(self):

@@ -77,11 +77,14 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       Args:
         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        random_seed: the seed (integer) used by the random number generator
+        eval_set: (tuple) eval/test set - tuple (X_test, Y_test)
         verbose: (boolean) controls the verbosity (console output)
 
     """
     X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+
+    if eval_set is not None:
+      eval_set = self._handle_input_dimensionality(*eval_set)
 
     self._setup_inference_and_initialize()
 
@@ -90,37 +93,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
       self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
 
     # train the model
-    self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, **kwargs)
+    self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, eval_set=eval_set)
     self.fitted = True
-
-  def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
-    """
-    update model
-    """
-
-    # loop over epochs
-    for i in range(n_epoch):
-
-        # run inference, update trainable variables of the model
-        info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
-
-        train_loss = info_dict['loss'] / len(Y)
-
-        if eval_set is not None:
-            X_test, y_test = eval_set
-            test_loss = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.y_ph: y_test}) / len(y_test)
-
-        #scales = self.sess.run(self.scales, feed_dict={self.X_ph: X[:2,:]})
-        #print(scales[1])
-
-        # only print progress for the initial fit, not for additional updates
-        if not self.fitted and verbose:
-            self.inference.print_progress(info_dict)
-
-    if verbose:
-      print("mean log-loss train: {:.3f}".format(train_loss))
-      if eval_set is not None:
-          print("mean log-loss test: {:.3f}".format(test_loss))
 
   def _build_model(self):
     """
@@ -199,11 +173,10 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
                                   self.layer_in_y])
 
   def _param_grid(self):
-
     param_grid = {
         "n_centers": [5, 10, 20],
         "x_noise_std": [0.1, 0.15, 0.2, 0.3],
-        "y_noise_std": [0.5, 0.1, 0.15, 0.2]
+        "y_noise_std": [0.1, 0.15, 0.2]
     }
     return param_grid
 

@@ -213,6 +213,33 @@ class BaseNNMixtureEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     assert VaRs.shape == CVaRs.shape == (len(x_cond),)
     return VaRs, CVaRs
 
+  def _partial_fit(self, X, Y, n_epoch=1, eval_set=None, verbose=True):
+    """
+    update model
+    """
+    # loop over epochs
+    for i in range(n_epoch):
+
+      # run inference, update trainable variables of the model
+      info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
+
+      # compute evaluation loss
+      if eval_set is not None:
+        X_test, Y_test = eval_set
+        info_dict['eval_loss'] = self.sess.run(self.inference.loss, feed_dict={self.X_ph: X_test, self.Y_ph: Y_test})
+
+      # only print progress for the initial fit, not for additional updates
+      if not self.fitted and verbose:
+        self.inference.progbar.update(info_dict.pop('t'), info_dict)
+
+    if verbose:
+      train_loss = info_dict['loss'] / len(Y)
+      test_loss = info_dict['eval_loss'] / len(Y_test)
+
+      print("mean log-loss train: {:.4f}".format(train_loss))
+      if eval_set is not None:
+        print("mean log-loss valid: {:.4f}".format(test_loss))
+
   def _conditional_value_at_risk_mixture(self, VaRs, x_cond, alpha=0.01,):
     """
     Based on formulas from section 2.3.2 in "Expected shortfall for distributions in finance",

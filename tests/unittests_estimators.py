@@ -277,6 +277,19 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     p_true = norm.cdf(y, loc=2, scale=1)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+  def test_MDN_KMN_eval_set(self):
+    mu = 200
+    std = 23
+    X_train, Y_train = self.get_samples(mu=mu, std=std)
+    X_test, Y_test = self.get_samples(mu=mu, std=std)
+    X_test = X_test
+
+    model = MixtureDensityNetwork("mdn", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
+    model.fit(X_train, Y_train, eval_set=(X_test, Y_test))
+
+    model = KernelMixtureNetwork("kmn", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
+    model.fit(X_train, Y_train, eval_set=(X_test, Y_test))
+
 class TestSerializationDensityEstimators(unittest.TestCase):
 
   def get_samples(self, std=1.0):
