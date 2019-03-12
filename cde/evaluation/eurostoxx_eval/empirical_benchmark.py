@@ -21,7 +21,8 @@ ndim_x = 14
 ndim_y = 1
 
 N_SAMPLES = 10**5
-SEEDS = [22, 23, 24, 25, 26]
+SEEDS = [40, 41, 42, 43, 44]
+N_CV_FOLDS = 10
 
 VERBOSE = True
 
@@ -38,6 +39,12 @@ def train_valid_split(valid_portion):
 
   return df_train, df_valid
 
+
+def cv_param_search(estimator, valid_portion=0.2, n_cv_folds=10, n_jobs=1):
+  df_train, df_valid = train_valid_split(valid_portion)
+  X_train, Y_train = target_feature_split(df_train, 'log_ret_1', filter_nan=True)
+  selected_params = estimator.fit_by_cv(X_train, Y_train, n_folds=n_cv_folds, n_jobs=n_jobs)
+  return selected_params
 
 def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_fc=False, fit_by_cv=False):
   """
@@ -83,11 +90,10 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
     std_predicted = std_predicted.flatten()[:-1]
 
     assert mu_realized.shape == mu_predicted.shape
+    assert std_realized_intraday.shape == std_realized_intraday.shape
 
     # compute realized std
     std_realized = np.abs(mu_predicted - mu_realized)
-
-    assert std_realized.shape == std_realized_intraday.shape
 
     # compute RMSE
     mu_rmse = np.sqrt(np.mean((mu_realized - mu_predicted) ** 2))
@@ -98,8 +104,7 @@ def empirical_evaluation(estimator, valid_portion=0.2, moment_r2=True, eval_by_f
 
   return mean_logli, mu_rmse, std_rmse, std_intraday_rmse
 
-
-def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=False, n_jobs=-1):
+def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=False, n_jobs=-1, multiprocessing=True):
   result_dict = {}
 
   # multiprocessing setup
@@ -107,7 +112,7 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   result_list_model = manager.list()
   if n_jobs == -1:
     n_jobs = len(SEEDS)
-  executor = AsyncExecutor(n_jobs=n_jobs)
+  if multiprocessing: executor = AsyncExecutor(n_jobs=n_jobs)
   eval = lambda est: result_list_model.append(empirical_evaluation(est, VALIDATION_PORTION, moment_r2=moment_r2,
                                                              eval_by_fc=eval_by_fc, fit_by_cv=fit_by_cv))
 
@@ -115,8 +120,13 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
     print("Running likelihood fit and validation for %s" % model_name)
     t = time.time()
 
-    # Multiprocessing calls
-    executor.run(eval, models)
+    # Multiprocessing calls or loop
+    if multiprocessing:
+      executor.run(eval, models)
+    else:
+      for est in models:
+        eval(est)
+
 
     assert len(result_list_model) == len(models)
     mean_logli_list, mu_rmse_list, std_rmse_list, std_intraday_rmse_list = list(zip(*list(result_list_model)))
@@ -140,16 +150,19 @@ def empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=True, fit_by_cv=F
   return df
 
 
-def initialize_models(model_dict, verbose=False):
+def initialize_models(model_dict, verbose=False, model_name_prefix=''):
   ''' make kartesian product of listed parameters per model '''
-  model_configs = _create_configurations(model_dict, verbose=verbose)
+  model_configs = {}
+  for model_key, conf_dict in model_dict.items():
+    model_configs[model_key] = [dict(zip(conf_dict.keys(), value_tuple)) for value_tuple in
+                                list(itertools.product(*list(conf_dict.values())))]
 
   """ initialize models """
   configs_initialized = {}
   for model_key, model_conf_list in model_configs.items():
     configs_initialized[model_key] = []
     for i, conf in enumerate(model_conf_list):
-      conf['name'] = model_key.replace(' ', '_') + '_%i' % i
+      conf['name'] = model_name_prefix + model_key.replace(' ', '_') + '_%i' % i
       if verbose: print("instantiating ", conf['name'])
       """ remove estimator entry from dict to instantiate it"""
       estimator = conf.pop('estimator')
@@ -162,32 +175,33 @@ def run_benchmark_train_test(n_jobs=-1):
   print("Normal fit & Evaluation")
 
   model_dict = {
-    'CKDE': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                               'bandwidth': ['normal_reference'], 'random_seed': [None]},
-
     'LSCDE': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
               'random_seed': SEEDS},
 
-    'NKDE': {'estimator': ['NeighborKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                  'param_selection': ['normal_reference'], 'random_seed': [None]},
+    'MDN w/0 noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                      'n_centers': [20], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None],
+                      'random_seed': SEEDS},
+
+    'KMN w/0 noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
+                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None],
+                      'y_noise_std': [None],
+                      'random_seed': SEEDS},
 
     'MDN w/ noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                     'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
-                     'random_seed': SEEDS},
-
-    'MDN w/0 noise': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                      'n_centers': [10], 'n_training_epochs': [1000], 'x_noise_std': [None], 'y_noise_std': [None],
-                      'random_seed': SEEDS},
+                        'n_centers': [20], 'n_training_epochs': [1000], 'x_noise_std': [0.2], 'y_noise_std': [0.1],
+                        'random_seed': SEEDS},
 
     'KMN w/ noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [0.2],
                      'y_noise_std': [0.1],
                      'random_seed': SEEDS},
 
-    'KMN w/0 noise': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'n_centers': [50],
-                      'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'x_noise_std': [None],
-                      'y_noise_std': [None],
-                      'random_seed': SEEDS},
+    'NKDE': {'estimator': ['NeighborKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                  'param_selection': ['normal_reference'], 'random_seed': [None]},
+
+    'CKDE': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+                               'bandwidth': ['normal_reference'], 'random_seed': [None]},
+
   }
 
   model_dict = initialize_models(model_dict, verbose=VERBOSE)
@@ -197,31 +211,45 @@ def run_benchmark_train_test(n_jobs=-1):
   print(result_df.to_latex())
   print(result_df)
 
-def run_benchmark_train_test_fit_by_cv(model_key=None, n_jobs=-1):
+def run_benchmark_train_test_fit_by_cv(model_key=None, n_jobs=1):
   print("Fit by cv & Evaluation")
-  model_dict_fit_by_cv = {
-    'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-                 'random_seed': SEEDS},
 
-    # 'MDN_cv': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-    #            'n_training_epochs': [1000], 'random_seed': SEEDS},
-    #
-    # 'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-    #            'n_training_epochs': [1000], 'init_scales': [[0.7, 0.3]], 'random_seed': SEEDS},
+  model_dict_fit_by_cv = {
+    'MDN_cv': {'estimator': ['MixtureDensityNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [40]},
+
+    'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'init_scales': [[0.7, 0.3]], 'random_seed': [40]},
+
+    'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
+              'random_seed': [40]},
   }
 
   # exclude all other models except model_key
   if model_key in list(model_dict_fit_by_cv.keys()):
     model_dict_fit_by_cv = {model_key: model_dict_fit_by_cv[model_key]}
 
+  # determine optimal params by CV
+  model_dict_cv = initialize_models(model_dict_fit_by_cv, verbose=VERBOSE, model_name_prefix='param_search_')
+  for model_key, models in model_dict_cv.items():
+    # perform cv param search
+    selected_params = cv_param_search(models[0], n_cv_folds=N_CV_FOLDS, n_jobs=n_jobs)
+
+    # add selected params to model-params dict
+    for param_key, param in selected_params.items():
+      model_dict_fit_by_cv[model_key][param_key] = [param]
+
+    # add seeds to dict
+    model_dict_fit_by_cv[model_key]['random_seed'] = SEEDS
+
+
+  # refit model with selected params with multiple seeds and average
   model_dict = initialize_models(model_dict_fit_by_cv, verbose=VERBOSE)
   model_dict = OrderedDict(list(model_dict.items()))
-  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, fit_by_cv=True, n_jobs=n_jobs)
+  result_df = empirical_benchmark(model_dict, moment_r2=True, eval_by_fc=False, multiprocessing=False)
 
   print(result_df.to_latex())
   print(result_df)
 
-def run_benchmark_train_test_cv_ml(n_jobs=-1):
+def run_benchmark_train_test_cv_ml(n_jobs=1):
   print("Fit by cv_ml & Evaluation")
   model_dict_cv_ml = {
     'CKDE_cv_ml': {'estimator': ['ConditionalKernelDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
@@ -245,7 +273,7 @@ if __name__ == '__main__':
                       help='mode of empirical evaluation evaluation')
   parser.add_argument('--model', default=None,
                       help='model for which to run empirical evaluation evaluation')
-  parser.add_argument('--n_jobs', type=int, default=-1,
+  parser.add_argument('--n_jobs', type=int, default=1,
                       help='specifies the maximum number of concurrent jobs')
 
 

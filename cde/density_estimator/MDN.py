@@ -34,7 +34,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     """
 
 
-  def __init__(self, name, ndim_x, ndim_y, n_centers=20, hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
+  def __init__(self, name, ndim_x, ndim_y, n_centers=10, hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
                x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
 
     Serializable.quick_init(self, locals())
@@ -174,6 +174,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
   def _param_grid(self):
     param_grid = {
+        "n_training_epochs": [500, 1000],
         "n_centers": [5, 10, 20],
         "x_noise_std": [0.1, 0.15, 0.2, 0.3],
         "y_noise_std": [0.1, 0.15, 0.2]
