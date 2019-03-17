@@ -20,14 +20,15 @@ Beyond estimating conditional probability densities, the package features extens
 * **Percentiles and expected shortfall**
 
 ## Installation
-To use the library, either clone the GitHub repository and run 
-```bash
-pip install .
-``` 
-in the package folder or directly use the python package index:
+
+To use the library, you can directly use the python package index:
 ```bash
 pip install cde
 ```
+or clone the GitHub repository and run 
+```bash
+pip install .
+``` 
 Note that the package only supports tensorflow versions between 1.4 and 1.7.
 ## Documentation
 See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A technical report & paper will soon be released and linked here.
