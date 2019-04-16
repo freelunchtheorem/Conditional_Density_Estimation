@@ -82,6 +82,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         :param verbose: (boolean) controls the verbosity of console output
         """
 
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
         tf.initializers.variables(var_list, name='init').run(session=self.sess)
 
