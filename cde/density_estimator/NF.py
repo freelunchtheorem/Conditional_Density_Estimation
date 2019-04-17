@@ -1,15 +1,15 @@
 import numpy as np
 import tensorflow as tf
 
+import cde.utils.tf_utils.layers as L
 from .BaseDensityEstimator import BaseDensityEstimator
 from .normalizing_flows import FLOWS
 
 
 class NormalizingFlowEstimator(BaseDensityEstimator):
     """ Normalizing Flow Estimator
-    @todo: data normalization
+    @todo: data noise regularisation
     @todo: eval set
-    @todo: Affine bijector
 
     Building on "Normalizing Flows", Rezende & Mohamed 2015
 
@@ -32,7 +32,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
     def __init__(self, name, ndim_x, ndim_y, flows_type=('radial', 'radial', 'radial'),
                  hidden_sizes=(16, 16), hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None,
                  y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True,
-                 data_normalization=False, random_seed=None):
+                 data_normalization=True, random_seed=None):
         self._check_uniqueness_of_scope(name)
         assert all([f in FLOWS.keys() for f in flows_type])
 
@@ -58,7 +58,11 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         self.x_noise_std = x_noise_std
         self.y_noise_std = y_noise_std
         self.entropy_reg_coef = entropy_reg_coef
+
+        # normalizing the network weights
         self.weight_normalization = weight_normalization
+
+        # whether to normalize the data to zero mean, and uniform variance
         self.data_normalization = data_normalization
 
         # as we'll be using reversed flows, sampling is too slow to be useful
@@ -86,10 +90,13 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
         tf.initializers.variables(var_list, name='init').run(session=self.sess)
 
+        if self.data_normalization:
+            self._compute_data_normalization(X, Y)
+
         for i in range(0, self.n_training_epochs + 1):
-            self.sess.run(self.train_step, feed_dict={self.x_input: X, self.y_input: Y})
+            self.sess.run(self.train_step, feed_dict={self.X_ph: X, self.Y_ph: Y})
             if verbose and not i % 100:
-                log_loss = self.sess.run(self.log_loss, feed_dict={self.x_input: X, self.y_input: Y})
+                log_loss = self.sess.run(self.log_loss, feed_dict={self.X_ph: X, self.Y_ph: Y})
                 print('Step {:4}: log-loss {: .4f}'.format(i, log_loss))
 
         self.fitted = True
@@ -104,7 +111,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         assert self.fitted, "model must be fitted to evaluate the likelihood score"
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(tf.reduce_sum(self.pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
+        p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p
@@ -119,7 +126,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         assert self.fitted, "model must be fitted to evaluate the likelihood score"
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(tf.reduce_sum(self.log_pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
+        p = self.sess.run(self.log_pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p
@@ -133,7 +140,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         """
         assert self.fitted, "model must be fitted to evaluate the likelihood score"
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(tf.squeeze(self.cdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
+        p = self.sess.run(self.cdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p
@@ -143,12 +150,17 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         implementation of the flow model
         """
         with tf.variable_scope(self.name):
-            self.x_input = tf.placeholder(dtype=tf.float32, shape=(None, self.ndim_x), name='x_input')
-            self.y_input = tf.placeholder(dtype=tf.float32, shape=(None, self.ndim_y), name='y_input')
+            # adds placeholders, data normalization and data noise to graph as desired
+            self.layer_in_x, self.layer_in_y = self._build_input_layers()
+            self.x_input = L.get_output(self.layer_in_x)
+            self.y_input = L.get_output(self.layer_in_y)
 
             flow_classes = [FLOWS[flow_name] for flow_name in self.flows_type]
             # get the individual parameter sizes for each flow
             param_split_sizes = [flow.get_param_size(self.ndim_y) for flow in flow_classes]
+
+            # enable normalization of the weight matrix if desired
+            kernel_reg = tf.keras.regularizers.l2() if self.weight_normalization else None
 
             # building the hidden layers
             prev_layer = self.x_input
@@ -156,14 +168,14 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
                 current = tf.layers.dense(inputs=prev_layer,
                                           units=hidden_size,
                                           activation=self.hidden_nonlinearity,
-                                          kernel_regularizer=tf.keras.regularizers.l2())
+                                          kernel_regularizer=kernel_reg)
                 prev_layer = current
             # output layer
             mlp_output_dim = sum(param_split_sizes)
             outputs = tf.layers.dense(inputs=prev_layer,
                                       units=mlp_output_dim,
                                       activation=None,
-                                      kernel_regularizer=tf.keras.regularizers.l2())
+                                      kernel_regularizer=kernel_reg)
 
             # slice the output into the parameters for each flow
             flow_params = tf.split(value=outputs, num_or_size_splits=param_split_sizes, axis=1)
@@ -181,13 +193,67 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
             chain = tf.contrib.distributions.bijectors.Chain(flows)
             target_dist = tf.contrib.distributions.TransformedDistribution(distribution=base_dist, bijector=chain)
 
-            self.pdf_ = target_dist.prob(self.y_input)
-            self.log_pdf_ = target_dist.log_prob(self.y_input)
-            self.cdf_ = target_dist.cdf(self.y_input)
+            # since we operate with matrices not vectors, the output would have dimension (?,1)
+            # and therefor has to be reduce first to have shape (?,)
+            if self.data_normalization:
+                self.pdf_ = tf.reduce_sum(target_dist.prob(self.y_input), axis=-1) / tf.reduce_prod(self.std_y_sym)
+                self.log_pdf_ = tf.reduce_sum(target_dist.log_prob(self.y_input), axis=-1) - tf.reduce_sum(tf.log(self.std_y_sym))
+                self.cdf_ = tf.reduce_sum(target_dist.cdf(self.y_input), axis=-1) / tf.reduce_prod(self.std_y_sym)
+            else:
+                self.pdf_ = tf.reduce_sum(target_dist.prob(self.y_input), axis=-1)
+                self.log_pdf_ = tf.reduce_sum(target_dist.log_prob(self.y_input), axis=-1)
+                self.cdf_ = tf.reduce_sum(target_dist.cdf(self.y_input), axis=-1)
 
             self.loss = -tf.reduce_mean(target_dist.prob(self.y_input))
             self.log_loss = -tf.reduce_mean(target_dist.log_prob(self.y_input))
             self.train_step = tf.train.AdamOptimizer().minimize(self.log_loss)
+
+    def _build_input_layers(self):
+        # Input_Layers & placeholders
+        self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
+        self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
+        self.train_phase = tf.placeholder_with_default(False, None)
+
+        layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
+        layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
+
+        # add data normalization layer if desired
+        if self.data_normalization:
+            layer_in_x = L.NormalizationLayer(layer_in_x, self.ndim_x, name="data_norm_x")
+            self.mean_x_sym, self.std_x_sym = layer_in_x.get_params()
+            layer_in_y = L.NormalizationLayer(layer_in_y, self.ndim_y, name="data_norm_y")
+            self.mean_y_sym, self.std_y_sym = layer_in_y.get_params()
+
+        # add noise layer if desired
+        if self.x_noise_std is not None:
+            layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
+        if self.y_noise_std is not None:
+            layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+
+        return layer_in_x, layer_in_y
+
+    def _compute_data_normalization(self, X, Y):
+        # compute data statistics (mean & std)
+        self.x_mean = np.mean(X, axis=0)
+        self.x_std = np.std(X, axis=0)
+        self.y_mean = np.mean(Y, axis=0)
+        self.y_std = np.std(Y, axis=0)
+
+        self.data_statistics = {
+            'X_mean': self.x_mean,
+            'X_std': self.x_std,
+            'Y_mean': self.y_mean,
+            'Y_std': self.y_std,
+        }
+
+        # assign them to tf variables
+        self.sess.run([
+            tf.assign(self.mean_x_sym, self.x_mean),
+            tf.assign(self.std_x_sym, self.x_std),
+            tf.assign(self.mean_y_sym, self.y_mean),
+            tf.assign(self.std_y_sym, self.y_std)
+        ])
+
 
     @staticmethod
     def _check_uniqueness_of_scope(name):

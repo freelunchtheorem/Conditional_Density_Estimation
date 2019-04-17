@@ -268,6 +268,29 @@ class TestLogProbability(unittest.TestCase):
             log_prob = model.log_pdf(x,y)
             self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
 
+class TestRegularization(unittest.TestCase):
+
+    def get_samples(self, std=1.0, mean=2):
+        np.random.seed(22)
+        data = np.random.normal([mean, mean], std, size=(2000, 2))
+        X = data[:, 0]
+        Y = data[:, 1]
+        return X, Y
+
+    def test_data_normalization(self):
+        X, Y = self.get_samples(std=2, mean=20)
+        with tf.Session() as sess:
+            model = NormalizingFlowEstimator("nf_data_normalization", 1, 1, flows_type=('affine', 'radial', 'radial'),
+                                             x_noise_std=None, y_noise_std=None, data_normalization=True, n_training_epochs=100)
+            model.fit(X, Y)
+
+            # test if data statistics were properly assigned to tf graph
+            x_mean, x_std = model.sess.run([model.mean_x_sym, model.std_x_sym])
+            print(x_mean, x_std)
+            mean_diff = float(np.abs(x_mean-20))
+            std_diff = float(np.abs(x_std-2))
+            self.assertLessEqual(mean_diff, 0.5)
+            self.assertLessEqual(std_diff, 0.5)
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
@@ -277,6 +300,7 @@ if __name__ == '__main__':
         'unittests_normalizing_flows.TestLogProbability',
         'unittests_normalizing_flows.TestFlows',
         'unittests_normalizing_flows.TestMultiModal',
+        'unittests_normalizing_flows.TestRegularization',
     ]
     suite = unittest.TestSuite()
     for t in testmodules:

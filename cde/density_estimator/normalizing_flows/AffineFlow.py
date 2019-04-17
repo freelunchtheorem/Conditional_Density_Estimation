@@ -5,6 +5,10 @@ from .BaseNormalizingFlow import BaseNormalizingFlow
 class AffineFlow(BaseNormalizingFlow):
     """
     Implements a bijector y = (a*x) + b
+
+    The parameters have the shape
+    a: (?, n_dims)
+    b: (?, n_dims)
     """
     _a = None
     _b = None
