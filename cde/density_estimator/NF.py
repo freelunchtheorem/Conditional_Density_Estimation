@@ -104,7 +104,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         assert self.fitted, "model must be fitted to evaluate the likelihood score"
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(tf.squeeze(self.pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
+        p = self.sess.run(tf.reduce_sum(self.pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p
@@ -119,7 +119,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         assert self.fitted, "model must be fitted to evaluate the likelihood score"
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(tf.squeeze(self.log_pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
+        p = self.sess.run(tf.reduce_sum(self.log_pdf_, axis=-1), feed_dict={self.x_input: X, self.y_input: Y})
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p

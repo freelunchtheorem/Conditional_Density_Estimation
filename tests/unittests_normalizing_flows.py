@@ -10,7 +10,7 @@ import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.density_estimator import NormalizingFlowEstimator
-from cde.density_estimator.normalizing_flows import InvertedPlanarFlow
+from cde.density_estimator.normalizing_flows import InvertedPlanarFlow, AffineFlow
 
 
 class TestFlows(unittest.TestCase):
@@ -23,9 +23,27 @@ class TestFlows(unittest.TestCase):
             for i in inv:
                 self.assertGreater(i, -1.)
 
+    def test_affine_shift_and_scale(self):
+        with tf.Session() as sess:
+            base_dist = tf.distributions.Normal(loc=0., scale=1.)
+            # shift the distribution three to the right
+            transf_dist = tf.distributions.Normal(loc=3., scale=1.)
+
+            flow = AffineFlow(tf.constant([[0., 3.]]), 1)
+            flow_dist = tf.contrib.distributions.TransformedDistribution(distribution=base_dist, bijector=flow)
+
+            # eval the samples so they stay constant
+            samples = sess.run(base_dist.sample([1000]))
+
+            # the output is of shape (?, 1) so it needs to be squeezed
+            pdf_estimate = tf.squeeze(flow_dist.prob(samples))
+            pdf_actual = transf_dist.prob(samples)
+            pdf_estimate, pdf_actual = sess.run([pdf_estimate, pdf_actual])
+            self.assertLessEqual(np.mean(np.abs(pdf_actual - pdf_estimate)), 0.1)
+
+
 
 class Test_NF_2d_gaussian(unittest.TestCase):
-
     def get_samples(self, mu=2, std=1.0):
         np.random.seed(22)
         data = np.random.normal([mu, mu], std, size=(2000, 2))
@@ -47,6 +65,22 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         p_est = model.pdf(x, y)
         p_true = norm.pdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    def test_NF_affine_with_2d_gaussian(self):
+        mu = 3
+        std = 2
+        X, Y = self.get_samples(mu=mu, std=std)
+
+        model = NormalizingFlowEstimator("nf_estimator_2d_affine", 1, 1, flows_type=('affine',),
+                                         n_training_epochs=500, random_seed=22)
+        model.fit(X, Y)
+
+        y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+        x = np.asarray([mu for i in range(y.shape[0])])
+        p_est = model.pdf(x, y)
+        p_true = norm.pdf(y, loc=mu, scale=std)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
 
     def test_NF_planar_with_2d_gaussian(self):
         mu = 200
