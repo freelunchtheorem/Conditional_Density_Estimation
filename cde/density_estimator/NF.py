@@ -5,9 +5,10 @@ import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.network import MLP
 from .BaseDensityEstimator import BaseDensityEstimator
 from .normalizing_flows import FLOWS
+from cde.utils.serializable import Serializable
 
 
-class NormalizingFlowEstimator(BaseDensityEstimator):
+class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
     """ Normalizing Flow Estimator
     @todo: data noise regularisation
     @todo: eval set
@@ -31,7 +32,8 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'),
                  hidden_sizes=(16, 16), hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None,
-                 y_noise_std=None, weight_normalization=True, data_normalization=False, random_seed=None):
+                 y_noise_std=None, weight_normalization=True, data_normalization=True, random_seed=None):
+        Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
         assert all([f in FLOWS.keys() for f in flows_type])
 
@@ -79,7 +81,7 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
         Fit the model with to the provided data
 
         :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+        :param Y: numpy array of y targets - shape: (n_sample, n_dim_y)
         :param eval_set: (tuple) eval/test set - tuple (X_test, Y_test)
         :param verbose: (boolean) controls the verbosity of console output
         """
@@ -184,16 +186,16 @@ class NormalizingFlowEstimator(BaseDensityEstimator):
             # since we operate with matrices not vectors, the output would have dimension (?,1)
             # and therefor has to be reduce first to have shape (?,)
             if self.data_normalization:
-                self.pdf_ = tf.reduce_sum(target_dist.prob(self.y_input), axis=1) / tf.reduce_prod(self.std_y_sym)
-                self.log_pdf_ = tf.reduce_sum(target_dist.log_prob(self.y_input), axis=1) - tf.reduce_sum(tf.log(self.std_y_sym))
-                self.cdf_ = tf.reduce_sum(target_dist.cdf(self.y_input), axis=1) / tf.reduce_prod(self.std_y_sym)
+                self.pdf_ = tf.squeeze(target_dist.prob(self.y_input) / tf.reduce_prod(self.std_y_sym), axis=1)
+                self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym)), axis=1)
+                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input), axis=1)
             else:
-                self.pdf_ = tf.reduce_sum(target_dist.prob(self.y_input), axis=1)
-                self.log_pdf_ = tf.reduce_sum(target_dist.log_prob(self.y_input), axis=1)
-                self.cdf_ = tf.reduce_sum(target_dist.cdf(self.y_input), axis=1)
+                self.pdf_ = tf.squeeze(target_dist.prob(self.y_input), axis=1)
+                self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input), axis=1)
+                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input), axis=1)
 
-            self.loss = -tf.reduce_mean(self.pdf_)
-            self.log_loss = -tf.reduce_mean(self.log_pdf_)
+            self.loss = -tf.reduce_prod(self.pdf_)
+            self.log_loss = -tf.reduce_sum(self.log_pdf_)
             self.train_step = tf.train.AdamOptimizer().minimize(self.log_loss)
 
     def _build_input_layers(self):

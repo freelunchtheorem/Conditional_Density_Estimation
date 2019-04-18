@@ -81,7 +81,6 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         p_true = norm.pdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-
     def test_NF_planar_with_2d_gaussian(self):
         mu = 200
         std = 23
@@ -145,17 +144,13 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         p_true = norm.pdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-        p_est = model.cdf(x, y)
-        p_true = norm.cdf(y, loc=mu, scale=std)
-        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
     def test_NF_chain_with_2d_gaussian2(self):
         mu = -5
         std = 2.5
         X, Y = self.get_samples(mu=mu, std=std)
 
-        model = NormalizingFlowEstimator("nf_estimator_2d_chain_2", 1, 1, flows_type=('planar', 'planar', 'planar'),
-                                         n_training_epochs=500, random_seed=22)
+        model = NormalizingFlowEstimator("nf_estimator_2d_chain_2", 1, 1, flows_type=('affine', 'planar', 'planar'),
+                                         n_training_epochs=1000, random_seed=22)
 
         model.fit(X, Y)
 
@@ -163,10 +158,6 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         x = np.asarray([mu for i in range(y.shape[0])])
         p_est = model.pdf(x, y)
         p_true = norm.pdf(y, loc=mu, scale=std)
-        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-        p_est = model.cdf(x, y)
-        p_true = norm.cdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
     def test_NF_chain2_with_2d_gaussian2(self):
@@ -184,11 +175,6 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         p_true = norm.pdf(y, loc=mu, scale=std)
         self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
-        p_est = model.cdf(x, y)
-        p_true = norm.cdf(y, loc=mu, scale=std)
-        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-
 class TestMultiModal(unittest.TestCase):
     """
     This tests whether the flows can model multimodal distributions
@@ -199,13 +185,14 @@ class TestMultiModal(unittest.TestCase):
             bimix_gauss = tf.contrib.distributions.Mixture(
                 cat=tf.distributions.Categorical(probs=[0.5, 0.5]),
                 components=[
-                    tf.distributions.Normal(loc=-1., scale=0.5),
-                    tf.distributions.Normal(loc=+1., scale=0.5),
+                    tf.distributions.Normal(loc=-.4, scale=0.4),
+                    tf.distributions.Normal(loc=+.4, scale=0.4),
                 ])
-            x = np.ones(5000)
-            y = sess.run(bimix_gauss.sample([5000]))
+            x = tf.distributions.Normal(loc=0., scale=1.).sample([5000])
+            y = bimix_gauss.sample([5000])
+            x,y = sess.run([x, y])
 
-            model = NormalizingFlowEstimator("nf_estimator_bimodal_planar", 1, 1, flows_type=('planar', 'planar', 'planar'),
+            model = NormalizingFlowEstimator("nf_estimator_bimodal_planar", 1, 1, flows_type=('affine', 'planar', 'planar', 'planar'),
                                              n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
@@ -218,13 +205,14 @@ class TestMultiModal(unittest.TestCase):
             bimix_gauss = tf.contrib.distributions.Mixture(
                 cat=tf.distributions.Categorical(probs=[0.5, 0.5]),
                 components=[
-                    tf.distributions.Normal(loc=-1., scale=0.4),
-                    tf.distributions.Normal(loc=+1., scale=0.4),
+                    tf.distributions.Normal(loc=-.5, scale=0.4),
+                    tf.distributions.Normal(loc=+.5, scale=0.4),
                 ])
-            x = np.ones(3000)
-            y = sess.run(bimix_gauss.sample([3000]))
+            x = tf.distributions.Normal(loc=0., scale=1.).sample([5000])
+            y = bimix_gauss.sample([5000])
+            x,y = sess.run([x, y])
 
-            model = NormalizingFlowEstimator("nf_estimator_trimodal_chain", 1, 1, flows_type=('radial', 'planar', 'radial'),
+            model = NormalizingFlowEstimator("nf_estimator_trimodal_chain", 1, 1, flows_type=('affine', 'radial', 'radial', 'radial'),
                                              n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
@@ -304,7 +292,7 @@ class TestRegularization(unittest.TestCase):
             y = sess.run(bimix_gauss.sample([5000]))
 
             model = NormalizingFlowEstimator("nf_estimator_bimodal_radial_gaussian", 1, 1, flows_type=('radial', 'radial', 'radial'),
-                                             x_noise_std=0.1, y_noise_std=0.1, n_training_epochs=1000, random_seed=22)
+                                             data_normalization=True, x_noise_std=0.1, y_noise_std=0.1, n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
             p_est = model.pdf(x, y)
