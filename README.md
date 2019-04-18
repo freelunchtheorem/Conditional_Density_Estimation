@@ -64,15 +64,13 @@ skewness = model.skewness(x_cond)[0]
 If you use CDE in your research, you can cite it as follows:
 
 ```
-@misc{cde2019,
-    author = {Jonas Rothfuss, Fabio Ferreira},
-    title = {Conditional Density Estimation with Neural Networks: Best Practices and Benchmarks},
-    year = {2019},
-    publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\url{https://github.com/freelunchtheorem/Conditional_Density_Estimation}},
-    note = {See technical report under \url{https://arxiv.org/abs/1903.00954}}
+@article{rothfuss2019conditional,
+  title={Conditional Density Estimation with Neural Networks: Best Practices and Benchmarks},
+  author={Rothfuss, Jonas and Ferreira, Fabio and Walther, Simon and Ulrich, Maxim},
+  journal={arXiv:1903.00954},
+  year={2019}
 }
+
 ```
 
 ## Todo
