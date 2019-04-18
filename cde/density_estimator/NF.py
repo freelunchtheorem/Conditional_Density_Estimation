@@ -10,8 +10,6 @@ from cde.utils.serializable import Serializable
 
 class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
     """ Normalizing Flow Estimator
-    @todo: data noise regularisation
-    @todo: eval set
 
     Building on "Normalizing Flows", Rezende & Mohamed 2015
 
@@ -87,6 +85,10 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
         """
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+
+        if eval_set:
+            eval_set = tuple(self._handle_input_dimensionality(x) for x in eval_set)
+
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
         tf.initializers.variables(var_list, name='init').run(session=self.sess)
 
@@ -97,7 +99,11 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
             self.sess.run(self.train_step, feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
             if verbose and not i % 100:
                 log_loss = self.sess.run(self.log_loss, feed_dict={self.X_ph: X, self.Y_ph: Y})
-                print('Step {:4}: log-loss {: .4f}'.format(i, log_loss))
+                if not eval_set:
+                    print('Step {:4}: train log-loss {: .4f}'.format(i, log_loss))
+                else:
+                    eval_ll = self.sess.run(self.log_loss, feed_dict={self.X_ph: eval_set[0], self.Y_ph: eval_set[1]})
+                    print('Step {:4}: train log-loss {: .4f} eval log-loss {: .4f}'.format(i, log_loss, eval_ll))
 
         self.fitted = True
 
