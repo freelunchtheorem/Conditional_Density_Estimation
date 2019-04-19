@@ -299,6 +299,30 @@ class TestRegularization(unittest.TestCase):
             p_true = sess.run(bimix_gauss.prob(y))
             self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+class TestSerialization(unittest.TestCase):
+    def get_samples(self, std=1.0):
+        np.random.seed(22)
+        data = np.random.normal([2, 2], std, size=(2000, 2))
+        X = data[:, 0]
+        Y = data[:, 1]
+        return X, Y
+
+    def test_pickle_unpickle_NF_estimator(self):
+        X, Y = self.get_samples()
+        with tf.Session() as sess:
+            model = NormalizingFlowEstimator('nf_pickle', 1, 1, ('affine', 'radial', 'radial'),
+                                             data_normalization=True, random_seed=22, n_training_epochs=10)
+            model.fit(X, Y)
+            pdf_before = model.pdf(X, Y)
+            dump_string = pickle.dumps(model)
+        tf.reset_default_graph()
+        with tf.Session() as sess:
+            model_loaded = pickle.loads(dump_string)
+            pdf_after = model_loaded.pdf(X, Y)
+        diff = np.sum(np.abs(pdf_after - pdf_before))
+        self.assertAlmostEqual(diff, 0, places=2)
+
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
@@ -308,6 +332,7 @@ if __name__ == '__main__':
         'unittests_normalizing_flows.TestFlows',
         'unittests_normalizing_flows.TestMultiModal',
         'unittests_normalizing_flows.TestRegularization',
+        'unittests_normalizing_flows.TestSerialization'
     ]
     suite = unittest.TestSuite()
     for t in testmodules:

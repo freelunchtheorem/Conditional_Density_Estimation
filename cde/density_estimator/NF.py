@@ -2,13 +2,14 @@ import numpy as np
 import tensorflow as tf
 
 import cde.utils.tf_utils.layers as L
+from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.tf_utils.network import MLP
 from .BaseDensityEstimator import BaseDensityEstimator
 from .normalizing_flows import FLOWS
 from cde.utils.serializable import Serializable
 
 
-class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
+class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     """ Normalizing Flow Estimator
 
     Building on "Normalizing Flows", Rezende & Mohamed 2015
@@ -69,7 +70,6 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
         self.has_cdf = True
 
         self.fitted = False
-        self.sess = tf.Session()
 
         # build tensorflow model
         self._build_model()
@@ -85,6 +85,12 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
         """
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+
+        if tf.get_default_session():
+            self.sess = tf.get_default_session()
+        else:
+            self.sess = tf.Session()
+            self.sess.as_default()
 
         if eval_set:
             eval_set = tuple(self._handle_input_dimensionality(x) for x in eval_set)
@@ -194,7 +200,7 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
             if self.data_normalization:
                 self.pdf_ = tf.squeeze(target_dist.prob(self.y_input) / tf.reduce_prod(self.std_y_sym), axis=1)
                 self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym)), axis=1)
-                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input), axis=1)
+                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input) / tf.reduce_prod(self.std_y_sym), axis=1)
             else:
                 self.pdf_ = tf.squeeze(target_dist.prob(self.y_input), axis=1)
                 self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input), axis=1)
@@ -203,6 +209,10 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
             self.loss = -tf.reduce_prod(self.pdf_)
             self.log_loss = -tf.reduce_sum(self.log_pdf_)
             self.train_step = tf.train.AdamOptimizer().minimize(self.log_loss)
+
+        # initialize LayersPowered -> provides functions for serializing tf models
+        LayersPowered.__init__(self, [self.layer_in_y, core_network.output_layer])
+
 
     def _build_input_layers(self):
         # Input_Layers & placeholders
@@ -255,6 +265,16 @@ class NormalizingFlowEstimator(Serializable, BaseDensityEstimator):
         current_scope = tf.get_variable_scope().name
         scopes = set([variable.name.split('/')[0] for variable in tf.global_variables(scope=current_scope)])
         assert name not in scopes, "%s is already in use for a tensorflow scope - please choose another estimator name"%name
+
+    def __getstate__(self):
+        state = LayersPowered.__getstate__(self)
+        state['fitted'] = self.fitted
+        return state
+
+    def __setstate__(self, state):
+        LayersPowered.__setstate__(self, state)
+        self.fitted = state['fitted']
+        self.sess = tf.get_default_session()
 
     def __str__(self):
         return "\nEstimator type: {}\n n_flows: {}\n flows_type: {}\n entropy_reg_coef: {}\n data_normalization: {} \n weight_normalization: {}\n" \
