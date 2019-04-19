@@ -4,12 +4,12 @@ import tensorflow as tf
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.tf_utils.network import MLP
-from .BaseDensityEstimator import BaseDensityEstimator
+from .BaseNNEstimator import BaseNNEstimator
 from .normalizing_flows import FLOWS
 from cde.utils.serializable import Serializable
 
 
-class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator):
+class NormalizingFlowEstimator(BaseNNEstimator):
     """ Normalizing Flow Estimator
 
     Building on "Normalizing Flows", Rezende & Mohamed 2015
@@ -45,7 +45,6 @@ class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator
         tf.set_random_seed(random_seed)
 
         # charateristics of the flows to be used
-        self.n_flows = len(flows_type)
         self.flows_type = flows_type
 
         # specification of the network
@@ -71,6 +70,9 @@ class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator
 
         self.fitted = False
 
+        # If no session has yet been created, create one and make it the default
+        self.sess = tf.get_default_session() if tf.get_default_session() else tf.InteractiveSession()
+
         # build tensorflow model
         self._build_model()
 
@@ -85,12 +87,6 @@ class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator
         """
 
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
-
-        if tf.get_default_session():
-            self.sess = tf.get_default_session()
-        else:
-            self.sess = tf.Session()
-            self.sess.as_default()
 
         if eval_set:
             eval_set = tuple(self._handle_input_dimensionality(x) for x in eval_set)
@@ -213,70 +209,13 @@ class NormalizingFlowEstimator(LayersPowered, Serializable, BaseDensityEstimator
         # initialize LayersPowered -> provides functions for serializing tf models
         LayersPowered.__init__(self, [self.layer_in_y, core_network.output_layer])
 
-
-    def _build_input_layers(self):
-        # Input_Layers & placeholders
-        self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
-        self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
-        self.train_phase = tf.placeholder_with_default(False, None)
-
-        layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
-        layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
-
-        # add data normalization layer if desired
-        if self.data_normalization:
-            layer_in_x = L.NormalizationLayer(layer_in_x, self.ndim_x, name="data_norm_x")
-            self.mean_x_sym, self.std_x_sym = layer_in_x.get_params()
-            layer_in_y = L.NormalizationLayer(layer_in_y, self.ndim_y, name="data_norm_y")
-            self.mean_y_sym, self.std_y_sym = layer_in_y.get_params()
-
-        # add noise layer if desired
-        if self.x_noise_std is not None:
-            layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
-        if self.y_noise_std is not None:
-            layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
-
-        return layer_in_x, layer_in_y
-
-    def _compute_data_normalization(self, X, Y):
-        # compute data statistics (mean & std)
-        self.x_mean = np.mean(X, axis=0)
-        self.x_std = np.std(X, axis=0)
-        self.y_mean = np.mean(Y, axis=0)
-        self.y_std = np.std(Y, axis=0)
-
-        self.data_statistics = {
-            'X_mean': self.x_mean,
-            'X_std': self.x_std,
-            'Y_mean': self.y_mean,
-            'Y_std': self.y_std,
-        }
-
-        # assign them to tf variables
-        self.sess.run([
-            tf.assign(self.mean_x_sym, self.x_mean),
-            tf.assign(self.std_x_sym, self.x_std),
-            tf.assign(self.mean_y_sym, self.y_mean),
-            tf.assign(self.std_y_sym, self.y_std)
-        ])
-
-    @staticmethod
-    def _check_uniqueness_of_scope(name):
-        current_scope = tf.get_variable_scope().name
-        scopes = set([variable.name.split('/')[0] for variable in tf.global_variables(scope=current_scope)])
-        assert name not in scopes, "%s is already in use for a tensorflow scope - please choose another estimator name"%name
-
-    def __getstate__(self):
-        state = LayersPowered.__getstate__(self)
-        state['fitted'] = self.fitted
-        return state
-
-    def __setstate__(self, state):
-        LayersPowered.__setstate__(self, state)
-        self.fitted = state['fitted']
-        self.sess = tf.get_default_session()
-
     def __str__(self):
-        return "\nEstimator type: {}\n n_flows: {}\n flows_type: {}\n entropy_reg_coef: {}\n data_normalization: {} \n weight_normalization: {}\n" \
-               "n_training_epochs: {}\n x_noise_std: {}\n y_noise_std: {}\n ".format(self.__class__.__name__, self.n_flows, self.flows_type, self.entropy_reg_coef,
-                                                                                 self.data_normalization, self.weight_normalization, self.n_training_epochs, self.x_noise_std, self.y_noise_std)
+        return "\nEstimator type: {}" \
+               "\n flows_type: {}" \
+               "\n data_normalization: {}" \
+               "\n weight_normalization: {}" \
+               "\n n_training_epochs: {}" \
+               "\n x_noise_std: {}" \
+               "\n y_noise_std: {}" \
+               "\n ".format(self.__class__.__name__, self.flows_type, self.data_normalization,
+                            self.weight_normalization, self.n_training_epochs, self.x_noise_std, self.y_noise_std)
