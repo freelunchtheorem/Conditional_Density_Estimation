@@ -182,7 +182,13 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             flows = [flow(params, self.ndim_y) for flow, params in zip(flow_classes, flow_params)]
 
             # build up the base distribution that will be transformed by the flows
-            base_dist = tf.distributions.Normal(loc=[0.]*self.ndim_y, scale=[1.]*self.ndim_y)
+            if self.ndim_y == 1:
+                # this is faster for 1-D than the multivariate version
+                # it also supports a cdf, which isn't implemented for Multivariate
+                base_dist = tf.distributions.Normal(loc=0., scale=1.)
+            else:
+                base_dist = tf.contrib.distributions.MultivariateNormalDiag(loc=[0.] * self.ndim_y,
+                                                                            scale_diag=[1.] * self.ndim_y)
 
             # chain the flows together and build the transformed distribution using the base_dist + flows
             # Chaining applies the flows in reverse, Chain([a,b]).forward(x) being a.forward(b.forward(x))
@@ -193,14 +199,22 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
             # since we operate with matrices not vectors, the output would have dimension (?,1)
             # and therefor has to be reduce first to have shape (?,)
-            if self.data_normalization:
-                self.pdf_ = tf.squeeze(target_dist.prob(self.y_input) / tf.reduce_prod(self.std_y_sym), axis=1)
-                self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym)), axis=1)
-                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input) / tf.reduce_prod(self.std_y_sym), axis=1)
-            else:
+            if self.ndim_y == 1:
+                # for x shape (batch_size, 1) normal_distribution.pdf(x) outputs shape (batch_size, 1) -> squeeze
                 self.pdf_ = tf.squeeze(target_dist.prob(self.y_input), axis=1)
                 self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input), axis=1)
                 self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input), axis=1)
+            else:
+                # no squeezing necessary for multivariate_normal, but we don't have a cdf
+                self.pdf_ = target_dist.prob(self.y_input)
+                self.log_pdf_ = target_dist.log_prob(self.y_input)
+
+            if self.data_normalization:
+                self.pdf_ = self.pdf_ / tf.reduce_prod(self.std_y_sym)
+                self.log_pdf_ = self.log_pdf_ - tf.reduce_sum(tf.log(self.std_y_sym))
+                # cdf is only implemented for 1-D
+                if self.ndim_y == 1:
+                    self.cdf_ = self.cdf_ / tf.reduce_prod(self.std_y_sym)
 
             self.loss = -tf.reduce_prod(self.pdf_)
             self.log_loss = -tf.reduce_sum(self.log_pdf_)

@@ -83,7 +83,7 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         """ As our flows are inverted, sampling / inverting is slow / impossible"""
         raise NotImplementedError()
 
-    def _inverse_log_det_jacobian(self, z):
+    def _ildj(self, z):
         """
         Computes the ln of the absolute determinant of the jacobian
         """

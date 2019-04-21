@@ -31,7 +31,6 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         self._alpha = InvertedRadialFlow._alpha_circ(flow_params[a_index])
         self._beta = InvertedRadialFlow._beta_circ(flow_params[b_index])
         self._gamma = flow_params[g_index]
-        self._n_dims = n_dims
 
     @staticmethod
     def get_param_size(n_dims):
@@ -56,7 +55,7 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         h = self._h(r)
         return z + (self._alpha * self._beta * h) * (z - self._gamma)
 
-    def _inverse_log_det_jacobian(self, z):
+    def _ildj(self, z):
         """
         Computes the ln of the absolute determinant of the jacobian
         """
