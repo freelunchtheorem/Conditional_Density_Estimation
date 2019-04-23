@@ -1,15 +1,22 @@
 import numpy as np
 import tensorflow as tf
-from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
+import sklearn
+import os
+import itertools
+from multiprocessing import Manager
+
 from cde.utils.tf_utils.layers_powered import LayersPowered
-from cde.utils.serializable import Serializable
 import cde.utils.tf_utils.layers as L
+from cde.utils.serializable import Serializable
+from cde.utils.async_executor import AsyncExecutor
+from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 
 
 class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     """
     Base class for a density estimator using a neural network to parametrize the distribution p(y|x)
     To use this class, implement pdf_, cdf_ and log_pdf_ or overwrite the parent methods
+    To use the hyperparameter search, also implement reset_fit and (optionally) _param_grid()
     """
 
     # input data can be normalized before training
@@ -21,6 +28,94 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
 
     # was the model fitted to the data or not
     fitted = False
+
+    def reset_fit(self):
+        """
+        Reset all tensorflow objects to enable the model to be trained again
+        :return:
+        """
+        raise NotImplementedError()
+
+    def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, verbose=True, n_jobs=-1):
+        """ Fits the conditional density model with hyperparameter search and cross-validation.
+
+        - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+          the conditional log-likelihood is used for simulation_eval.
+        - Fits the model with the previously selected hyperparameter configuration
+
+        Args:
+          X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
+          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+          n_folds: number of cross-validation folds (positive integer)
+          param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
+                      parametrizations as value. The hyperparameter search is performed over the cartesian product of \
+                      the provided lists.
+
+                      Example:
+                      {"n_centers": [20, 50, 100, 200],
+                       "center_sampling_method": ["agglomerative", "k_means", "random"],
+                       "keep_edges": [True, False]
+                      }
+          random_state: (int) seed used by the random number generator for shuffeling the data
+        """
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+        original_params = self.get_params()
+
+        if param_grid is None:
+            param_grid = self._param_grid()
+
+        param_list = list(sklearn.model_selection.ParameterGrid(param_grid))
+        train_splits, test_splits = list(zip(*list(sklearn.model_selection.KFold(n_splits=n_folds, shuffle=False,
+                                                                                 random_state=random_state).split(X))))
+
+        param_ids, fold_ids = list(zip(*itertools.product(range(len(param_list)), range(n_folds))))
+
+        # multiprocessing setup
+        manager = Manager()
+        score_dict = manager.dict()
+
+        def _fit_eval(param_idx, fold_idx):
+            train_indices, test_indices = train_splits[fold_idx], test_splits[fold_idx]
+            X_train, Y_train = X[train_indices], Y[train_indices]
+            X_test, Y_test = X[test_indices], Y[test_indices]
+
+            with tf.Session():
+                kwargs_dict = {**original_params, **param_list[param_idx]}
+                kwargs_dict['name'] = 'cv_%i_%i_' % (param_idx, fold_idx) + self.name
+                model = self.__class__(**kwargs_dict)
+
+                model.fit(X_train, Y_train, verbose=False)
+                score_dict[(param_idx, fold_idx)] = model.score(X_test, Y_test)
+
+        # run the prepared tasks in multiple processes
+        executor = AsyncExecutor(n_jobs=n_jobs)
+        executor.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
+
+
+        # check if all results are available and rerun failed fit_evals
+        for i, j in zip(param_ids, fold_ids):
+            if (i, j) not in set(score_dict.keys()):
+                _fit_eval(i, j)
+        assert len(score_dict.keys()) == len(param_list) * len(train_splits)
+        print(score_dict)
+
+        # Select the best parameter setting
+        scores_array = np.zeros((len(param_list), len(train_splits)))
+        for (i, j), score in score_dict.items():
+            scores_array[i, j] = score
+        avg_scores = np.mean(scores_array, axis=-1)
+        best_idx = np.argmax(avg_scores)
+        selected_params = param_list[best_idx]
+
+        if verbose:
+            print("Completed grid search - Selected params: {}".format(selected_params))
+            print("Refitting model with selected params")
+
+        # Refit with best parameter set
+        self.set_params(**selected_params)
+        self.reset_fit()
+        self.fit(X, Y, verbose=False)
+        return selected_params
 
     def pdf(self, X, Y):
         """ Predicts the conditional probability p(y|x). Requires the model to be fitted.
