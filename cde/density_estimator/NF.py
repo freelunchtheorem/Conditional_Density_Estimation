@@ -70,9 +70,6 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         self.fitted = False
 
-        # If no session has yet been created, create one and make it the default
-        self.sess = tf.get_default_session() if tf.get_default_session() else tf.InteractiveSession()
-
         # build tensorflow model
         self._build_model()
 
@@ -91,8 +88,11 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         if eval_set:
             eval_set = tuple(self._handle_input_dimensionality(x) for x in eval_set)
 
+        # If no session has yet been created, create one and make it the default
+        self.sess = tf.get_default_session() if tf.get_default_session() else tf.InteractiveSession()
+
         var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
-        tf.initializers.variables(var_list, name='init').run(session=self.sess)
+        tf.initializers.variables(var_list, name='init').run()
 
         if self.data_normalization:
             self._compute_data_normalization(X, Y)
@@ -152,6 +152,28 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
         assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
         return p
+
+    def reset_fit(self):
+        """
+        Resets all tensorflow objects and enables this model to be trained from a fresh start
+        """
+        tf.reset_default_graph()
+        self._build_model()
+        self.fitted = False
+
+    def _param_grid(self):
+        return {
+            'n_training_epochs': [500, 1000, 1500],
+            'flows_type': [
+                ('affine', 'radial', 'radial', 'radial'),
+                ('radial', 'radial', 'radial'),
+                ('affine', 'planar', 'planar', 'planar'),
+                ('planar', 'planar', 'planar'),
+                ('affine', 'radial', 'planar', 'radial', 'planar'),
+            ],
+            'x_noise_std': [0.1, None],
+            'y_noise_std': [0.1, None],
+        }
 
     def _build_model(self):
         """

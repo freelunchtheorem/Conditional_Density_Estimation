@@ -64,7 +64,7 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         h = self._h(r)
         der_h = tf.gradients(h, [r])[0]
         ab = self._alpha * self._beta
-        det = (1. + ab * h)**(self._n_dims - 1) * (1. + ab*h + ab*der_h*r)
+        det = (1. + ab * h)**(self.n_dims - 1) * (1. + ab*h + ab*der_h*r)
         return tf.log(det)
 
     @staticmethod

@@ -446,6 +446,32 @@ class TestSerialization(unittest.TestCase):
         self.assertAlmostEqual(diff, 0, places=2)
 
 
+class TestFitByCrossval(unittest.TestCase):
+    def get_samples(self, std=1.0, mean=2):
+        np.random.seed(22)
+        data = np.random.normal([mean, mean], std, size=(2000, 2))
+        X = data[:, 0]
+        Y = data[:, 1]
+        return X, Y
+
+    def test_NF_fit_by_crossval(self):
+        X, Y = self.get_samples(std=1., mean=-4)
+
+        param_grid = {
+            'n_training_epochs': [0, 500],
+            'data_normalization': [False]
+        }
+        model = NormalizingFlowEstimator('nf_crossval', 1, 1)
+        model.fit_by_cv(X, Y, param_grid=param_grid)
+
+        y = np.arange(-1, 5, 0.5)
+        x = np.asarray([2 for _ in range(y.shape[0])])
+        p_est = model.pdf(x, y)
+        p_true = norm.pdf(y, loc=2, scale=1)
+        self.assertEqual(model.get_params()["n_training_epochs"], 500)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
@@ -455,7 +481,8 @@ if __name__ == '__main__':
         'unittests_normalizing_flows.TestFlows',
         'unittests_normalizing_flows.TestMultiModal',
         'unittests_normalizing_flows.TestRegularization',
-        'unittests_normalizing_flows.TestSerialization'
+        'unittests_normalizing_flows.TestSerialization',
+        'unittests_normalizing_flows.TestFitByCrossval',
     ]
     suite = unittest.TestSuite()
     for t in testmodules:
