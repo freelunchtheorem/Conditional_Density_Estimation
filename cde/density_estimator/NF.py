@@ -163,16 +163,21 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def _param_grid(self):
         return {
-            'n_training_epochs': [500, 1000, 1500],
+            'n_training_epochs': [1000, 1500],
+            'hidden_sizes': [(16, 16), (30, 30)],
             'flows_type': [
-                ('affine', 'radial', 'radial', 'radial'),
+                # radial
                 ('radial', 'radial', 'radial'),
-                ('affine', 'planar', 'planar', 'planar'),
+                ('affine', 'radial', 'radial', 'radial'),
+                ('affine', 'radial', 'radial', 'radial', 'radial'),
+                # planar
                 ('planar', 'planar', 'planar'),
+                ('affine', 'planar', 'planar', 'planar'),
+                # mix
                 ('affine', 'radial', 'planar', 'radial', 'planar'),
             ],
-            'x_noise_std': [0.1, None],
-            'y_noise_std': [0.1, None],
+            'x_noise_std': [0.1, 0.15, None],
+            'y_noise_std': [0.1, 0.15, None],
         }
 
     def _build_model(self):

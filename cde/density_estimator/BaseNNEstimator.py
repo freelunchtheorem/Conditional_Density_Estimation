@@ -74,30 +74,42 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         manager = Manager()
         score_dict = manager.dict()
 
-        def _fit_eval(param_idx, fold_idx):
+        def _fit_eval(param_idx, fold_idx, verbose=False, i_rand=-1):
             train_indices, test_indices = train_splits[fold_idx], test_splits[fold_idx]
             X_train, Y_train = X[train_indices], Y[train_indices]
             X_test, Y_test = X[test_indices], Y[test_indices]
 
             with tf.Session():
                 kwargs_dict = {**original_params, **param_list[param_idx]}
-                kwargs_dict['name'] = 'cv_%i_%i_' % (param_idx, fold_idx) + self.name
+                kwargs_dict['name'] = 'cv_%i_%i_%i_' % (param_idx, fold_idx, i_rand) + self.name
                 model = self.__class__(**kwargs_dict)
 
-                model.fit(X_train, Y_train, verbose=False)
-                score_dict[(param_idx, fold_idx)] = model.score(X_test, Y_test)
+                model.fit(X_train, Y_train, verbose=verbose)
+                test_score = model.score(X_test, Y_test)
+                assert not np.isnan(test_score)
+                score_dict[(param_idx, fold_idx)] = test_score
 
         # run the prepared tasks in multiple processes
         executor = AsyncExecutor(n_jobs=n_jobs)
         executor.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
 
 
-        # check if all results are available and rerun failed fit_evals
-        for i, j in zip(param_ids, fold_ids):
-            if (i, j) not in set(score_dict.keys()):
-                _fit_eval(i, j)
+        # check if all results are available and rerun failed fit_evals. Try three times
+        for i in range(3):
+            failed_runs = [x for x in zip(param_ids, fold_ids) if x not in score_dict]
+            if not failed_runs:
+                break
+            if verbose:
+                print("{} runs succeeded, {} runs failed. Rerunning failed runs".format(len(score_dict.keys()),
+                                                                                        len(failed_runs)))
+            for (p, f) in failed_runs:
+                try:
+                    _fit_eval(p, f, verbose=verbose, i_rand=i)
+                except Exception as e:
+                    print(e)
+
+        # make sure we ultimately have an output for every parameter - fold - combination
         assert len(score_dict.keys()) == len(param_list) * len(train_splits)
-        print(score_dict)
 
         # Select the best parameter setting
         scores_array = np.zeros((len(param_list), len(train_splits)))

@@ -75,7 +75,8 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         Also checks for whether the flow is actually invertible
         """
         z = InvertedPlanarFlow._handle_input_dimensionality(z)
-        invertible = tf.assert_greater_equal(tf.reduce_sum(self._w * self._u, 1), -1., name='Invertibility_Constraint')
+        invertible = tf.assert_greater_equal(tf.reduce_sum(self._w * self._u, 1), -1.,
+                                             name='Invertibility_Constraint', data=[self._u, self._w])
         with tf.control_dependencies([invertible]):
             return z + self._u * tf.tanh(self._wzb(z))
 
