@@ -8,7 +8,7 @@ seaborn
 scipy
 pytest
 scikit_learn
-git+https://github.com/jonasrothfuss/ml_logger.git@2231dc355987a184026d39818dcd972d4292251b
+git+https://github.com/jonasrothfuss/ml_logger/archive/79f2d1c06dd0de4c6fcee2ab96c1f11370c2168c.zip#egg=ml_logger-99.99
 statsmodels
 sphinx_rtd_theme
 progressbar2
