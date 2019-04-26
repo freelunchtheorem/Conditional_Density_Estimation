@@ -20,14 +20,15 @@ Beyond estimating conditional probability densities, the package features extens
 * **Percentiles and expected shortfall**
 
 ## Installation
-To use the library, either clone the GitHub repository and run 
-```bash
-pip install .
-``` 
-in the package folder or directly use the python package index:
+
+To use the library, you can directly use the python package index:
 ```bash
 pip install cde
 ```
+or clone the GitHub repository and run 
+```bash
+pip install .
+``` 
 Note that the package only supports tensorflow versions between 1.4 and 1.7.
 ## Documentation
 See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A technical report & paper will soon be released and linked here.
@@ -63,15 +64,13 @@ skewness = model.skewness(x_cond)[0]
 If you use CDE in your research, you can cite it as follows:
 
 ```
-@misc{cde2019,
-    author = {Jonas Rothfuss, Fabio Ferreira},
-    title = {Conditional Density Estimation with Neural Networks: Best Practices and Benchmarks},
-    year = {2019},
-    publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\url{https://github.com/freelunchtheorem/Conditional_Density_Estimation}},
-    note = {See technical report under \url{https://arxiv.org/abs/1903.00954}}
+@article{rothfuss2019conditional,
+  title={Conditional Density Estimation with Neural Networks: Best Practices and Benchmarks},
+  author={Rothfuss, Jonas and Ferreira, Fabio and Walther, Simon and Ulrich, Maxim},
+  journal={arXiv:1903.00954},
+  year={2019}
 }
+
 ```
 
 ## Todo
