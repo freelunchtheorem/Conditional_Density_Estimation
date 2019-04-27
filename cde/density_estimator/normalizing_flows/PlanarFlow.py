@@ -52,7 +52,7 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         :return: The transformed u
         """
         wtu = tf.reduce_sum(w*u, 1, keepdims=True)
-        m_wtu = -1. + tf.nn.softplus(wtu) + 1e-4
+        m_wtu = -1. + tf.nn.softplus(wtu) + 4e-4
         norm_w_squared = tf.reduce_sum(w**2, 1, keepdims=True)
         return u + (m_wtu - wtu)*(w/norm_w_squared)
 
@@ -75,8 +75,8 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         Also checks for whether the flow is actually invertible
         """
         z = InvertedPlanarFlow._handle_input_dimensionality(z)
-        invertible = tf.assert_greater_equal(tf.reduce_sum(self._w * self._u, 1), -1.,
-                                             name='Invertibility_Constraint', data=[self._u, self._w])
+        uw = tf.reduce_sum(self._w * self._u, 1)
+        invertible = tf.assert_greater_equal(uw, -1., name='Invertibility_Constraint', data=[self._u, self._w, uw])
         with tf.control_dependencies([invertible]):
             return z + self._u * tf.tanh(self._wzb(z))
 

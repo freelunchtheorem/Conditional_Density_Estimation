@@ -29,9 +29,9 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         random_seed: (optional) seed (int) of the random number generators used
     """
 
-    def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'),
-                 hidden_sizes=(16, 16), hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None,
-                 y_noise_std=None, weight_normalization=True, data_normalization=True, random_seed=None):
+    def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
+                 hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None,
+                 weight_normalization=True, data_normalization=True, random_seed=None):
         Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
         assert all([f in FLOWS.keys() for f in flows_type])
@@ -62,6 +62,9 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         # whether to normalize the data to zero mean, and uniform variance
         self.data_normalization = data_normalization
+
+        # gradients for planar flows tend to explode -> clip them by global norm
+        self.gradient_clipping = True if 'planar' in flows_type else False
 
         # as we'll be using reversed flows, sampling is too slow to be useful
         self.can_sample = False
@@ -163,7 +166,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def _param_grid(self):
         return {
-            'n_training_epochs': [1000, 1500],
+            'n_training_epochs': [1000, 2000],
             'hidden_sizes': [(16, 16), (30, 30)],
             'flows_type': [
                 # radial
@@ -245,7 +248,14 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
             self.loss = -tf.reduce_prod(self.pdf_)
             self.log_loss = -tf.reduce_sum(self.log_pdf_)
-            self.train_step = tf.train.AdamOptimizer().minimize(self.log_loss)
+
+            optimizer = tf.train.AdamOptimizer()
+            if self.gradient_clipping:
+                gradients, variables = zip(*optimizer.compute_gradients(self.log_loss))
+                gradients, _ = tf.clip_by_global_norm(gradients, 3e5)
+                self.train_step = optimizer.apply_gradients(zip(gradients, variables))
+            else:
+                self.train_step = optimizer.minimize(self.log_loss)
 
         # initialize LayersPowered -> provides functions for serializing tf models
         LayersPowered.__init__(self, [self.layer_in_y, core_network.output_layer])

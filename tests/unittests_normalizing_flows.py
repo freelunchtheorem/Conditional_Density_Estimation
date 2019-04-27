@@ -482,7 +482,7 @@ if __name__ == '__main__':
         'unittests_normalizing_flows.TestMultiModal',
         'unittests_normalizing_flows.TestRegularization',
         'unittests_normalizing_flows.TestSerialization',
-        'unittests_normalizing_flows.TestFitByCrossval',
+        # 'unittests_normalizing_flows.TestFitByCrossval',
     ]
     suite = unittest.TestSuite()
     for t in testmodules:
