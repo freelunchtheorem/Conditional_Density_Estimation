@@ -52,7 +52,7 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         :return: The transformed u
         """
         wtu = tf.reduce_sum(w*u, 1, keepdims=True)
-        m_wtu = -1. + tf.nn.softplus(wtu) + 4e-4
+        m_wtu = -1. + tf.nn.softplus(wtu) + 1e-3
         norm_w_squared = tf.reduce_sum(w**2, 1, keepdims=True)
         return u + (m_wtu - wtu)*(w/norm_w_squared)
 
