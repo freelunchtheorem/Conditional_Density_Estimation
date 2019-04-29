@@ -170,14 +170,16 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             'hidden_sizes': [(16, 16), (32, 32)],
             'flows_type': [
                 # radial
-                ('radial', 'radial', 'radial'),
                 ('affine', 'radial', 'radial', 'radial'),
                 ('affine', 'radial', 'radial', 'radial', 'radial'),
+                ('affine', 'radial', 'radial', 'radial', 'radial', 'radial'),
                 # planar
                 ('planar', 'planar', 'planar'),
                 ('affine', 'planar', 'planar', 'planar'),
+                ('affine', 'planar', 'planar', 'planar', 'planar'),
                 # mix
-                ('affine', 'radial', 'planar', 'radial', 'planar'),
+                ('affine', 'radial', 'planar', 'radial', 'planar',),
+                ('affine', 'radial', 'planar', 'radial', 'planar', 'radial'),
             ],
             'x_noise_std': [0.1, 0.2, 0.4, None],
             'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2,  None],
