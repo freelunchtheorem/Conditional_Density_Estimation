@@ -28,7 +28,7 @@ EXP_PREFIX = 'question4_benchmark_skew'
 RESULTS_FILE = 'results.pkl'
 
 logger.configure(
-  '/home/jonasrothfuss/Dropbox/Eigene_Dateien/Uni/WS17_18/Density_Estimation/Nonparametric_Density_Estimation/data/cluster',
+  '/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster',
   EXP_PREFIX)
 
 results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
@@ -52,7 +52,7 @@ fig = gof_result.plot_metric(plot_dict, metric="hellinger_distance", figsize=(15
 EXP_PREFIX = 'question4_benchmark_arma_jump'
 
 logger.configure(
-  '/home/jonasrothfuss/Dropbox/Eigene_Dateien/Uni/WS17_18/Density_Estimation/Nonparametric_Density_Estimation/data/cluster',
+  '/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster',
   EXP_PREFIX)
 
 results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))

@@ -1,9 +1,9 @@
 from cde.density_estimator import KernelMixtureNetwork, ConditionalKernelDensityEstimation, MixtureDensityNetwork, \
-  NeighborKernelDensityEstimation, LSConditionalDensityEstimation
+  NeighborKernelDensityEstimation, LSConditionalDensityEstimation, NormalizingFlowEstimator
 from cde.evaluation.eurostoxx_eval.load_dataset import make_overall_eurostoxx_df, target_feature_split
 
 from sklearn.model_selection import cross_validate
-from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
+from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation, NormalizingFlowEstimator
 
 from cde.model_fitting.ConfigRunner import _create_configurations
 import numpy as np
@@ -219,8 +219,9 @@ def run_benchmark_train_test_fit_by_cv(model_key=None, n_jobs=1):
 
     'KMN_cv': {'estimator': ['KernelMixtureNetwork'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'init_scales': [[0.7, 0.3]], 'random_seed': [40]},
 
-    'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y],
-              'random_seed': [40]},
+    'LSCDE_cv': {'estimator': ['LSConditionalDensityEstimation'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [40]},
+
+    'NF_cv': {'estimator': ['NormalizingFlowEstimator'], 'ndim_x': [ndim_x], 'ndim_y': [ndim_y], 'random_seed': [40]},
   }
 
   # exclude all other models except model_key
