@@ -36,6 +36,15 @@ def question4():
         'y_noise_std': [0.1],
         'random_seed': [22]
       },
+      'NormalizingFlowEstimator':
+          {
+              'flows_type': [('affine', 'radial', 'radial', 'radial')],
+              'hidden_sizes': [(16, 16)],
+              'n_training_epochs': [1000],
+              'x_noise_std': [0.1, 0.2],
+              'y_noise_std': [0.1],
+              'random_seed': [22]
+          },
     'KernelMixtureNetwork':
       {'center_sampling_method': ["k_means"],
        'n_centers': [50],
