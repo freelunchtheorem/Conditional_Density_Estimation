@@ -20,7 +20,7 @@ class IdentityFlow(BaseNormalizingFlow):
     def get_param_size(n_dims):
         """
         :param n_dims: The dimension of the distribution to be transformed by the flow. For this flow it's irrelevant
-        :return: (int) The dimension of the parameter space for the flow. Here, it's always 0
+        :return: (int) The dimension of the parameter space for the flow. This flow doesn't have parameters, hence it's always 0
         """
         return 0
 

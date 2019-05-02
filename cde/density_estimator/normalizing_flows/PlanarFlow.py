@@ -6,26 +6,18 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
     """
     Implements a bijector x = y + u * tanh(w_t * y + b)
 
-    The orginal planar flows proposed in Rezende, Mohamed 2015 are designed for efficient drawing of samples
-    For our CDE usecase, the inverse (evaluation of likelihood of externally provided data) needs to be fast
-    Therefore we invert the Flow
+    Args:
+        params: Tensor shape (?, 2*n_dims+1). This will be split into the parameters
+            u (?, n_dims), w (?, n_dims), b (?, 1).
+            Furthermore u will be constrained to assure the invertability of the flow
+        n_dims: The dimension of the distribution that will be transformed
+        name: The name to give this particular flow
 
-    The parameter sizes for transforming a distribution of dimension d:
-    shape u = (1, d)
-    shape w = (1, d)
-    shape b = (1, 1)
     """
     _u, _w, _b = None, None, None
 
-    def __init__(self, params, n_dims, validate_args=False, name='Inverted_Planar_Flow'):
-        """
-        Initializes a planar flow for transforming a distribution of dimension n_dims
-        :param params: Tensor shape (?, 2*n_dims+1). This will be split into the individual parameters u (?, n_dims), w (?, n_dims), b (?, 1)
-        The parameters will be constrained to make the flow invertible, as suggested by Rezende, Mohamed 2015
-        :param n_dims: The dimension of the distribution that will be transformed
-        """
-
-        super(InvertedPlanarFlow, self).__init__(params, n_dims, validate_args=validate_args, name=name)
+    def __init__(self, params, n_dims, name='Inverted_Planar_Flow'):
+        super(InvertedPlanarFlow, self).__init__(params, n_dims, validate_args=False, name=name)
 
         # split the input parameter in to the individual parameters u, w, b
         u_index, w_index, b_index = 0, 1, 2
@@ -80,8 +72,12 @@ class InvertedPlanarFlow(BaseNormalizingFlow):
         with tf.control_dependencies([invertible]):
             return z + self._u * tf.tanh(self._wzb(z))
 
-    def _forward(self, x):
-        """ As our flows are inverted, sampling / inverting is slow / impossible"""
+    def forward(self, x):
+        """
+        We don't require sampling and it would be slow, therefore it is not implemented
+
+        :raise NotImplementedError:
+        """
         raise NotImplementedError()
 
     def _ildj(self, z):

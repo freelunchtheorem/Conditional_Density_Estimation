@@ -4,20 +4,17 @@ from .BaseNormalizingFlow import BaseNormalizingFlow
 
 class AffineFlow(BaseNormalizingFlow):
     """
-    Implements a bijector y = (a*x) + b
+    Implements a bijector y = a*x + b
 
-    The parameters have the shape
-    a: (?, n_dims)
-    b: (?, n_dims)
+    Args:
+        params: tensor of shape (?, 2*n_dims). This will be split into the parameters a, b
+        n_dims: The dimension of the distribution that is being transformed
+        name: The name to give this flow
     """
     _a = None
     _b = None
 
     def __init__(self, params, n_dims, name='AffineFlow'):
-        """
-        :param params: shape (?, 2*n_dims), this will be split into the two parameters a and b
-        :param n_dims: Dimension of the distribution that's being transformed
-        """
         super(AffineFlow, self).__init__(params,
                                          n_dims,
                                          name=name)
@@ -31,9 +28,9 @@ class AffineFlow(BaseNormalizingFlow):
     def get_param_size(n_dims):
         """
         :param n_dims: The dimension of the distribution to be transformed by the flow.
-        :return: (int) The dimension of the parameter space for the flow. Here it's n_dims + n_dims, for a and b
+        :return: (int) The dimension of the parameter space for the flow. Here it's n_dims + n_dims
         """
-        return 2*n_dims
+        return 2 * n_dims
 
     def _forward(self, x):
         """

@@ -12,21 +12,21 @@ from cde.utils.serializable import Serializable
 class NormalizingFlowEstimator(BaseNNEstimator):
     """ Normalizing Flow Estimator
 
-    Building on "Normalizing Flows", Rezende & Mohamed 2015
-
-    Args:
-        name: (str) name space of the network (should be unique in code, otherwise tensorflow namespace collitions may arise)
-        ndim_x: (int) dimensionality of x variable
-        ndim_y: (int) dimensionality of y variable
-        flows_type: (tuple of string) The types of flows to use. Applied in order, going from the normal base distribution to the transformed distribution. Individual strings can be 'planar', 'radial'.
-        hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network
-        hidden_nonlinearity: (tf function) nonlinearity of the hidden layers
-        n_training_epochs: (int) Number of epochs for training
-        x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
-        y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
-        weight_normalization: (boolean) whether weight normalization shall be used
-        data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
-        random_seed: (optional) seed (int) of the random number generators used
+        Args:
+            name: (str) name space of the network (should be unique in code, otherwise tensorflow namespace collisions may arise)
+            ndim_x: (int) dimensionality of x variable
+            ndim_y: (int) dimensionality of y variable
+            flows_type: (tuple of strings) The chain of individual flows that together make up the full flow. The
+                        individual flows can be any of: *affine*, *planar*, *radial*, *identity*. They will be applied in order
+                        going from the base distribution to the transformed distribution.
+            hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network
+            hidden_nonlinearity: (tf function) nonlinearity of the hidden layers
+            n_training_epochs: (int) Number of epochs for training
+            x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
+            y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+            weight_normalization: (boolean) whether weight normalization shall be used for the neural network
+            data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std
+            random_seed: (optional) seed (int) of the random number generators used
     """
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
@@ -81,8 +81,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         Fit the model with to the provided data
 
         :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_sample, n_dim_y)
-        :param eval_set: (tuple) eval/test set - tuple (X_test, Y_test)
+        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
+        :param eval_set: (tuple) eval/test dataset - tuple (X_test, Y_test)
         :param verbose: (boolean) controls the verbosity of console output
         """
 
@@ -144,6 +144,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def cdf(self, X, Y):
         """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
+        The cumulative density function is currently only supported for ndim_y == 1
 
         :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
         :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
@@ -158,7 +159,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def reset_fit(self):
         """
-        Resets all tensorflow objects and enables this model to be trained from a fresh start
+        Resets all tensorflow objects and enables this model to be fitted anew
         """
         tf.reset_default_graph()
         self._build_model()
@@ -182,7 +183,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                 ('affine', 'radial', 'planar', 'radial', 'planar', 'radial'),
             ],
             'x_noise_std': [0.1, 0.2, 0.4, None],
-            'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2,  None],
+            'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
         }
 
     def _build_model(self):

@@ -47,15 +47,14 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
           X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
           Y: numpy array of y targets - shape: (n_samples, n_dim_y)
           n_folds: number of cross-validation folds (positive integer)
-          param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective \
-                      parametrizations as value. The hyperparameter search is performed over the cartesian product of \
+          param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective
+                      parametrizations as value. The hyperparameter search is performed over the cartesian product of
                       the provided lists.
-
-                      Example:
-                      {"n_centers": [20, 50, 100, 200],
-                       "center_sampling_method": ["agglomerative", "k_means", "random"],
-                       "keep_edges": [True, False]
-                      }
+                      Example::
+                              {"n_centers": [20, 50, 100, 200],
+                               "center_sampling_method": ["agglomerative", "k_means", "random"],
+                               "keep_edges": [True, False]
+                              }
           random_state: (int) seed used by the random number generator for shuffeling the data
         """
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'

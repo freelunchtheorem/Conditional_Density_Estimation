@@ -4,9 +4,15 @@ from .BaseNormalizingFlow import BaseNormalizingFlow
 
 class InvertedRadialFlow(BaseNormalizingFlow):
     """
-    Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + |y - y_0|)
-    This parametrization is different from the original one proposed in Rezende, Mohamed 2015
-    It was adapted for easier constraining by Trippe, Turner 2018
+    Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + abs(y - y_0)).
+
+    Args:
+        params: Tensor shape (?, n_dims+2). This will be split into the parameters
+            alpha (?, 1), beta (?, 1), gamma (?, n_dims).
+            Furthermore alpha will be constrained to assure the invertability of the flow
+        n_dims: The dimension of the distribution that will be transformed
+        name: The name to give this particular flow
+
     """
     _alpha = None
     _beta = None
@@ -81,3 +87,10 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         """
         return tf.exp(beta) - 1.
 
+    def forward(self, x):
+        """
+        We don't require sampling and it would be slow, therefore it is not implemented
+
+        :raise NotImplementedError:
+        """
+        raise NotImplementedError()
