@@ -5,7 +5,7 @@ import copy
 import traceback
 
 """ do not remove, imports required for globals() call """
-from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation
+from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation, NormalizingFlowEstimator
 from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel, SkewNormal, LinearGaussian, LinearStudentT
 from cde.model_fitting.GoodnessOfFit import GoodnessOfFit, sample_x_cond
 from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
@@ -41,7 +41,7 @@ class ConfigRunner():
                 }
 
 
-    sim_params: diction containing simulator parametrization
+    sim_params: dict containing simulator parametrization
                 example:
 
                 {'EconDensity': {'std': [1],
@@ -51,7 +51,7 @@ class ConfigRunner():
                 'GaussianMixture': { ... }
                 }
 
-    n_observations: either a array-like or a scalar value that defines the number of observations from the
+    observations: either a array-like or a scalar value that defines the number of observations from the
                     simulation model that are used to train the estimators
 
     keys_of_interest: list of strings, each representing a column in the dataframe / csv export
@@ -69,6 +69,7 @@ class ConfigRunner():
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
+    # every simulator configuration will be run multiple times with different randomness seeds
     sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
     self.observations = observations

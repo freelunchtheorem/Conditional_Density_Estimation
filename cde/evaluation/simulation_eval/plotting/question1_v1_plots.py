@@ -12,7 +12,7 @@ EXP_PREFIX = 'question1_noise_reg_x_v1'
 RESULTS_FILE = 'results.pkl'
 
 logger.configure(
-  '/home/jonasrothfuss/Dropbox/Eigene_Dateien/Uni/WS17_18/Density_Estimation/Nonparametric_Density_Estimation/data/cluster/',
+  '/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster',
   EXP_PREFIX)
 
 if not os.path.isdir(EXP_PREFIX):

@@ -4,9 +4,15 @@ from .BaseNormalizingFlow import BaseNormalizingFlow
 
 class InvertedRadialFlow(BaseNormalizingFlow):
     """
-    Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + |y - y_0|)
-    This parametrization is different from the original one proposed in Rezende, Mohamed 2015
-    It was adapted for easier constraining by Trippe, Turner 2018
+    Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + abs(y - y_0)).
+
+    Args:
+        params: Tensor shape (?, n_dims+2). This will be split into the parameters
+            alpha (?, 1), beta (?, 1), gamma (?, n_dims).
+            Furthermore alpha will be constrained to assure the invertability of the flow
+        n_dims: The dimension of the distribution that will be transformed
+        name: The name to give this particular flow
+
     """
     _alpha = None
     _beta = None
@@ -31,7 +37,6 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         self._alpha = InvertedRadialFlow._alpha_circ(flow_params[a_index])
         self._beta = InvertedRadialFlow._beta_circ(flow_params[b_index])
         self._gamma = flow_params[g_index]
-        self._n_dims = n_dims
 
     @staticmethod
     def get_param_size(n_dims):
@@ -56,7 +61,7 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         h = self._h(r)
         return z + (self._alpha * self._beta * h) * (z - self._gamma)
 
-    def _inverse_log_det_jacobian(self, z):
+    def _ildj(self, z):
         """
         Computes the ln of the absolute determinant of the jacobian
         """
@@ -65,7 +70,7 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         h = self._h(r)
         der_h = tf.gradients(h, [r])[0]
         ab = self._alpha * self._beta
-        det = (1. + ab * h)**(self._n_dims - 1) * (1. + ab*h + ab*der_h*r)
+        det = (1. + ab * h)**(self.n_dims - 1) * (1. + ab*h + ab*der_h*r)
         return tf.log(det)
 
     @staticmethod
@@ -82,3 +87,10 @@ class InvertedRadialFlow(BaseNormalizingFlow):
         """
         return tf.exp(beta) - 1.
 
+    def forward(self, x):
+        """
+        We don't require sampling and it would be slow, therefore it is not implemented
+
+        :raise NotImplementedError:
+        """
+        raise NotImplementedError()

@@ -284,10 +284,10 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     X_test, Y_test = self.get_samples(mu=mu, std=std)
     X_test = X_test
 
-    model = MixtureDensityNetwork("mdn", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
+    model = MixtureDensityNetwork("mdn_eval_set", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
     model.fit(X_train, Y_train, eval_set=(X_test, Y_test))
 
-    model = KernelMixtureNetwork("kmn", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
+    model = KernelMixtureNetwork("kmn_eval_set", 1, 1, n_centers=10, data_normalization=True, n_training_epochs=100)
     model.fit(X_train, Y_train, eval_set=(X_test, Y_test))
 
 class TestSerializationDensityEstimators(unittest.TestCase):

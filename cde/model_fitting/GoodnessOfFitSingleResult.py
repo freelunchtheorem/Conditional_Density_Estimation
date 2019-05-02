@@ -47,6 +47,8 @@ class GoodnessOfFitSingleResult:
            value = None
         if isinstance(value, list) and len(value) > 1:
           value = str(value)
+        if isinstance(value, tuple) and len(value) > 1:
+          value = str(value)
         report_dict[key] = value
       return report_dict
     else:
