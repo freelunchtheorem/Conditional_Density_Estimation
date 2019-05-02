@@ -1,5 +1,6 @@
 import matplotlib as mpl
-mpl.use("PS") #handles X11 server detection (required to run on console)
+
+mpl.use("PS")  # handles X11 server detection (required to run on console)
 import numpy as np
 
 from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
@@ -12,7 +13,7 @@ from ml_logger import logger
 EXP_PREFIX = 'question4_benchmark_skew_NF'
 RESULTS_FILE = 'results.pkl'
 
-N_MC_SAMPLES = int(2*10**5)
+N_MC_SAMPLES = int(2 * 10 ** 5)
 
 
 def question4():

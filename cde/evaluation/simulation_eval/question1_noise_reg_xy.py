@@ -18,22 +18,22 @@ def question1():
                 'n_centers': [20],
                 'keep_edges': [True],
                 'init_scales': [[0.1, 0.5, 1.], [0.3, 0.7]],
-                 'train_scales': [True],
+                'train_scales': [True],
                 'hidden_sizes': [(16, 16)],
-                 'n_training_epochs': [1000],
-                 'x_noise_std': [0.1, 0.2, 0.4, None],
-                 'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
-                 'random_seed': [22],
-             },
+                'n_training_epochs': [1000],
+                'x_noise_std': [0.1, 0.2, 0.4, None],
+                'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
+                'random_seed': [22],
+            },
         'NormalizingFlowEstimator':
-           {
-               'flows_type': [('affine', 'radial', 'radial', 'radial')],
-               'n_training_epochs': [1000],
-               'hidden_sizes': [(16, 16)],
-               'x_noise_std': [0.1, 0.2, 0.4, None],
-               'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
-               'random_seed': [22]
-           },
+            {
+                'flows_type': [('affine', 'radial', 'radial', 'radial')],
+                'n_training_epochs': [1000],
+                'hidden_sizes': [(16, 16)],
+                'x_noise_std': [0.1, 0.2, 0.4, None],
+                'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
+                'random_seed': [22]
+            },
         'MixtureDensityNetwork':
             {
                 'n_centers': [10],
@@ -41,7 +41,7 @@ def question1():
                 'hidden_sizes': [(16, 16)],
                 'x_noise_std': [0.1, 0.2, 0.4, None],
                 'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
-               'random_seed': [22]
+                'random_seed': [22]
             }
     }
 
