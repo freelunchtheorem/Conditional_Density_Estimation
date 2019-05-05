@@ -1,0 +1,430 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cde.density_estimator.LSCDE &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cde.density_estimator.LSCDE</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cde.density_estimator.LSCDE</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="k">import</span> <span class="n">logsumexp</span>
+
+<span class="kn">from</span> <span class="nn">cde.utils.center_point_select</span> <span class="k">import</span> <span class="n">sample_center_points</span>
+<span class="kn">from</span> <span class="nn">cde.utils.misc</span> <span class="k">import</span> <span class="n">norm_along_axis_1</span>
+<span class="kn">from</span> <span class="nn">.BaseDensityEstimator</span> <span class="k">import</span> <span class="n">BaseDensityEstimator</span>
+<span class="kn">from</span> <span class="nn">cde.utils.async_executor</span> <span class="k">import</span> <span class="n">execute_batch_async_pdf</span>
+
+<span class="n">MULTIPROC_THRESHOLD</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">4</span>
+
+<div class="viewcode-block" id="LSConditionalDensityEstimation"><a class="viewcode-back" href="../../../density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation">[docs]</a><span class="k">class</span> <span class="nc">LSConditionalDensityEstimation</span><span class="p">(</span><span class="n">BaseDensityEstimator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot; Least-Squares Density Ratio Estimator</span>
+
+<span class="sd">  http://proceedings.mlr.press/v9/sugiyama10a.html</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">      name: (str) name / identifier of estimator</span>
+<span class="sd">      ndim_x: (int) dimensionality of x variable</span>
+<span class="sd">      ndim_y: (int) dimensionality of y variable</span>
+<span class="sd">      center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \</span>
+<span class="sd">                            [all, random, distance, k_means, agglomerative]</span>
+<span class="sd">      bandwidth: scale / bandwith of the gaussian kernels</span>
+<span class="sd">      n_centers: Number of kernels to use in the output</span>
+<span class="sd">      regularization: regularization / damping parameter for solving the least-squares problem</span>
+<span class="sd">      keep_edges: if set to True, the extreme y values as centers are kept (for expressiveness)</span>
+<span class="sd">      n_jobs: (int) number of jobs to launch for calls with large batch sizes</span>
+<span class="sd">      random_seed: (optional) seed (int) of the random number generators used</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LSCDE&#39;</span><span class="p">,</span> <span class="n">ndim_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ndim_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">center_sampling_method</span><span class="o">=</span><span class="s1">&#39;k_means&#39;</span><span class="p">,</span>
+               <span class="n">bandwidth</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">n_centers</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">regularization</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+               <span class="n">keep_edges</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span> <span class="o">=</span> <span class="n">ndim_x</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">=</span> <span class="n">ndim_y</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">center_sampling_method</span> <span class="o">=</span> <span class="n">center_sampling_method</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span> <span class="o">=</span> <span class="n">n_centers</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">keep_edges</span> <span class="o">=</span> <span class="n">keep_edges</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span> <span class="o">=</span> <span class="n">bandwidth</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">regularization</span> <span class="o">=</span> <span class="n">regularization</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">=</span> <span class="n">n_jobs</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">can_sample</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">has_pdf</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">has_cdf</span> <span class="o">=</span> <span class="kc">False</span>
+
+  <span class="k">def</span> <span class="nf">_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="c1"># save mean and variance of data for normalization</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>  <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># get locations of the gaussian kernel centers</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_sampling_method</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">n_locs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span>
+    <span class="n">X_Y_normalized</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">centroids</span> <span class="o">=</span> <span class="n">sample_center_points</span><span class="p">(</span><span class="n">X_Y_normalized</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_sampling_method</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">n_locs</span><span class="p">,</span>
+                                     <span class="n">keep_edges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">keep_edges</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">random_state</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">centr_x</span> <span class="o">=</span> <span class="n">centroids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span> <span class="o">=</span> <span class="n">centroids</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">:]</span>
+
+    <span class="c1">#prepare gaussians for sampling</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">gaussians_y</span> <span class="o">=</span> <span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">center</span><span class="p">,</span> <span class="n">cov</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span><span class="p">)</span> <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n_locs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n_locs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LSConditionalDensityEstimation.fit"><a class="viewcode-back" href="../../../density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.fit">[docs]</a>  <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Fits the conditional density model with provided data</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">        Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># assert that both X an Y are 2D arrays with shape (n_samples, n_dim)</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_build_model</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">X_normalized</span><span class="p">,</span> <span class="n">Y_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="c1"># determine the kernel weights alpha</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="p">(</span><span class="n">X_normalized</span><span class="p">,</span> <span class="n">Y_normalized</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">norm_along_axis_1</span><span class="p">(</span><span class="n">X_normalized</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">centr_x</span><span class="p">),</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">norm_along_axis_1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span><span class="p">)</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span><span class="p">)</span> <span class="o">**</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">eta</span> <span class="o">/</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularization</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-10</span> <span class="c1"># set to small value instead of 0 for numerical stability</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="LSConditionalDensityEstimation.pdf"><a class="viewcode-back" href="../../../density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.pdf">[docs]</a>  <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Predicts the conditional density p(y|x). Requires the model to be fitted.</span>
+
+<span class="sd">       Args:</span>
+<span class="sd">         X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">         Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+
+<span class="sd">       Returns:</span>
+<span class="sd">          conditional probability density p(y|x) - numpy array of shape (n_query_samples, )</span>
+
+<span class="sd">     &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;model must be fitted for predictions&quot;</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">n_samples</span> <span class="o">&gt;=</span> <span class="n">MULTIPROC_THRESHOLD</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">execute_batch_async_pdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pdf</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LSConditionalDensityEstimation.log_pdf"><a class="viewcode-back" href="../../../density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.log_pdf">[docs]</a>  <span class="k">def</span> <span class="nf">log_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.</span>
+
+<span class="sd">          Args:</span>
+<span class="sd">            X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">            Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+
+<span class="sd">          Returns:</span>
+<span class="sd">             conditional log-probability density log p(y|x) - numpy array of shape (n_query_samples, )</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;model must be fitted for predictions&quot;</span>
+
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">n_samples</span> <span class="o">&gt;=</span> <span class="n">MULTIPROC_THRESHOLD</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">execute_batch_async_pdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_pdf</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LSConditionalDensityEstimation.sample"><a class="viewcode-back" href="../../../density_estimator/lscde.html#cde.density_estimator.LSConditionalDensityEstimation.sample">[docs]</a>  <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; sample from the conditional mixture distributions - requires the model to be fitted</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      X: values to be conditioned on when sampling - numpy array of shape (n_instances, n_dim_x)</span>
+
+<span class="sd">    Returns: tuple (X, Y)</span>
+<span class="sd">      - X - the values to conditioned on that were provided as argument - numpy array of shape (n_samples, ndim_x)</span>
+<span class="sd">      - Y - conditional samples from the model p(y|x) - numpy array of shape (n_samples, ndim_y)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian_kernel</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span>
+
+    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">discrete_dist</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">rv_discrete</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]))</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="n">discrete_dist</span><span class="o">.</span><span class="n">rvs</span><span class="p">()</span>
+      <span class="n">Y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gaussians_y</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">rvs</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span></div>
+
+  <span class="k">def</span> <span class="nf">_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_log_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="n">X_normalized</span><span class="p">,</span> <span class="n">Y_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+    <span class="n">log_p</span> <span class="o">=</span> <span class="n">logsumexp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_gaussian_kernel</span><span class="p">(</span><span class="n">X_normalized</span><span class="p">,</span> <span class="n">Y_normalized</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">log_normalization</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">+</span> \
+                        <span class="n">logsumexp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_gaussian_kernel</span><span class="p">(</span><span class="n">X_normalized</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">log_p</span> <span class="o">-</span> <span class="n">log_normalization</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_std</span><span class="p">)))</span>
+
+  <span class="k">def</span> <span class="nf">_normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="n">X_normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_std</span>
+    <span class="n">Y_normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_mean</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_std</span>
+    <span class="k">return</span> <span class="n">X_normalized</span><span class="p">,</span> <span class="n">Y_normalized</span>
+
+  <span class="k">def</span> <span class="nf">_gaussian_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    if Y is set returns the product of the gaussian kernels for X and Y, else only the gaussian kernel for X</span>
+<span class="sd">    :param X: numpy array of size (n_samples, ndim_x)</span>
+<span class="sd">    :param Y: numpy array of size (n_samples, ndim_y)</span>
+<span class="sd">    :return: phi -  numpy array of size (n_samples, n_centers)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_gaussian_kernel</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_log_gaussian_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    if Y is set returns the sum of the gaussian log-kernels for X and Y, else only the gaussian log-kernel for X</span>
+<span class="sd">    :param X: numpy array of size (n_samples, ndim_x)</span>
+<span class="sd">    :param Y: numpy array of size (n_samples, ndim_y)</span>
+<span class="sd">    :return: phi -  numpy array of size (n_samples, n_centers)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+
+        <span class="c1">#suqared distances from center point i</span>
+        <span class="n">sq_d_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sq_d_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">Y</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_y</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">phi</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">sq_d_x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">sq_d_y</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="c1"># suqared distances from center point i</span>
+        <span class="n">sq_d_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">centr_x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">phi</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span> <span class="n">sq_d_x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">phi</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">phi</span>
+
+  <span class="k">def</span> <span class="nf">_param_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s2">&quot;n_centers&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">]),</span>
+      <span class="s2">&quot;bandwidth&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+      <span class="s2">&quot;regularization&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">])</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">param_grid</span>
+
+  <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Estimator type: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> center sampling method: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> n_centers: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> keep_edges: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> bandwidth: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> regularization: </span><span class="si">{}</span><span class="se">\n</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">center_sampling_method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_centers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keep_edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bandwidth</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularization</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

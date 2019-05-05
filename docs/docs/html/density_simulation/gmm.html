@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Gaussian Mixture &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Jump-Diffusion Time Series Model" href="jump_diff.html" />
+    <link rel="prev" title="ECON Toy Density Model" href="econ_density.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="density_simulation.html">Conditional Density Simulation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="arma_jump.html">ARMA-Jump Time Series Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="econ_density.html">ECON Toy Density Model</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Gaussian Mixture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jump_diff.html">Jump-Diffusion Time Series Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linear_gaussian.html">Linear Gaussian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="skew_normal.html">Skew Normal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_simulation.html#module-cde.density_simulation">Conditional Density Simulation Interface</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="density_simulation.html">Conditional Density Simulation</a> &raquo;</li>
+        
+      <li>Gaussian Mixture</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_simulation/gmm.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="gaussian-mixture">
+<h1>Gaussian Mixture<a class="headerlink" href="#gaussian-mixture" title="Permalink to this headline">¶</a></h1>
+<p>Fit a and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices. For the multivariate case the distribution is given by</p>
+<div class="math notranslate nohighlight">
+\[G(X | \mu, \Sigma) = \frac{1}{\sqrt{2\pi\left|\Sigma\right|}} \exp^{(-\frac{1}{2} (X-\mu)^T\Sigma^{-1}(X-\mu))}\]</div>
+<p>The mixture model is then composed of a linear combination of an arbitrary number of components <span class="math notranslate nohighlight">\(K\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[p(X) = \sum_{k=1}^K \pi_k G(X|\mu_k, \Sigma_k).\]</div>
+<p>Where <span class="math notranslate nohighlight">\(\pi_k\)</span> is the mixing coefficient for the <span class="math notranslate nohighlight">\(k\)</span>-th distribution. <span class="math notranslate nohighlight">\(\mu\)</span>, <span class="math notranslate nohighlight">\(\Sigma\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span> are estimated by Maximum-Likelihood for each <span class="math notranslate nohighlight">\(k\)</span>. It is possible to specify the number of kernels to define the modality of the distribution and also dimensionality for both <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span>. The component means are initialized randomly according to given standard deviation. Also the weights are initialized randomly.</p>
+<span class="target" id="module-cde.density_simulation"></span><dl class="class">
+<dt id="cde.density_simulation.GaussianMixture">
+<em class="property">class </em><code class="descclassname">cde.density_simulation.</code><code class="descname">GaussianMixture</code><span class="sig-paren">(</span><em>n_kernels=5</em>, <em>ndim_x=1</em>, <em>ndim_y=1</em>, <em>means_std=1.5</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture" title="Permalink to this definition">¶</a></dt>
+<dd><p>This model allows to fit and sample from a uni- bi- or multivariate Gaussian mixture model with diagonal covariance matrices.
+The mixture model is composed by a linear combination of an arbitrary number of components n_kernels. Means, covariances and weights are
+estimated by Maximum-Likelihood for each component. It is possible to specify the number of kernels to define the modality of the
+distribution and also dimensionality for both x and y. The component means are initialized randomly according to given standard
+deviation. Also the weights are initialized randomly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_kernels</strong> – number of mixture components</p></li>
+<li><p><strong>ndim_x</strong> – dimensionality of X / number of random variables in X</p></li>
+<li><p><strong>ndim_y</strong> – dimensionality of Y / number of random variables in Y</p></li>
+<li><p><strong>means_std</strong> – std. dev. when sampling the kernel means</p></li>
+<li><p><strong>random_seed</strong> – seed for the random_number generator</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="attribute">
+<dt id="cde.density_simulation.GaussianMixture.can_sample">
+<code class="descname">can_sample</code><em class="property"> = None</em><a class="headerlink" href="#cde.density_simulation.GaussianMixture.can_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>set parameters, calculate weights, means and covariances</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.cdf">
+<code class="descname">cdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.cdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.cdf" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>conditional cumulative probability density function P(Y&lt;y|X=x).</dt><dd><p>See “Conditional Gaussian Mixture Models for Environmental Risk Mapping” [Gilardi, Bengio] for the math.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – the position/conditional variable for the distribution P(Y&lt;y|X=x), array_like, shape:(n_samples, ndim_x)</p></li>
+<li><p><strong>Y</strong> – the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(n_samples,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>the cond. cumulative distribution of Y given X, for the given realizations of X with shape</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+<li><p><strong>n_samples</strong> – number of samples for monte carlo model_fitting</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.covariance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_simulation.GaussianMixture.covariances_y">
+<code class="descname">covariances_y</code><em class="property"> = None</em><a class="headerlink" href="#cde.density_simulation.GaussianMixture.covariances_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>some eigenvalues of the sampled covariance matrices can be exactly zero -&gt; map to positive
+semi-definite subspace</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.get_params">
+<code class="descname">get_params</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.get_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameters for this estimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deep</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, will return the parameters for this estimator and
+contained subobjects that are estimators.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>params</strong> – Parameter names mapped to their values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mapping of string to any</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.joint_pdf">
+<code class="descname">joint_pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.joint_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.joint_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>joint probability density function P(X, Y)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – variable X for the distribution P(X, Y), array_like, shape:(n_samples, ndim_x)</p></li>
+<li><p><strong>Y</strong> – variable Y for the distribution P(X, Y) array_like, shape:(n_samples, ndim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(n_samples,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>the joint distribution of X and Y wih shape</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.kurtosis">
+<code class="descname">kurtosis</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.kurtosis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kurtosis of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Kurtosis Kurt[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.log_pdf">
+<code class="descname">log_pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.log_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conditional log-probability log p(y|x). Requires the model to be fitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>conditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.mean_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conditional mean of the distribution
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_simulation.GaussianMixture.means">
+<code class="descname">means</code><em class="property"> = None</em><a class="headerlink" href="#cde.density_simulation.GaussianMixture.means" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample cov matrixes and assure that cov matrix is pos definite</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>conditional probability density function P(Y|X)</dt><dd><p>See “Conditional Gaussian Mixture Models for Environmental Risk Mapping” [Gilardi, Bengio] for the math.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – the position/conditional variable for the distribution P(Y|X), array_like, shape:(n_samples, ndim_x)</p></li>
+<li><p><strong>Y</strong> – the on X conditioned variable Y, array_like, shape:(n_samples, ndim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(n_samples,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>the cond. distribution of Y given X, for the given realizations of X with shape</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-5</em>, <em>5)</em>, <em>resolution=100</em>, <em>mode='pdf'</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution specified in mode if x and y are 1-dimensional each</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xlim</strong> – 2-tuple specifying the x axis limits</p></li>
+<li><p><strong>ylim</strong> – 2-tuple specifying the y axis limits</p></li>
+<li><p><strong>resolution</strong> – integer specifying the resolution of plot</p></li>
+<li><p><strong>mode</strong> – spefify which dist to plot [“pdf”, “cdf”, “joint_pdf”]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.plot2d">
+<code class="descname">plot2d</code><span class="sig-paren">(</span><em>x_cond=[0, 1, 2], ylim=(-8, 8), resolution=100, mode='pdf', show=True, prefix='', numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xlim</strong> – 2-tuple specifying the x axis limits</p></li>
+<li><p><strong>ylim</strong> – 2-tuple specifying the y axis limits</p></li>
+<li><p><strong>resolution</strong> – integer specifying the resolution of plot</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.plot3d">
+<code class="descname">plot3d</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-8</em>, <em>8)</em>, <em>resolution=100</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xlim</strong> – 2-tuple specifying the x axis limits</p></li>
+<li><p><strong>ylim</strong> – 2-tuple specifying the y axis limits</p></li>
+<li><p><strong>resolution</strong> – integer specifying the resolution of plot</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.set_params">
+<code class="descname">set_params</code><span class="sig-paren">(</span><em>**params</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.set_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the parameters of this estimator.</p>
+<p>The method works on simple estimators as well as on nested objects
+(such as pipelines). The latter have parameters of the form
+<code class="docutils literal notranslate"><span class="pre">&lt;component&gt;__&lt;parameter&gt;</span></code> so that it’s possible to update each
+component of a nested object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.simulate">
+<code class="descname">simulate</code><span class="sig-paren">(</span><em>n_samples=1000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.simulate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.simulate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws random samples from the unconditional distribution p(x,y)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>n_samples</strong> – (int) number of samples to be drawn from the conditional distribution</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(X,Y) - random samples drawn from p(x,y) - numpy arrays of shape (n_samples, ndim_x) and (n_samples, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.simulate_conditional">
+<code class="descname">simulate_conditional</code><span class="sig-paren">(</span><em>X</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_simulation/GMM.html#GaussianMixture.simulate_conditional"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_simulation.GaussianMixture.simulate_conditional" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draws random samples from the conditional distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>X</strong> – x to be conditioned on when drawing a sample from y ~ p(y|x) - numpy array of shape (n_samples, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Conditional random samples y drawn from p(y|x) - numpy array of shape (n_samples, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.skewness">
+<code class="descname">skewness</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.skewness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Skewness of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Skewness Skew[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.std_">
+<code class="descname">std_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.std_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard deviation of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Standard deviations  sqrt(Var[y|x]) corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+<li><p><strong>n_samples</strong> – number of samples for monte carlo model_fitting</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>VaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+<li><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_simulation.GaussianMixture.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_simulation.GaussianMixture.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+<li><p><strong>n_samples</strong> – number of samples for monte carlo model_fitting</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="jump_diff.html" class="btn btn-neutral float-right" title="Jump-Diffusion Time Series Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="econ_density.html" class="btn btn-neutral float-left" title="ECON Toy Density Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

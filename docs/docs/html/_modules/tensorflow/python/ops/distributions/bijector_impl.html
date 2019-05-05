@@ -1,0 +1,1017 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tensorflow.python.ops.distributions.bijector_impl &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tensorflow.python.ops.distributions.bijector_impl</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tensorflow.python.ops.distributions.bijector_impl</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2016 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Bijector base.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">dtypes</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">tensor_shape</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">tensor_util</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">array_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">math_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.util.tf_export</span> <span class="k">import</span> <span class="n">tf_export</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Bijector&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_Mapping</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;_Mapping&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;ildj&quot;</span><span class="p">,</span> <span class="s2">&quot;kwargs&quot;</span><span class="p">])):</span>
+  <span class="sd">&quot;&quot;&quot;Helper class to make it easier to manage caching in `Bijector`.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ildj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Custom __new__ so namedtuple items have defaults.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: `Tensor`. Forward.</span>
+<span class="sd">      y: `Tensor`. Inverse.</span>
+<span class="sd">      ildj: `Tensor`. Inverse log det Jacobian.</span>
+<span class="sd">      kwargs: Python dictionary. Extra args supplied to</span>
+<span class="sd">        forward/inverse/etc functions.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      mapping: New instance of _Mapping.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_Mapping</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ildj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">x_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns key used for caching Y=g(X).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deep_tuple</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())))</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">y_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns key used for caching X=g^{-1}(Y).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deep_tuple</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())))</span>
+
+  <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ildj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns new _Mapping with args merged with self.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: `Tensor`. Forward.</span>
+<span class="sd">      y: `Tensor`. Inverse.</span>
+<span class="sd">      ildj: `Tensor`. Inverse log det Jacobian.</span>
+<span class="sd">      kwargs: Python dictionary. Extra args supplied to</span>
+<span class="sd">        forward/inverse/etc functions.</span>
+<span class="sd">      mapping: Instance of _Mapping to merge. Can only be specified if no other</span>
+<span class="sd">        arg is specified.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      mapping: New instance of `_Mapping` which has inputs merged with self.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if mapping and any other arg is not `None`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">_Mapping</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">ildj</span><span class="o">=</span><span class="n">ildj</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">arg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ildj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">]):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot specify mapping and individual args.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_Mapping</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span><span class="p">),</span>
+        <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
+        <span class="n">ildj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ildj</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span><span class="p">),</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">kwargs</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper to merge which handles merging one value.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">old</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">new</span>
+    <span class="k">elif</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">old</span> <span class="o">!=</span> <span class="n">new</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incompatible values: </span><span class="si">%s</span><span class="s2"> != </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">old</span>
+
+  <span class="k">def</span> <span class="nf">_deep_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts lists of lists to tuples of tuples.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_deep_tuple</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+
+<span class="nd">@six</span><span class="o">.</span><span class="n">add_metaclass</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">)</span>
+<span class="nd">@tf_export</span><span class="p">(</span><span class="s2">&quot;distributions.bijectors.Bijector&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Bijector</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Interface for transformations of a `Distribution` sample.</span>
+
+<span class="sd">  Bijectors can be used to represent any differentiable and injective</span>
+<span class="sd">  (one to one) function defined on an open subset of `R^n`.  Some non-injective</span>
+<span class="sd">  transformations are also supported (see &quot;Non Injective Transforms&quot; below).</span>
+
+<span class="sd">  #### Mathematical Details</span>
+
+<span class="sd">  A `Bijector` implements a [smooth covering map](</span>
+<span class="sd">  https://en.wikipedia.org/wiki/Local_diffeomorphism), i.e., a local</span>
+<span class="sd">  diffeomorphism such that every point in the target has a neighborhood evenly</span>
+<span class="sd">  covered by a map ([see also](</span>
+<span class="sd">  https://en.wikipedia.org/wiki/Covering_space#Covering_of_a_manifold)).</span>
+<span class="sd">  A `Bijector` is used by `TransformedDistribution` but can be generally used</span>
+<span class="sd">  for transforming a `Distribution` generated `Tensor`. A `Bijector` is</span>
+<span class="sd">  characterized by three operations:</span>
+
+<span class="sd">  1. Forward\</span>
+<span class="sd">     Useful for turning one random outcome into another random outcome from a</span>
+<span class="sd">     different distribution.</span>
+<span class="sd">  2. Inverse\</span>
+<span class="sd">     Useful for &quot;reversing&quot; a transformation to compute one probability in</span>
+<span class="sd">     terms of another.</span>
+<span class="sd">  3. `(log o det o Jacobian o inverse)(x)`\</span>
+<span class="sd">     &quot;The log of the determinant of the matrix of all first-order partial</span>
+<span class="sd">     derivatives of the inverse function.&quot;\</span>
+<span class="sd">     Useful for inverting a transformation to compute one probability in terms</span>
+<span class="sd">     of another. Geometrically, the det(Jacobian) is the volume of the</span>
+<span class="sd">     transformation and is used to scale the probability.</span>
+
+<span class="sd">  By convention, transformations of random variables are named in terms of the</span>
+<span class="sd">  forward transformation. The forward transformation creates samples, the</span>
+<span class="sd">  inverse is useful for computing probabilities.</span>
+
+<span class="sd">  #### Example Uses</span>
+
+<span class="sd">  - Basic properties:</span>
+
+<span class="sd">  ```python</span>
+<span class="sd">  x = ...  # A tensor.</span>
+<span class="sd">  # Evaluate forward transformation.</span>
+<span class="sd">  fwd_x = my_bijector.forward(x)</span>
+<span class="sd">  x == my_bijector.inverse(fwd_x)</span>
+<span class="sd">  x != my_bijector.forward(fwd_x)  # Not equal because x != g(g(x)).</span>
+<span class="sd">  ```</span>
+
+<span class="sd">  - Computing a log-likelihood:</span>
+
+<span class="sd">  ```python</span>
+<span class="sd">  def transformed_log_prob(bijector, log_prob, x):</span>
+<span class="sd">    return (bijector.inverse_log_det_jacobian(x) +</span>
+<span class="sd">            log_prob(bijector.inverse(x)))</span>
+<span class="sd">  ```</span>
+
+<span class="sd">  - Transforming a random outcome:</span>
+
+<span class="sd">  ```python</span>
+<span class="sd">  def transformed_sample(bijector, x):</span>
+<span class="sd">    return bijector.forward(x)</span>
+<span class="sd">  ```</span>
+
+<span class="sd">  #### Example Bijectors</span>
+
+<span class="sd">  - &quot;Exponential&quot;</span>
+
+<span class="sd">    ```none</span>
+<span class="sd">    Y = g(X) = exp(X)</span>
+<span class="sd">    X ~ Normal(0, 1)  # Univariate.</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    Implies:</span>
+
+<span class="sd">    ```none</span>
+<span class="sd">      g^{-1}(Y) = log(Y)</span>
+<span class="sd">      |Jacobian(g^{-1})(y)| = 1 / y</span>
+<span class="sd">      Y ~ LogNormal(0, 1), i.e.,</span>
+<span class="sd">      prob(Y=y) = |Jacobian(g^{-1})(y)| * prob(X=g^{-1}(y))</span>
+<span class="sd">                = (1 / y) Normal(log(y); 0, 1)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    Here is an example of how one might implement the `Exp` bijector:</span>
+
+<span class="sd">    ```python</span>
+<span class="sd">      class Exp(Bijector):</span>
+
+<span class="sd">        def __init__(self, event_ndims=0, validate_args=False, name=&quot;exp&quot;):</span>
+<span class="sd">          super(Exp, self).__init__(</span>
+<span class="sd">              event_ndims=event_ndims, validate_args=validate_args, name=name)</span>
+
+<span class="sd">        def _forward(self, x):</span>
+<span class="sd">          return math_ops.exp(x)</span>
+
+<span class="sd">        def _inverse(self, y):</span>
+<span class="sd">          return math_ops.log(y)</span>
+
+<span class="sd">        def _inverse_log_det_jacobian(self, y):</span>
+<span class="sd">          return -self._forward_log_det_jacobian(self._inverse(y))</span>
+
+<span class="sd">        def _forward_log_det_jacobian(self, x):</span>
+<span class="sd">          if self.event_ndims is None:</span>
+<span class="sd">            raise ValueError(&quot;Jacobian requires known event_ndims.&quot;)</span>
+<span class="sd">          event_dims = array_ops.shape(x)[-self.event_ndims:]</span>
+<span class="sd">          return math_ops.reduce_sum(x, axis=event_dims)</span>
+<span class="sd">      ```</span>
+
+<span class="sd">  - &quot;Affine&quot;</span>
+
+<span class="sd">    ```none</span>
+<span class="sd">    Y = g(X) = sqrtSigma * X + mu</span>
+<span class="sd">    X ~ MultivariateNormal(0, I_d)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    Implies:</span>
+
+<span class="sd">    ```none</span>
+<span class="sd">      g^{-1}(Y) = inv(sqrtSigma) * (Y - mu)</span>
+<span class="sd">      |Jacobian(g^{-1})(y)| = det(inv(sqrtSigma))</span>
+<span class="sd">      Y ~ MultivariateNormal(mu, sqrtSigma) , i.e.,</span>
+<span class="sd">      prob(Y=y) = |Jacobian(g^{-1})(y)| * prob(X=g^{-1}(y))</span>
+<span class="sd">                = det(sqrtSigma)^(-d) *</span>
+<span class="sd">                  MultivariateNormal(inv(sqrtSigma) * (y - mu); 0, I_d)</span>
+<span class="sd">      ```</span>
+
+<span class="sd">  #### Jacobian</span>
+
+<span class="sd">  The Jacobian is a reduction over event dims. To see this, consider the `Exp`</span>
+<span class="sd">  `Bijector` applied to a `Tensor` which has sample, batch, and event (S, B, E)</span>
+<span class="sd">  shape semantics. Suppose the `Tensor`&#39;s partitioned-shape is `(S=[4], B=[2],</span>
+<span class="sd">  E=[3, 3])`. The shape of the `Tensor` returned by `forward` and `inverse` is</span>
+<span class="sd">  unchanged, i.e., `[4, 2, 3, 3]`.  However the shape returned by</span>
+<span class="sd">  `inverse_log_det_jacobian` is `[4, 2]` because the Jacobian is a reduction</span>
+<span class="sd">  over the event dimensions.</span>
+
+<span class="sd">  It is sometimes useful to implement the inverse Jacobian as the negative</span>
+<span class="sd">  forward Jacobian. For example,</span>
+
+<span class="sd">  ```python</span>
+<span class="sd">  def _inverse_log_det_jacobian(self, y):</span>
+<span class="sd">     return -self._forward_log_det_jac(self._inverse(y))  # Note negation.</span>
+<span class="sd">  ```</span>
+
+<span class="sd">  The correctness of this approach can be seen from the following claim.</span>
+
+<span class="sd">  - Claim:</span>
+
+<span class="sd">      Assume `Y = g(X)` is a bijection whose derivative exists and is nonzero</span>
+<span class="sd">      for its domain, i.e., `dY/dX = d/dX g(X) != 0`. Then:</span>
+
+<span class="sd">      ```none</span>
+<span class="sd">      (log o det o jacobian o g^{-1})(Y) = -(log o det o jacobian o g)(X)</span>
+<span class="sd">      ```</span>
+
+<span class="sd">  - Proof:</span>
+
+<span class="sd">      From the bijective, nonzero differentiability of `g`, the</span>
+<span class="sd">      [inverse function theorem](</span>
+<span class="sd">          https://en.wikipedia.org/wiki/Inverse_function_theorem)</span>
+<span class="sd">      implies `g^{-1}` is differentiable in the image of `g`.</span>
+<span class="sd">      Applying the chain rule to `y = g(x) = g(g^{-1}(y))` yields</span>
+<span class="sd">      `I = g&#39;(g^{-1}(y))*g^{-1}&#39;(y)`.</span>
+<span class="sd">      The same theorem also implies `g^{-1}&#39;` is non-singular therefore:</span>
+<span class="sd">      `inv[ g&#39;(g^{-1}(y)) ] = g^{-1}&#39;(y)`.</span>
+<span class="sd">      The claim follows from [properties of determinant](</span>
+<span class="sd">  https://en.wikipedia.org/wiki/Determinant#Multiplicativity_and_matrix_groups).</span>
+
+<span class="sd">  Generally its preferable to directly implement the inverse Jacobian. This</span>
+<span class="sd">  should have superior numerical stability and will often share subgraphs with</span>
+<span class="sd">  the `_inverse` implementation.</span>
+
+<span class="sd">  #### Subclass Requirements</span>
+
+<span class="sd">  - Subclasses typically implement:</span>
+
+<span class="sd">      - `_forward`,</span>
+<span class="sd">      - `_inverse`,</span>
+<span class="sd">      - `_inverse_log_det_jacobian`,</span>
+<span class="sd">      - `_forward_log_det_jacobian` (optional).</span>
+
+<span class="sd">    The `_forward_log_det_jacobian` is called when the bijector is inverted via</span>
+<span class="sd">    the `Invert` bijector. If undefined, a slightly less efficiently</span>
+<span class="sd">    calculation, `-1 * _inverse_log_det_jacobian`, is used.</span>
+
+<span class="sd">    If the bijector changes the shape of the input, you must also implement:</span>
+
+<span class="sd">      - _forward_event_shape_tensor,</span>
+<span class="sd">      - _forward_event_shape (optional),</span>
+<span class="sd">      - _inverse_event_shape_tensor,</span>
+<span class="sd">      - _inverse_event_shape (optional).</span>
+
+<span class="sd">    By default the event-shape is assumed unchanged from input.</span>
+
+<span class="sd">  - If the `Bijector`&#39;s use is limited to `TransformedDistribution` (or friends</span>
+<span class="sd">    like `QuantizedDistribution`) then depending on your use, you may not need</span>
+<span class="sd">    to implement all of `_forward` and `_inverse` functions.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">      1. Sampling (e.g., `sample`) only requires `_forward`.</span>
+<span class="sd">      2. Probability functions (e.g., `prob`, `cdf`, `survival`) only require</span>
+<span class="sd">         `_inverse` (and related).</span>
+<span class="sd">      3. Only calling probability functions on the output of `sample` means</span>
+<span class="sd">        `_inverse` can be implemented as a cache lookup.</span>
+
+<span class="sd">    See &quot;Example Uses&quot; [above] which shows how these functions are used to</span>
+<span class="sd">    transform a distribution. (Note: `_forward` could theoretically be</span>
+<span class="sd">    implemented as a cache lookup but this would require controlling the</span>
+<span class="sd">    underlying sample generation mechanism.)</span>
+
+<span class="sd">  #### Non Injective Transforms</span>
+
+<span class="sd">  **WARNING** Handing of non-injective transforms is subject to change.</span>
+
+<span class="sd">  Non injective maps `g` are supported, provided their domain `D` can be</span>
+<span class="sd">  partitioned into `k` disjoint subsets, `Union{D1, ..., Dk}`, such that,</span>
+<span class="sd">  ignoring sets of measure zero, the restriction of `g` to each subset is a</span>
+<span class="sd">  differentiable bijection onto `g(D)`.  In particular, this imples that for</span>
+<span class="sd">  `y in g(D)`, the set inverse, i.e. `g^{-1}(y) = {x in D : g(x) = y}`, always</span>
+<span class="sd">  contains exactly `k` distinct points.</span>
+
+<span class="sd">  The property, `_is_injective` is set to `False` to indicate that the bijector</span>
+<span class="sd">  is not injective, yet satisfies the above condition.</span>
+
+<span class="sd">  The usual bijector API is modified in the case `_is_injective is False` (see</span>
+<span class="sd">  method docstrings for specifics).  Here we show by example the `AbsoluteValue`</span>
+<span class="sd">  bijector.  In this case, the domain `D = (-inf, inf)`, can be partitioned</span>
+<span class="sd">  into `D1 = (-inf, 0)`, `D2 = {0}`, and `D3 = (0, inf)`.  Let `gi` be the</span>
+<span class="sd">  restriction of `g` to `Di`, then both `g1` and `g3` are bijections onto</span>
+<span class="sd">  `(0, inf)`, with `g1^{-1}(y) = -y`, and `g3^{-1}(y) = y`.  We will use</span>
+<span class="sd">  `g1` and `g3` to define bijector methods over `D1` and `D3`.  `D2 = {0}` is</span>
+<span class="sd">  an oddball in that `g2` is one to one, and the derivative is not well defined.</span>
+<span class="sd">  Fortunately, when considering transformations of probability densities</span>
+<span class="sd">  (e.g. in `TransformedDistribution`), sets of measure zero have no effect in</span>
+<span class="sd">  theory, and only a small effect in 32 or 64 bit precision.  For that reason,</span>
+<span class="sd">  we define `inverse(0)` and `inverse_log_det_jacobian(0)` both as `[0, 0]`,</span>
+<span class="sd">  which is convenient and results in a left-semicontinuous pdf.</span>
+
+
+<span class="sd">  ```python</span>
+<span class="sd">  abs = tf.contrib.distributions.bijectors.AbsoluteValue()</span>
+
+<span class="sd">  abs.forward(-1.)</span>
+<span class="sd">  ==&gt; 1.</span>
+
+<span class="sd">  abs.forward(1.)</span>
+<span class="sd">  ==&gt; 1.</span>
+
+<span class="sd">  abs.inverse(1.)</span>
+<span class="sd">  ==&gt; (-1., 1.)</span>
+
+<span class="sd">  # The |dX/dY| is constant, == 1.  So Log|dX/dY| == 0.</span>
+<span class="sd">  abs.inverse_log_det_jacobian(1.)</span>
+<span class="sd">  ==&gt; (0., 0.)</span>
+
+<span class="sd">  # Special case handling of 0.</span>
+<span class="sd">  abs.inverse(0.)</span>
+<span class="sd">  ==&gt; (0., 0.)</span>
+
+<span class="sd">  abs.inverse_log_det_jacobian(0.)</span>
+<span class="sd">  ==&gt; (0., 0.)</span>
+<span class="sd">  ```</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">event_ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">graph_parents</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">is_constant_jacobian</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">validate_args</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs Bijector.</span>
+
+<span class="sd">    A `Bijector` transforms random variables into new random variables.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">    ```python</span>
+<span class="sd">    # Create the Y = g(X) = X transform which operates on vector events.</span>
+<span class="sd">    identity = Identity(event_ndims=1)</span>
+
+<span class="sd">    # Create the Y = g(X) = exp(X) transform which operates on matrices.</span>
+<span class="sd">    exp = Exp(event_ndims=2)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    See `Bijector` subclass docstring for more details and specific examples.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      event_ndims: number of dimensions associated with event coordinates.</span>
+<span class="sd">      graph_parents: Python list of graph prerequisites of this `Bijector`.</span>
+<span class="sd">      is_constant_jacobian: Python `bool` indicating that the Jacobian is not a</span>
+<span class="sd">        function of the input.</span>
+<span class="sd">      validate_args: Python `bool`, default `False`. Whether to validate input</span>
+<span class="sd">        with asserts. If `validate_args` is `False`, and the inputs are invalid,</span>
+<span class="sd">        correct behavior is not guaranteed.</span>
+<span class="sd">      dtype: `tf.dtype` supported by this `Bijector`. `None` means dtype is not</span>
+<span class="sd">        enforced.</span>
+<span class="sd">      name: The name to give Ops created by the initializer.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError:  If a member of `graph_parents` is not a `Tensor`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_event_ndims</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">event_ndims</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">event_ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph_parents</span> <span class="o">=</span> <span class="n">graph_parents</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_constant_jacobian</span> <span class="o">=</span> <span class="n">is_constant_jacobian</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_validate_args</span> <span class="o">=</span> <span class="n">validate_args</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_from_y</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_from_x</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># Using abbreviation ildj for &quot;inverse log det Jacobian.&quot;</span>
+    <span class="c1"># This variable is not `None` iff is_constant_jacobian is `True`.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># We want the default convention to be snake_case rather than CamelCase</span>
+      <span class="c1"># since `Chain` uses bijector.name as the kwargs dictionary key.</span>
+      <span class="k">def</span> <span class="nf">camel_to_snake</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;(.)([A-Z][a-z]+)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\1_\2&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;([a-z0-9])([A-Z])&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\1_\2&quot;</span><span class="p">,</span> <span class="n">s1</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">camel_to_snake</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph_parents</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">tensor_util</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Graph parent item </span><span class="si">%d</span><span class="s2"> is not a Tensor; </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">event_ndims</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns then number of event dimensions this bijector operates on.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event_ndims</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">graph_parents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns this `Bijector`&#39;s graph_parents as a Python list.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_parents</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">is_constant_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns true iff the Jacobian is not a function of x.</span>
+
+<span class="sd">    Note: Jacobian is either constant for both forward and inverse or neither.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      is_constant_jacobian: Python `bool`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_constant_jacobian</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_is_injective</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns true iff the forward map `g` is injective (one-to-one function).</span>
+
+<span class="sd">    **WARNING** This hidden property and its behavior are subject to change.</span>
+
+<span class="sd">    Note:  Non-injective maps `g` are supported, provided their domain `D` can</span>
+<span class="sd">    be partitioned into `k` disjoint subsets, `Union{D1, ..., Dk}`, such that,</span>
+<span class="sd">    ignoring sets of measure zero, the restriction of `g` to each subset is a</span>
+<span class="sd">    differentiable bijection onto `g(D)`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      is_injective: Python `bool`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">validate_args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if Tensor arguments will be validated.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_args</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;dtype of `Tensor`s transformable by this distribution.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the string name of this `Bijector`.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+  <span class="k">def</span> <span class="nf">_forward_event_shape_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `forward_event_shape_tensor` function.&quot;&quot;&quot;</span>
+    <span class="c1"># By default, we assume event_shape is unchanged.</span>
+    <span class="k">return</span> <span class="n">input_shape</span>
+
+  <span class="k">def</span> <span class="nf">forward_event_shape_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">input_shape</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="o">=</span><span class="s2">&quot;forward_event_shape_tensor&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of a single sample from a single batch as an `int32` 1D `Tensor`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_shape: `Tensor`, `int32` vector indicating event-portion shape</span>
+<span class="sd">        passed into `forward` function.</span>
+<span class="sd">      name: name to give to the op</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      forward_event_shape_tensor: `Tensor`, `int32` vector indicating</span>
+<span class="sd">        event-portion shape after applying `forward`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">input_shape</span><span class="p">]):</span>
+      <span class="n">input_shape</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                          <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input_shape&quot;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_event_shape_tensor</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_forward_event_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `forward_event_shape` public function.&quot;&quot;&quot;</span>
+    <span class="c1"># By default, we assume event_shape is unchanged.</span>
+    <span class="k">return</span> <span class="n">input_shape</span>
+
+  <span class="k">def</span> <span class="nf">forward_event_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of a single sample from a single batch as a `TensorShape`.</span>
+
+<span class="sd">    Same meaning as `forward_event_shape_tensor`. May be only partially defined.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_shape: `TensorShape` indicating event-portion shape passed into</span>
+<span class="sd">        `forward` function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      forward_event_shape_tensor: `TensorShape` indicating event-portion shape</span>
+<span class="sd">        after applying `forward`. Possibly unknown.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_event_shape</span><span class="p">(</span><span class="n">tensor_shape</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_inverse_event_shape_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `inverse_event_shape_tensor` function.&quot;&quot;&quot;</span>
+    <span class="c1"># By default, we assume event_shape is unchanged.</span>
+    <span class="k">return</span> <span class="n">output_shape</span>
+
+  <span class="k">def</span> <span class="nf">inverse_event_shape_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">output_shape</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="o">=</span><span class="s2">&quot;inverse_event_shape_tensor&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of a single sample from a single batch as an `int32` 1D `Tensor`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      output_shape: `Tensor`, `int32` vector indicating event-portion shape</span>
+<span class="sd">        passed into `inverse` function.</span>
+<span class="sd">      name: name to give to the op</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      inverse_event_shape_tensor: `Tensor`, `int32` vector indicating</span>
+<span class="sd">        event-portion shape after applying `inverse`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">output_shape</span><span class="p">]):</span>
+      <span class="n">output_shape</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">output_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                                           <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_shape&quot;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_event_shape_tensor</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_inverse_event_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `inverse_event_shape` public function.&quot;&quot;&quot;</span>
+    <span class="c1"># By default, we assume event_shape is unchanged.</span>
+    <span class="k">return</span> <span class="n">tensor_shape</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">inverse_event_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Shape of a single sample from a single batch as a `TensorShape`.</span>
+
+<span class="sd">    Same meaning as `inverse_event_shape_tensor`. May be only partially defined.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      output_shape: `TensorShape` indicating event-portion shape passed into</span>
+<span class="sd">        `inverse` function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      inverse_event_shape_tensor: `TensorShape` indicating event-portion shape</span>
+<span class="sd">        after applying `inverse`. Possibly unknown.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_event_shape</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `forward` public function.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;forward not implemented.&quot;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_call_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">]):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_assert_dtype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_injective</span><span class="p">:</span>  <span class="c1"># No caching for non-injective</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span>
+
+  <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;forward&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the forward `Bijector` evaluation, i.e., X = g(Y).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: `Tensor`. The input to the &quot;forward&quot; evaluation.</span>
+<span class="sd">      name: The name to give this op.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      `Tensor`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      TypeError: if `self.dtype` is specified and `x.dtype` is not</span>
+<span class="sd">        `self.dtype`.</span>
+<span class="sd">      NotImplementedError: if `_forward` is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation for `inverse` public function.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;inverse not implemented&quot;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_call_inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">y</span><span class="p">]):</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_assert_dtype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_injective</span><span class="p">:</span>  <span class="c1"># No caching for non-injective</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_inverse</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span>
+
+  <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;inverse&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the inverse `Bijector` evaluation, i.e., X = g^{-1}(Y).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      y: `Tensor`. The input to the &quot;inverse&quot; evaluation.</span>
+<span class="sd">      name: The name to give this op.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      `Tensor`, if this bijector is injective.</span>
+<span class="sd">        If not injective, returns the k-tuple containing the unique</span>
+<span class="sd">        `k` points `(x1, ..., xk)` such that `g(xi) = y`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      TypeError: if `self.dtype` is specified and `y.dtype` is not</span>
+<span class="sd">        `self.dtype`.</span>
+<span class="sd">      NotImplementedError: if `_inverse` is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_inverse</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_inverse_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation of `inverse_log_det_jacobian` public function.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;inverse_log_det_jacobian not implemented.&quot;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_call_inverse_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">y</span><span class="p">]):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_assert_dtype</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_injective</span><span class="p">:</span>  <span class="c1"># No caching for non-injective</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_log_det_jacobian</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Not needed; leave cache as is.</span>
+        <span class="n">ildj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_log_det_jacobian</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">original_exception</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span> <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+          <span class="n">ildj</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward_log_det_jacobian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="n">original_exception</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">ildj</span><span class="o">=</span><span class="n">ildj</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_constant_jacobian</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+      <span class="k">return</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+
+  <span class="k">def</span> <span class="nf">inverse_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;inverse_log_det_jacobian&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the (log o det o Jacobian o inverse)(y).</span>
+
+<span class="sd">    Mathematically, returns: `log(det(dX/dY))(Y)`. (Recall that: `X=g^{-1}(Y)`.)</span>
+
+<span class="sd">    Note that `forward_log_det_jacobian` is the negative of this function,</span>
+<span class="sd">    evaluated at `g^{-1}(y)`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      y: `Tensor`. The input to the &quot;inverse&quot; Jacobian evaluation.</span>
+<span class="sd">      name: The name to give this op.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      `Tensor`, if this bijector is injective.</span>
+<span class="sd">        If not injective, returns the tuple of local log det</span>
+<span class="sd">        Jacobians, `log(det(Dg_i^{-1}(y)))`, where `g_i` is the restriction</span>
+<span class="sd">        of `g` to the `ith` partition `Di`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      TypeError: if `self.dtype` is specified and `y.dtype` is not</span>
+<span class="sd">        `self.dtype`.</span>
+<span class="sd">      NotImplementedError: if `_inverse_log_det_jacobian` is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_inverse_log_det_jacobian</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_forward_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclass implementation of `forward_log_det_jacobian`.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s2">&quot;forward_log_det_jacobian not implemented.&quot;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_call_forward_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">]):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Need &quot;-1. *&quot; to avoid invalid-unary-operand-type linter warning.</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mf">1.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_assert_dtype</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_injective</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_log_det_jacobian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># No caching.</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Not needed; leave cache as is.</span>
+        <span class="n">ildj</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward_log_det_jacobian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">original_exception</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">y</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span> <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+          <span class="n">ildj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_log_det_jacobian</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="n">original_exception</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">ildj</span><span class="o">=</span><span class="n">ildj</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_constant_jacobian</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+      <span class="k">return</span> <span class="o">-</span><span class="n">mapping</span><span class="o">.</span><span class="n">ildj</span>
+
+  <span class="k">def</span> <span class="nf">forward_log_det_jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;forward_log_det_jacobian&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns both the forward_log_det_jacobian.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: `Tensor`. The input to the &quot;forward&quot; Jacobian evaluation.</span>
+<span class="sd">      name: The name to give this op.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      `Tensor`, if this bijector is injective.</span>
+<span class="sd">        If not injective this is not implemented.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      TypeError: if `self.dtype` is specified and `y.dtype` is not</span>
+<span class="sd">        `self.dtype`.</span>
+<span class="sd">      NotImplementedError: if neither `_forward_log_det_jacobian`</span>
+<span class="sd">        nor {`_inverse`, `_inverse_log_det_jacobian`} are implemented, or</span>
+<span class="sd">        this is a non-injective bijector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_injective</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+          <span class="s2">&quot;forward_log_det_jacobian cannot be implemented for non-injective &quot;</span>
+          <span class="s2">&quot;transforms.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_forward_log_det_jacobian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+  <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+  <span class="k">def</span> <span class="nf">_name_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to standardize op scope.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">(</span><span class="n">values</span> <span class="ow">or</span> <span class="p">[])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph_parents</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">scope</span>
+
+  <span class="k">def</span> <span class="nf">_maybe_assert_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper to check dtype when self.dtype is known.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">base_dtype</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">base_dtype</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Input had dtype </span><span class="si">%s</span><span class="s2"> but expected </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span>
+                      <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper which stores mapping info in forward/inverse dicts.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Fold in ildj if known constant Jacobian.</span>
+      <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">ildj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_constant_ildj</span><span class="p">)</span>
+    <span class="c1"># Merging from lookup is an added check that we&#39;re not overwriting anything</span>
+    <span class="c1"># which is not None.</span>
+    <span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_lookup</span><span class="p">(</span>
+        <span class="n">mapping</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">mapping</span><span class="o">.</span><span class="n">kwargs</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Caching expects at least one of (x,y) to be known, &quot;</span>
+                       <span class="s2">&quot;i.e., not None.&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_from_x</span><span class="p">[</span><span class="n">mapping</span><span class="o">.</span><span class="n">x_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_from_y</span><span class="p">[</span><span class="n">mapping</span><span class="o">.</span><span class="n">y_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span>
+
+  <span class="k">def</span> <span class="nf">_lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper which retrieves mapping info from forward/inverse dicts.&quot;&quot;&quot;</span>
+    <span class="n">mapping</span> <span class="o">=</span> <span class="n">_Mapping</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># Since _cache requires both x,y to be set, we only need to do one cache</span>
+    <span class="c1"># lookup since the mapping is always in both or neither.</span>
+    <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">x_key</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mapping</span><span class="o">.</span><span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_y</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">y_key</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mapping</span>
+
+  <span class="k">def</span> <span class="nf">_event_dims_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a 1D `int32` tensor: `range(rank(sample))[-event_ndims:]`.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_ndims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Jacobian cannot be computed with unknown event_ndims&quot;</span><span class="p">)</span>
+    <span class="n">static_event_ndims</span> <span class="o">=</span> <span class="n">tensor_util</span><span class="o">.</span><span class="n">constant_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">event_ndims</span><span class="p">)</span>
+    <span class="n">static_rank</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">ndims</span>
+    <span class="k">if</span> <span class="n">static_event_ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">static_rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+          <span class="n">static_rank</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">static_event_ndims</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">static_event_ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">event_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">static_event_ndims</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">event_range</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">event_ndims</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">static_rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">event_range</span> <span class="o">+</span> <span class="n">static_rank</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">event_range</span> <span class="o">+</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

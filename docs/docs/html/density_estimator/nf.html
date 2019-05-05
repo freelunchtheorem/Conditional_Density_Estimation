@@ -1,0 +1,673 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Normalizing Flow Estimator &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Affine Flow" href="normalizing_flows/affine.html" />
+    <link rel="prev" title="Mixture Density Network" href="mdn.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="density_estimator.html">Conditional Density Estimators</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ckde.html">Conditional Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Normalizing Flow Estimator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="normalizing_flows/affine.html">Affine Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="normalizing_flows/identity.html">Identity Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="normalizing_flows/planar.html">Planar Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="normalizing_flows/radial.html">Radial Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="density_estimator.html#module-cde.density_estimator">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="density_estimator.html">Conditional Density Estimators</a> &raquo;</li>
+        
+      <li>Normalizing Flow Estimator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_estimator/nf.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="normalizing-flow-estimator">
+<h1>Normalizing Flow Estimator<a class="headerlink" href="#normalizing-flow-estimator" title="Permalink to this headline">¶</a></h1>
+<p>The Normalizing Flow Estimator (NFE) combines a conventional neural network (in our implementation specified as <span class="math notranslate nohighlight">\(estimator\)</span>) with a multi-stage Normalizing Flow <a class="reference internal" href="normalizing_flows/radial.html#rezende2015" id="id1"><span>[REZENDE2015]</span></a> for modeling conditional probability distributions <span class="math notranslate nohighlight">\(p(y|x)\)</span>.
+Given a network and a flow, the distribution <span class="math notranslate nohighlight">\(y\)</span> can be specified by having the network output the parameters of the flow given an input <span class="math notranslate nohighlight">\(x\)</span> <a class="reference internal" href="normalizing_flows/radial.html#trippe2018" id="id2"><span>[TRIPPE2018]</span></a>.
+If the normalizing flow is expressive enough, arbitrary conditional distributions can be approximated.</p>
+<p>The flows work by transforming a base distribution (in our case a normal distribution) into successively more complex distributions
+by applying bijectors.</p>
+<p>Example of a normal distribution being transformed by two planar flows:</p>
+<img alt="../_images/planar_flow.png" src="../_images/planar_flow.png" />
+<p>Using the change of variable formula, the resulting probability distribution <span class="math notranslate nohighlight">\(p_1\)</span> for a single flow <span class="math notranslate nohighlight">\(f\)</span> applied to the base distribution <span class="math notranslate nohighlight">\(p_0\)</span> becomes:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}p_0(\mathbf{z_0}) = \mathcal{N}(\mathbf{\mu}, \mathbf{\Sigma})(\mathbf{z_0})\\\mathbf{z_1} = f(\mathbf{z_0})\\p_1(\mathbf{z_1}) = p_0(f^{-1}(\mathbf{z_1})) \cdot |\det \dfrac{d f^{-1}(\mathbf{z_1})}{d \mathbf{z_1}}|\end{aligned}\end{align} \]</div>
+<p>Using normalizing flows for density estimation requires that the inverse and the Jacobian determinant of the flow can be calculated quickly.</p>
+<p>Given input <span class="math notranslate nohighlight">\(x\)</span>, the neural network outputs the parameters <span class="math notranslate nohighlight">\(\theta\)</span> of the flows.
+The weights and biases <span class="math notranslate nohighlight">\(w\)</span> of the neural network are learned by minimizing the negative logarithm of the likelihood (maximum likelihood) over <span class="math notranslate nohighlight">\(N\)</span>
+data points for a normalizing flow consisting of <span class="math notranslate nohighlight">\(K\)</span> flows.</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}E(w) = - \sum_{n=1}^N \bigg\{\log p_0(\mathbf{z_{0,n}}) + \sum_{k=1}^{K} \log|\det\dfrac{d f_k^{-1}(\mathbf{z_{k,n}}, \theta_k(\mathbf{w}, \mathbf{x_n}))}{d \mathbf{z_{k,n}}}|\bigg\}\\\mathbf{z_{0,n}} = f_1^{-1}(f_2^{-1}(\dots f_K^{-1}(\mathbf{z_{K,n}}))), \mathbf{z_{K,n}} = \mathbf{y_n}\end{aligned}\end{align} \]</div>
+<p>Available flows:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="normalizing_flows/affine.html">Affine Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="normalizing_flows/identity.html">Identity Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="normalizing_flows/planar.html">Planar Flow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="normalizing_flows/radial.html">Radial Flow</a></li>
+</ul>
+</div>
+<span class="target" id="module-cde.density_estimator"></span><dl class="class">
+<dt id="cde.density_estimator.NormalizingFlowEstimator">
+<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">NormalizingFlowEstimator</code><span class="sig-paren">(</span><em>name</em>, <em>ndim_x</em>, <em>ndim_y</em>, <em>flows_type=('affine'</em>, <em>'radial'</em>, <em>'radial'</em>, <em>'radial')</em>, <em>hidden_sizes=(16</em>, <em>16)</em>, <em>hidden_nonlinearity=&lt;function tanh&gt;</em>, <em>n_training_epochs=1000</em>, <em>x_noise_std=None</em>, <em>y_noise_std=None</em>, <em>weight_normalization=True</em>, <em>data_normalization=True</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalizing Flow Estimator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – (str) name space of the network (should be unique in code, otherwise tensorflow namespace collisions may arise)</p></li>
+<li><p><strong>ndim_x</strong> – (int) dimensionality of x variable</p></li>
+<li><p><strong>ndim_y</strong> – (int) dimensionality of y variable</p></li>
+<li><p><strong>flows_type</strong> – (tuple of strings) The chain of individual flows that together make up the full flow. The
+individual flows can be any of: <em>affine</em>, <em>planar</em>, <em>radial</em>, <em>identity</em>. They will be applied in order
+going from the base distribution to the transformed distribution.</p></li>
+<li><p><strong>hidden_sizes</strong> – (tuple of int) sizes of the hidden layers of the neural network</p></li>
+<li><p><strong>hidden_nonlinearity</strong> – (tf function) nonlinearity of the hidden layers</p></li>
+<li><p><strong>n_training_epochs</strong> – (int) Number of epochs for training</p></li>
+<li><p><strong>x_noise_std</strong> – (optional) standard deviation of Gaussian noise over the the training data X -&gt; regularization through noise</p></li>
+<li><p><strong>y_noise_std</strong> – (optional) standard deviation of Gaussian noise over the the training data Y -&gt; regularization through noise</p></li>
+<li><p><strong>weight_normalization</strong> – (boolean) whether weight normalization shall be used for the neural network</p></li>
+<li><p><strong>data_normalization</strong> – (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std</p></li>
+<li><p><strong>random_seed</strong> – (optional) seed (int) of the random number generators used</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.cdf">
+<code class="descname">cdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator.cdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.cdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional cumulative probability p(Y&lt;=y|X=x). Requires the model to be fitted.
+The cumulative density function is currently only supported for ndim_y == 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>conditional cumulative probability p(Y&lt;=y|X=x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.eval_by_cv">
+<code class="descname">eval_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_splits=5</em>, <em>verbose=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.eval_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with cross-validation by using the score function of the BaseDensityEstimator for
+scoring the various splits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+<li><p><strong>n_splits</strong> – number of cross-validation folds (positive integer)</p></li>
+<li><p><strong>verbose</strong> – the verbosity level</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>random_seed=None</em>, <em>verbose=True</em>, <em>eval_set=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit the model with to the provided data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+<li><p><strong>eval_set</strong> – (tuple) eval/test dataset - tuple (X_test, Y_test)</p></li>
+<li><p><strong>verbose</strong> – (boolean) controls the verbosity of console output</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.fit_by_cv">
+<code class="descname">fit_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_folds=3</em>, <em>param_grid=None</em>, <em>random_state=None</em>, <em>verbose=True</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.fit_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with hyperparameter search and cross-validation.</p>
+<ul class="simple">
+<li><p>Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
+the conditional log-likelihood is used for simulation_eval.</p></li>
+<li><p>Fits the model with the previously selected hyperparameter configuration</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+<li><p><strong>n_folds</strong> – number of cross-validation folds (positive integer)</p></li>
+<li><p><strong>param_grid</strong> – <p>(optional) a dictionary with the hyperparameters of the model as key and and a list of respective
+parametrizations as value. The hyperparameter search is performed over the cartesian product of
+the provided lists.
+Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;n_centers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span>
+ <span class="s2">&quot;center_sampling_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;agglomerative&quot;</span><span class="p">,</span> <span class="s2">&quot;k_means&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span>
+ <span class="s2">&quot;keep_edges&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>random_state</strong> – (int) seed used by the random number generator for shuffeling the data</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.get_configuration">
+<code class="descname">get_configuration</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.get_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter configuration for this estimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deep</strong> – boolean, optional If True, will return the parameters for this estimator and              contained subobjects that are estimators.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>params - mapping of string to any Parameter names mapped to their values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.get_params">
+<code class="descname">get_params</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.get_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameters for this estimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deep</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True, will return the parameters for this estimator and
+contained subobjects that are estimators.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>params</strong> – Parameter names mapped to their values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mapping of string to any</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.get_params_internal">
+<code class="descname">get_params_internal</code><span class="sig-paren">(</span><em>**tags</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.get_params_internal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Internal method to be implemented which does not perform caching</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.kurtosis">
+<code class="descname">kurtosis</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.kurtosis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kurtosis of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Kurtosis Kurt[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.log_pdf">
+<code class="descname">log_pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator.log_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.log_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the log of the conditional probability p(y|x). Requires the model to be fitted</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>log of the conditional probability p(y|x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the fitted distribution conditioned on x_cond
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.mean_std">
+<code class="descname">mean_std</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.mean_std" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Computes Mean and Covariance of the fitted distribution conditioned on x_cond.</dt><dd><p>Computationally more efficient than calling mean and covariance computatio separately</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Means E[y|x] and Covariances Cov[y|x]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator.pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional probability p(y|x). Requires the model to be fitted</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>conditional probability p(y|x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.plot2d">
+<code class="descname">plot2d</code><span class="sig-paren">(</span><em>x_cond=[0, 1, 2], ylim=(-8, 8), resolution=100, mode='pdf', show=True, prefix='', numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.plot2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xlim</strong> – 2-tuple specifying the x axis limits</p></li>
+<li><p><strong>ylim</strong> – 2-tuple specifying the y axis limits</p></li>
+<li><p><strong>resolution</strong> – integer specifying the resolution of plot</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.plot3d">
+<code class="descname">plot3d</code><span class="sig-paren">(</span><em>xlim=(-5</em>, <em>5)</em>, <em>ylim=(-8</em>, <em>8)</em>, <em>resolution=100</em>, <em>show=False</em>, <em>numpyfig=False</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.plot3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 3d surface plot of the fitted conditional distribution if x and y are 1-dimensional each</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xlim</strong> – 2-tuple specifying the x axis limits</p></li>
+<li><p><strong>ylim</strong> – 2-tuple specifying the y axis limits</p></li>
+<li><p><strong>resolution</strong> – integer specifying the resolution of plot</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.predict_density">
+<code class="descname">predict_density</code><span class="sig-paren">(</span><em>X</em>, <em>Y=None</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.predict_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes conditional density p(y|x) over a predefined grid of y target values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – values/vectors to be conditioned on - shape: (n_instances, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution</p></li>
+<li><p><strong>resulution</strong> – integer specifying the resolution of simulation_eval grid</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns: tuple (P, Y)</dt><dd><ul class="simple">
+<li><p>P - density p(y|x) - shape (n_instances, resolution**n_dim_y)</p></li>
+<li><p>Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y            in case it was provided as argument</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.reset_fit">
+<code class="descname">reset_fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/NF.html#NormalizingFlowEstimator.reset_fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.reset_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets all tensorflow objects and enables this model to be fitted anew</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.score">
+<code class="descname">score</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mean conditional log-likelihood of the provided data (X, Y)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_query_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_query_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>average log likelihood of data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.set_params">
+<code class="descname">set_params</code><span class="sig-paren">(</span><em>**params</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.set_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the parameters of this estimator.</p>
+<p>The method works on simple estimators as well as on nested objects
+(such as pipelines). The latter have parameters of the form
+<code class="docutils literal notranslate"><span class="pre">&lt;component&gt;__&lt;parameter&gt;</span></code> so that it’s possible to update each
+component of a nested object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.skewness">
+<code class="descname">skewness</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.skewness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Skewness of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Skewness Skew[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.std_">
+<code class="descname">std_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.std_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard deviation of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Standard deviations  sqrt(Var[y|x]) corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+<li><p><strong>n_samples</strong> – number of samples for monte carlo model_fitting</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>VaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+<li><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.NormalizingFlowEstimator.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.NormalizingFlowEstimator.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="citation">
+<dt class="label" id="rezende2015"><span class="brackets"><a class="fn-backref" href="#id1">REZENDE2015</a></span></dt>
+<dd><p>Rezende, Mohamed (2015). Variational Inference with Normalizing Flows (<a class="reference external" href="http://arxiv.org/abs/1505.05770">http://arxiv.org/abs/1505.05770</a>)</p>
+</dd>
+<dt class="label" id="trippe2018"><span class="brackets"><a class="fn-backref" href="#id2">TRIPPE2018</a></span></dt>
+<dd><p>Trippe, Turner (2018). Conditional Density Estimation with Bayesian Normalising Flows (<a class="reference external" href="http://arxiv.org/abs/1802.04908">http://arxiv.org/abs/1802.04908</a>)</p>
+</dd>
+</dl>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="normalizing_flows/affine.html" class="btn btn-neutral float-right" title="Affine Flow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="mdn.html" class="btn btn-neutral float-left" title="Mixture Density Network" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

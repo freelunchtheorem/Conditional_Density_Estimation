@@ -1,0 +1,532 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Conditional Density Estimators &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Conditional Kernel Density Estimation" href="ckde.html" />
+    <link rel="prev" title="Conditional Density Estimation Documentation" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Conditional Density Estimators</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ckde.html">Conditional Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nf.html">Normalizing Flow Estimator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-cde.density_estimator">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Conditional Density Estimators</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/density_estimator/density_estimator.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="conditional-density-estimators">
+<h1>Conditional Density Estimators<a class="headerlink" href="#conditional-density-estimators" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ckde.html">Conditional Kernel Density Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nf.html">Normalizing Flow Estimator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="normalizing_flows/affine.html">Affine Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="normalizing_flows/identity.html">Identity Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="normalizing_flows/planar.html">Planar Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="normalizing_flows/radial.html">Radial Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nkde.html">Neighborhood Kernel Density Estimation</a></li>
+</ul>
+</div>
+<div class="section" id="module-cde.density_estimator">
+<span id="base-density-estimation-interface"></span><h2>Base Density Estimation Interface<a class="headerlink" href="#module-cde.density_estimator" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="cde.density_estimator.BaseDensityEstimator">
+<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">BaseDensityEstimator</code><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interface for conditional density estimation models</p>
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.conditional_value_at_risk">
+<code class="descname">conditional_value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.conditional_value_at_risk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.conditional_value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.covariance">
+<code class="descname">covariance</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.covariance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.covariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Covariance of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Covariances Cov[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.eval_by_cv">
+<code class="descname">eval_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_splits=5</em>, <em>verbose=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.eval_by_cv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.eval_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with cross-validation by using the score function of the BaseDensityEstimator for
+scoring the various splits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+<li><p><strong>n_splits</strong> – number of cross-validation folds (positive integer)</p></li>
+<li><p><strong>verbose</strong> – the verbosity level</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with provided data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.fit_by_cv">
+<code class="descname">fit_by_cv</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em>, <em>n_folds=3</em>, <em>param_grid=None</em>, <em>verbose=True</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.fit_by_cv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.fit_by_cv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits the conditional density model with hyperparameter search and cross-validation.
+- Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,</p>
+<blockquote>
+<div><p>the conditional log-likelihood is used for simulation_eval.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Fits the model with the previously selected hyperparameter configuration</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+<li><p><strong>n_folds</strong> – number of cross-validation folds (positive integer)</p></li>
+<li><p><strong>param_grid</strong> – <p>(optional) a dictionary with the hyperparameters of the model as key and and a list of respective                   parametrizations as value. The hyperparameter search is performed over the cartesian product of                   the provided lists.
+Example:
+{“n_centers”: [20, 50, 100, 200],</p>
+<blockquote>
+<div><p>”center_sampling_method”: [“agglomerative”, “k_means”, “random”],
+“keep_edges”: [True, False]</p>
+</div></blockquote>
+<p>}</p>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.get_configuration">
+<code class="descname">get_configuration</code><span class="sig-paren">(</span><em>deep=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.get_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.get_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter configuration for this estimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deep</strong> – boolean, optional If True, will return the parameters for this estimator and              contained subobjects that are estimators.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>params - mapping of string to any Parameter names mapped to their values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.kurtosis">
+<code class="descname">kurtosis</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.kurtosis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.kurtosis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kurtosis of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Kurtosis Kurt[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.log_pdf">
+<code class="descname">log_pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.log_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.log_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>conditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.mean_">
+<code class="descname">mean_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.mean_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.mean_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the fitted distribution conditioned on x_cond
+:param x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Means E[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.mean_std">
+<code class="descname">mean_std</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.mean_std"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.mean_std" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Computes Mean and Covariance of the fitted distribution conditioned on x_cond.</dt><dd><p>Computationally more efficient than calling mean and covariance computatio separately</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Means E[y|x] and Covariances Cov[y|x]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.pdf">
+<code class="descname">pdf</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts the conditional likelihood p(y|x). Requires the model to be fitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>conditional likelihood p(y|x) - numpy array of shape (n_query_samples, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.predict_density">
+<code class="descname">predict_density</code><span class="sig-paren">(</span><em>X</em>, <em>Y=None</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.predict_density"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.predict_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes conditional density p(y|x) over a predefined grid of y target values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – values/vectors to be conditioned on - shape: (n_instances, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution</p></li>
+<li><p><strong>resulution</strong> – integer specifying the resolution of simulation_eval grid</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns: tuple (P, Y)</dt><dd><ul class="simple">
+<li><p>P - density p(y|x) - shape (n_instances, resolution**n_dim_y)</p></li>
+<li><p>Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y            in case it was provided as argument</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.score">
+<code class="descname">score</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mean conditional log-likelihood of the provided data (X, Y)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> – numpy array to be conditioned on - shape: (n_query_samples, n_dim_x)</p></li>
+<li><p><strong>Y</strong> – numpy array of y targets - shape: (n_query_samples, n_dim_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>average log likelihood of data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.skewness">
+<code class="descname">skewness</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.skewness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.skewness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Skewness of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Skewness Skew[y|x] corresponding to x_cond - numpy array of shape (n_values, ndim_y, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.std_">
+<code class="descname">std_</code><span class="sig-paren">(</span><em>x_cond</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.std_"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.std_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard deviation of the fitted distribution conditioned on x_cond</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Standard deviations  sqrt(Var[y|x]) corresponding to x_cond - numpy array of shape (n_values, ndim_y)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.tail_risk_measures">
+<code class="descname">tail_risk_measures</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.tail_risk_measures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.tail_risk_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+<li><p><strong>n_samples</strong> – number of samples for monte carlo model_fitting</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>VaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+<li><p>CVaR values for each x to condition on - numpy array of shape (n_values)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.BaseDensityEstimator.value_at_risk">
+<code class="descname">value_at_risk</code><span class="sig-paren">(</span><em>x_cond</em>, <em>alpha=0.01</em>, <em>n_samples=1000000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/BaseDensityEstimator.html#BaseDensityEstimator.value_at_risk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.BaseDensityEstimator.value_at_risk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_cond</strong> – different x values to condition on - numpy array of shape (n_values, ndim_x)</p></li>
+<li><p><strong>alpha</strong> – quantile percentage of the distribution</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>VaR values for each x to condition on - numpy array of shape (n_values)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="ckde.html" class="btn btn-neutral float-right" title="Conditional Kernel Density Estimation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../index.html" class="btn btn-neutral float-left" title="Conditional Density Estimation Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,468 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cde.density_estimator.NF &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../density_estimator/density_estimator.html">Conditional Density Estimators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cde.density_estimator.NF</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cde.density_estimator.NF</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">import</span> <span class="nn">cde.utils.tf_utils.layers</span> <span class="k">as</span> <span class="nn">L</span>
+<span class="kn">from</span> <span class="nn">cde.utils.tf_utils.layers_powered</span> <span class="k">import</span> <span class="n">LayersPowered</span>
+<span class="kn">from</span> <span class="nn">cde.utils.tf_utils.network</span> <span class="k">import</span> <span class="n">MLP</span>
+<span class="kn">from</span> <span class="nn">.BaseNNEstimator</span> <span class="k">import</span> <span class="n">BaseNNEstimator</span>
+<span class="kn">from</span> <span class="nn">.normalizing_flows</span> <span class="k">import</span> <span class="n">FLOWS</span>
+<span class="kn">from</span> <span class="nn">cde.utils.serializable</span> <span class="k">import</span> <span class="n">Serializable</span>
+
+
+<div class="viewcode-block" id="NormalizingFlowEstimator"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator">[docs]</a><span class="k">class</span> <span class="nc">NormalizingFlowEstimator</span><span class="p">(</span><span class="n">BaseNNEstimator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Normalizing Flow Estimator</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: (str) name space of the network (should be unique in code, otherwise tensorflow namespace collisions may arise)</span>
+<span class="sd">            ndim_x: (int) dimensionality of x variable</span>
+<span class="sd">            ndim_y: (int) dimensionality of y variable</span>
+<span class="sd">            flows_type: (tuple of strings) The chain of individual flows that together make up the full flow. The</span>
+<span class="sd">                        individual flows can be any of: *affine*, *planar*, *radial*, *identity*. They will be applied in order</span>
+<span class="sd">                        going from the base distribution to the transformed distribution.</span>
+<span class="sd">            hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network</span>
+<span class="sd">            hidden_nonlinearity: (tf function) nonlinearity of the hidden layers</span>
+<span class="sd">            n_training_epochs: (int) Number of epochs for training</span>
+<span class="sd">            x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -&gt; regularization through noise</span>
+<span class="sd">            y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -&gt; regularization through noise</span>
+<span class="sd">            weight_normalization: (boolean) whether weight normalization shall be used for the neural network</span>
+<span class="sd">            data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std</span>
+<span class="sd">            random_seed: (optional) seed (int) of the random number generators used</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ndim_x</span><span class="p">,</span> <span class="n">ndim_y</span><span class="p">,</span> <span class="n">flows_type</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">),</span> <span class="n">hidden_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+                 <span class="n">hidden_nonlinearity</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span> <span class="n">n_training_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">x_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">weight_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">Serializable</span><span class="o">.</span><span class="n">quick_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">locals</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_uniqueness_of_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">f</span> <span class="ow">in</span> <span class="n">FLOWS</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">flows_type</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim_x</span> <span class="o">=</span> <span class="n">ndim_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">=</span> <span class="n">ndim_y</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+
+        <span class="c1"># charateristics of the flows to be used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flows_type</span> <span class="o">=</span> <span class="n">flows_type</span>
+
+        <span class="c1"># specification of the network</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_sizes</span> <span class="o">=</span> <span class="n">hidden_sizes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_nonlinearity</span> <span class="o">=</span> <span class="n">hidden_nonlinearity</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_training_epochs</span> <span class="o">=</span> <span class="n">n_training_epochs</span>
+
+        <span class="c1"># regularization parameters, currently not used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_noise_std</span> <span class="o">=</span> <span class="n">x_noise_std</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_noise_std</span> <span class="o">=</span> <span class="n">y_noise_std</span>
+
+        <span class="c1"># normalizing the network weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_normalization</span> <span class="o">=</span> <span class="n">weight_normalization</span>
+
+        <span class="c1"># whether to normalize the data to zero mean, and uniform variance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_normalization</span> <span class="o">=</span> <span class="n">data_normalization</span>
+
+        <span class="c1"># gradients for planar flows tend to explode -&gt; clip them by global norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gradient_clipping</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;planar&#39;</span> <span class="ow">in</span> <span class="n">flows_type</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="c1"># as we&#39;ll be using reversed flows, sampling is too slow to be useful</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">can_sample</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_pdf</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_cdf</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># build tensorflow model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_model</span><span class="p">()</span>
+
+<div class="viewcode-block" id="NormalizingFlowEstimator.fit"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eval_set</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit the model with to the provided data</span>
+
+<span class="sd">        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+<span class="sd">        :param eval_set: (tuple) eval/test dataset - tuple (X_test, Y_test)</span>
+<span class="sd">        :param verbose: (boolean) controls the verbosity of console output</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">eval_set</span><span class="p">:</span>
+            <span class="n">eval_set</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">eval_set</span><span class="p">)</span>
+
+        <span class="c1"># If no session has yet been created, create one and make it the default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_session</span><span class="p">()</span> <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_session</span><span class="p">()</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">InteractiveSession</span><span class="p">()</span>
+
+        <span class="n">var_list</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">variables</span><span class="p">(</span><span class="n">var_list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_normalization</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compute_data_normalization</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_training_epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_step</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">Y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_phase</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="n">log_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_loss</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">Y</span><span class="p">})</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">eval_set</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step </span><span class="si">{:4}</span><span class="s1">: train log-loss </span><span class="si">{: .4f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">eval_ll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_loss</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">eval_set</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">eval_set</span><span class="p">[</span><span class="mi">1</span><span class="p">]})</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step </span><span class="si">{:4}</span><span class="s1">: train log-loss </span><span class="si">{: .4f}</span><span class="s1"> eval log-loss </span><span class="si">{: .4f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">,</span> <span class="n">eval_ll</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="NormalizingFlowEstimator.pdf"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator.pdf">[docs]</a>    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Predicts the conditional probability p(y|x). Requires the model to be fitted</span>
+
+<span class="sd">        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+<span class="sd">        :return: conditional probability p(y|x) - numpy array of shape (n_query_samples, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;model must be fitted to evaluate the likelihood score&quot;</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">Y</span><span class="p">})</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;N_dim should be 1, is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Shapes should be equal, are </span><span class="si">{}</span><span class="s2"> != </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="NormalizingFlowEstimator.log_pdf"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator.log_pdf">[docs]</a>    <span class="k">def</span> <span class="nf">log_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Predicts the log of the conditional probability p(y|x). Requires the model to be fitted</span>
+
+<span class="sd">        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+<span class="sd">        :return: log of the conditional probability p(y|x) - numpy array of shape (n_query_samples, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;model must be fitted to evaluate the likelihood score&quot;</span>
+
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">Y</span><span class="p">})</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;N_dim should be 1, is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Shapes should be equal, are </span><span class="si">{}</span><span class="s2"> != </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="NormalizingFlowEstimator.cdf"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator.cdf">[docs]</a>    <span class="k">def</span> <span class="nf">cdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Predicts the conditional cumulative probability p(Y&lt;=y|X=x). Requires the model to be fitted.</span>
+<span class="sd">        The cumulative density function is currently only supported for ndim_y == 1</span>
+
+<span class="sd">        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)</span>
+<span class="sd">        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)</span>
+<span class="sd">        :return: conditional cumulative probability p(Y&lt;=y|X=x) - numpy array of shape (n_query_samples, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span><span class="p">,</span> <span class="s2">&quot;model must be fitted to evaluate the likelihood score&quot;</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_input_dimensionality</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">fitting</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdf_</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">X_ph</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y_ph</span><span class="p">:</span> <span class="n">Y</span><span class="p">})</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;N_dim should be 1, is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Shapes should be equal, are </span><span class="si">{}</span><span class="s2"> != </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="NormalizingFlowEstimator.reset_fit"><a class="viewcode-back" href="../../../density_estimator/nf.html#cde.density_estimator.NormalizingFlowEstimator.reset_fit">[docs]</a>    <span class="k">def</span> <span class="nf">reset_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets all tensorflow objects and enables this model to be fitted anew</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reset_default_graph</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_model</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">_param_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;n_training_epochs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1500</span><span class="p">],</span>
+            <span class="s1">&#39;hidden_sizes&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)],</span>
+            <span class="s1">&#39;flows_type&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="c1"># radial</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">),</span>
+                <span class="c1"># planar</span>
+                <span class="p">(</span><span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">),</span>
+                <span class="c1"># mix</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,),</span>
+                <span class="p">(</span><span class="s1">&#39;affine&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">,</span> <span class="s1">&#39;planar&#39;</span><span class="p">,</span> <span class="s1">&#39;radial&#39;</span><span class="p">),</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;x_noise_std&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;y_noise_std&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        implementation of the flow model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="c1"># adds placeholders, data normalization and data noise to graph as desired</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_input_layers</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_input</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span><span class="p">)</span>
+
+            <span class="n">flow_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">FLOWS</span><span class="p">[</span><span class="n">flow_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">flow_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flows_type</span><span class="p">]</span>
+            <span class="c1"># get the individual parameter sizes for each flow</span>
+            <span class="n">param_split_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">flow</span><span class="o">.</span><span class="n">get_param_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">flow</span> <span class="ow">in</span> <span class="n">flow_classes</span><span class="p">]</span>
+            <span class="n">mlp_output_dim</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">param_split_sizes</span><span class="p">)</span>
+            <span class="n">core_network</span> <span class="o">=</span> <span class="n">MLP</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;core_network&quot;</span><span class="p">,</span>
+                <span class="n">input_layer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_in_x</span><span class="p">,</span>
+                <span class="n">output_dim</span><span class="o">=</span><span class="n">mlp_output_dim</span><span class="p">,</span>
+                <span class="n">hidden_sizes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_sizes</span><span class="p">,</span>
+                <span class="n">hidden_nonlinearity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_nonlinearity</span><span class="p">,</span>
+                <span class="n">output_nonlinearity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">weight_normalization</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_normalization</span>
+            <span class="p">)</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="n">core_network</span><span class="o">.</span><span class="n">output_layer</span><span class="p">)</span>
+            <span class="n">flow_params</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="n">param_split_sizes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># instanciate the flows with their parameters</span>
+            <span class="n">flows</span> <span class="o">=</span> <span class="p">[</span><span class="n">flow</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">)</span> <span class="k">for</span> <span class="n">flow</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">flow_classes</span><span class="p">,</span> <span class="n">flow_params</span><span class="p">)]</span>
+
+            <span class="c1"># build up the base distribution that will be transformed by the flows</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># this is faster for 1-D than the multivariate version</span>
+                <span class="c1"># it also supports a cdf, which isn&#39;t implemented for Multivariate</span>
+                <span class="n">base_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">base_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">MultivariateNormalDiag</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">0.</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">,</span>
+                                                                            <span class="n">scale_diag</span><span class="o">=</span><span class="p">[</span><span class="mf">1.</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span><span class="p">)</span>
+
+            <span class="c1"># chain the flows together and build the transformed distribution using the base_dist + flows</span>
+            <span class="c1"># Chaining applies the flows in reverse, Chain([a,b]).forward(x) being a.forward(b.forward(x))</span>
+            <span class="c1"># We reverse them so the flows are stacked ontop of the base distribution in the original order</span>
+            <span class="n">flows</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="n">chain</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">bijectors</span><span class="o">.</span><span class="n">Chain</span><span class="p">(</span><span class="n">flows</span><span class="p">)</span>
+            <span class="n">target_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">TransformedDistribution</span><span class="p">(</span><span class="n">distribution</span><span class="o">=</span><span class="n">base_dist</span><span class="p">,</span> <span class="n">bijector</span><span class="o">=</span><span class="n">chain</span><span class="p">)</span>
+
+            <span class="c1"># since we operate with matrices not vectors, the output would have dimension (?,1)</span>
+            <span class="c1"># and therefor has to be reduce first to have shape (?,)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># for x shape (batch_size, 1) normal_distribution.pdf(x) outputs shape (batch_size, 1) -&gt; squeeze</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">target_dist</span><span class="o">.</span><span class="n">prob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_input</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">target_dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_input</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cdf_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">target_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_input</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># no squeezing necessary for multivariate_normal, but we don&#39;t have a cdf</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span> <span class="o">=</span> <span class="n">target_dist</span><span class="o">.</span><span class="n">prob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_input</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span> <span class="o">=</span> <span class="n">target_dist</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_input</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_normalization</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_y_sym</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_y_sym</span><span class="p">))</span>
+                <span class="c1"># cdf is only implemented for 1-D</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim_y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cdf_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf_</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">std_y_sym</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pdf_</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_pdf_</span><span class="p">)</span>
+
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">AdamOptimizer</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_clipping</span><span class="p">:</span>
+                <span class="n">gradients</span><span class="p">,</span> <span class="n">variables</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">optimizer</span><span class="o">.</span><span class="n">compute_gradients</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_loss</span><span class="p">))</span>
+                <span class="n">gradients</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_global_norm</span><span class="p">(</span><span class="n">gradients</span><span class="p">,</span> <span class="mf">3e5</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_step</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">gradients</span><span class="p">,</span> <span class="n">variables</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">train_step</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">minimize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_loss</span><span class="p">)</span>
+
+        <span class="c1"># initialize LayersPowered -&gt; provides functions for serializing tf models</span>
+        <span class="n">LayersPowered</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span><span class="p">,</span> <span class="n">core_network</span><span class="o">.</span><span class="n">output_layer</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Estimator type: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> flows_type: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> data_normalization: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> weight_normalization: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> n_training_epochs: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> x_noise_std: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> y_noise_std: </span><span class="si">{}</span><span class="s2">&quot;</span> \
+               <span class="s2">&quot;</span><span class="se">\n</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">flows_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_normalization</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">weight_normalization</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_training_epochs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_noise_std</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_noise_std</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

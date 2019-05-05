@@ -1,0 +1,523 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Radial Flow &mdash; Conditional Density Estimation 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Neighborhood Kernel Density Estimation" href="../nkde.html" />
+    <link rel="prev" title="Planar Flow" href="planar.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Conditional Density Estimation
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../density_estimator.html">Conditional Density Estimators</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ckde.html">Conditional Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../kmn.html">Kernel Mixture Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lscde.html">Least-Squares Density Ratio Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mdn.html">Mixture Density Network</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../nf.html">Normalizing Flow Estimator</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="affine.html">Affine Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="identity.html">Identity Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="planar.html">Planar Flow</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Radial Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../nkde.html">Neighborhood Kernel Density Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../density_estimator.html#module-cde.density_estimator">Base Density Estimation Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../density_simulation/density_simulation.html">Conditional Density Simulation</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Conditional Density Estimation</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../density_estimator.html">Conditional Density Estimators</a> &raquo;</li>
+        
+          <li><a href="../nf.html">Normalizing Flow Estimator</a> &raquo;</li>
+        
+      <li>Radial Flow</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/density_estimator/normalizing_flows/radial.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="radial-flow">
+<h1>Radial Flow<a class="headerlink" href="#radial-flow" title="Permalink to this headline">¶</a></h1>
+<p>The radial flow introduced in <a class="reference internal" href="#rezende2015" id="id1"><span>[REZENDE2015]</span></a> with the parametrization used in <a class="reference internal" href="#trippe2018" id="id2"><span>[TRIPPE2018]</span></a>.
+The flow was originally designed for variational inference and sampling. Therefore it doesn’t easily fit our use-case
+of density estimation.
+Since we especially need the inverse <span class="math notranslate nohighlight">\(f^{-1}(x)\)</span> of the flow to be easily computable, we invert it’s direction,
+defining it as a mapping from the transformed distribution <span class="math notranslate nohighlight">\(p_1(x)\)</span> to the base distribution <span class="math notranslate nohighlight">\(p_0(x)\)</span>.
+Hence the flow is called <cite>InvertedRadialFlow</cite> in our implementation and the <cite>forward</cite> method is not implemented.</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathbf{\gamma} \in \mathbb{R}^d, \alpha, \beta \in \mathbb{R}\\f^{-1}(\mathbf{x}) = \mathbf{x} + \dfrac{\alpha\beta(\mathbf{x} - \mathbf{\gamma})}{\alpha + |\mathbf{x}-\mathbf{\gamma}|}\end{aligned}\end{align} \]</div>
+<p>To make sure <span class="math notranslate nohighlight">\(f(x)\)</span> exists, <span class="math notranslate nohighlight">\(\alpha \geq 0\)</span> needs to hold. Therefore we apply a softplus transformation to <span class="math notranslate nohighlight">\(\alpha\)</span>
+before assigning it.</p>
+<p>Jacobian determinant:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\det(\mathbf{J}^{-1}) =
+\lbrack1 + \alpha\beta \cdot h(\alpha, r)\rbrack^{d -1} \lbrack1 + \alpha\beta \cdot h(\alpha, r) + \alpha\beta \cdot h'(\alpha, r)r\rbrack\\h(\alpha, r) = \dfrac{1}{\alpha + r}, r = |\mathbf{x} - \mathbf{\gamma}|\end{aligned}\end{align} \]</div>
+<span class="target" id="module-cde.density_estimator.normalizing_flows"></span><dl class="class">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow">
+<em class="property">class </em><code class="descclassname">cde.density_estimator.normalizing_flows.</code><code class="descname">InvertedRadialFlow</code><span class="sig-paren">(</span><em>params</em>, <em>n_dims</em>, <em>validate_args=False</em>, <em>name='InvertedRadialFlow'</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cde/density_estimator/normalizing_flows/RadialFlow.html#InvertedRadialFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements a bijector x = y + (alpha * beta * (y - y_0)) / (alpha + abs(y - y_0)).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Tensor shape (?, n_dims+2). This will be split into the parameters
+alpha (?, 1), beta (?, 1), gamma (?, n_dims).
+Furthermore alpha will be constrained to assure the invertability of the flow</p></li>
+<li><p><strong>n_dims</strong> – The dimension of the distribution that will be transformed</p></li>
+<li><p><strong>name</strong> – The name to give this particular flow</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.dtype">
+<code class="descname">dtype</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>dtype of <a href="#id3"><span class="problematic" id="id4">`</span></a>Tensor`s transformable by this distribution.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.event_ndims">
+<code class="descname">event_ndims</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.event_ndims" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns then number of event dimensions this bijector operates on.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cde/density_estimator/normalizing_flows/RadialFlow.html#InvertedRadialFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>We don’t require sampling and it would be slow, therefore it is not implemented</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_event_shape">
+<code class="descname">forward_event_shape</code><span class="sig-paren">(</span><em>input_shape</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_event_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shape of a single sample from a single batch as a <cite>TensorShape</cite>.</p>
+<p>Same meaning as <cite>forward_event_shape_tensor</cite>. May be only partially defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> – <cite>TensorShape</cite> indicating event-portion shape passed into
+<cite>forward</cite> function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>TensorShape</cite> indicating event-portion shape</dt><dd><p>after applying <cite>forward</cite>. Possibly unknown.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>forward_event_shape_tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_event_shape_tensor">
+<code class="descname">forward_event_shape_tensor</code><span class="sig-paren">(</span><em>input_shape</em>, <em>name='forward_event_shape_tensor'</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_event_shape_tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shape of a single sample from a single batch as an <cite>int32</cite> 1D <cite>Tensor</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_shape</strong> – <cite>Tensor</cite>, <cite>int32</cite> vector indicating event-portion shape
+passed into <cite>forward</cite> function.</p></li>
+<li><p><strong>name</strong> – name to give to the op</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>Tensor</cite>, <cite>int32</cite> vector indicating</dt><dd><p>event-portion shape after applying <cite>forward</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>forward_event_shape_tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_log_det_jacobian">
+<code class="descname">forward_log_det_jacobian</code><span class="sig-paren">(</span><em>x</em>, <em>name='forward_log_det_jacobian'</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.forward_log_det_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns both the forward_log_det_jacobian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – <cite>Tensor</cite>. The input to the “forward” Jacobian evaluation.</p></li>
+<li><p><strong>name</strong> – The name to give this op.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>Tensor</cite>, if this bijector is injective.</dt><dd><p>If not injective this is not implemented.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – if <cite>self.dtype</cite> is specified and <cite>y.dtype</cite> is not
+    <cite>self.dtype</cite>.</p></li>
+<li><p><strong>NotImplementedError</strong> – if neither <cite>_forward_log_det_jacobian</cite>
+    nor {<cite>_inverse</cite>, <cite>_inverse_log_det_jacobian</cite>} are implemented, or
+    this is a non-injective bijector.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.get_param_size">
+<em class="property">static </em><code class="descname">get_param_size</code><span class="sig-paren">(</span><em>n_dims</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/cde/density_estimator/normalizing_flows/RadialFlow.html#InvertedRadialFlow.get_param_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.get_param_size" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>n_dims</strong> – The dimension of the distribution to be transformed by the flow</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(int) The dimension of the parameter space for the flow</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.graph_parents">
+<code class="descname">graph_parents</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.graph_parents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns this <cite>Bijector</cite>’s graph_parents as a Python list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse">
+<code class="descname">inverse</code><span class="sig-paren">(</span><em>y</em>, <em>name='inverse'</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the inverse <cite>Bijector</cite> evaluation, i.e., X = g^{-1}(Y).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> – <cite>Tensor</cite>. The input to the “inverse” evaluation.</p></li>
+<li><p><strong>name</strong> – The name to give this op.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>Tensor</cite>, if this bijector is injective.</dt><dd><p>If not injective, returns the k-tuple containing the unique
+<cite>k</cite> points <cite>(x1, …, xk)</cite> such that <cite>g(xi) = y</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – if <cite>self.dtype</cite> is specified and <cite>y.dtype</cite> is not
+    <cite>self.dtype</cite>.</p></li>
+<li><p><strong>NotImplementedError</strong> – if <cite>_inverse</cite> is not implemented.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_event_shape">
+<code class="descname">inverse_event_shape</code><span class="sig-paren">(</span><em>output_shape</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_event_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shape of a single sample from a single batch as a <cite>TensorShape</cite>.</p>
+<p>Same meaning as <cite>inverse_event_shape_tensor</cite>. May be only partially defined.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>output_shape</strong> – <cite>TensorShape</cite> indicating event-portion shape passed into
+<cite>inverse</cite> function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>TensorShape</cite> indicating event-portion shape</dt><dd><p>after applying <cite>inverse</cite>. Possibly unknown.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>inverse_event_shape_tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_event_shape_tensor">
+<code class="descname">inverse_event_shape_tensor</code><span class="sig-paren">(</span><em>output_shape</em>, <em>name='inverse_event_shape_tensor'</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_event_shape_tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shape of a single sample from a single batch as an <cite>int32</cite> 1D <cite>Tensor</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_shape</strong> – <cite>Tensor</cite>, <cite>int32</cite> vector indicating event-portion shape
+passed into <cite>inverse</cite> function.</p></li>
+<li><p><strong>name</strong> – name to give to the op</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>Tensor</cite>, <cite>int32</cite> vector indicating</dt><dd><p>event-portion shape after applying <cite>inverse</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>inverse_event_shape_tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_log_det_jacobian">
+<code class="descname">inverse_log_det_jacobian</code><span class="sig-paren">(</span><em>y</em>, <em>name='inverse_log_det_jacobian'</em><span class="sig-paren">)</span><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.inverse_log_det_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the (log o det o Jacobian o inverse)(y).</p>
+<p>Mathematically, returns: <cite>log(det(dX/dY))(Y)</cite>. (Recall that: <cite>X=g^{-1}(Y)</cite>.)</p>
+<p>Note that <cite>forward_log_det_jacobian</cite> is the negative of this function,
+evaluated at <cite>g^{-1}(y)</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> – <cite>Tensor</cite>. The input to the “inverse” Jacobian evaluation.</p></li>
+<li><p><strong>name</strong> – The name to give this op.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt><cite>Tensor</cite>, if this bijector is injective.</dt><dd><p>If not injective, returns the tuple of local log det
+Jacobians, <cite>log(det(Dg_i^{-1}(y)))</cite>, where <cite>g_i</cite> is the restriction
+of <cite>g</cite> to the <cite>ith</cite> partition <cite>Di</cite>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – if <cite>self.dtype</cite> is specified and <cite>y.dtype</cite> is not
+    <cite>self.dtype</cite>.</p></li>
+<li><p><strong>NotImplementedError</strong> – if <cite>_inverse_log_det_jacobian</cite> is not implemented.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.is_constant_jacobian">
+<code class="descname">is_constant_jacobian</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.is_constant_jacobian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true iff the Jacobian is not a function of x.</p>
+<p>Note: Jacobian is either constant for both forward and inverse or neither.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Python <cite>bool</cite>.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>is_constant_jacobian</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.name">
+<code class="descname">name</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the string name of this <cite>Bijector</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="cde.density_estimator.normalizing_flows.InvertedRadialFlow.validate_args">
+<code class="descname">validate_args</code><a class="headerlink" href="#cde.density_estimator.normalizing_flows.InvertedRadialFlow.validate_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if Tensor arguments will be validated.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="citation">
+<dt class="label" id="rezende2015"><span class="brackets"><a class="fn-backref" href="#id1">REZENDE2015</a></span></dt>
+<dd><p>Rezende, Mohamed (2015). Variational Inference with Normalizing Flows (<a class="reference external" href="http://arxiv.org/abs/1505.05770">http://arxiv.org/abs/1505.05770</a>)</p>
+</dd>
+<dt class="label" id="trippe2018"><span class="brackets"><a class="fn-backref" href="#id2">TRIPPE2018</a></span></dt>
+<dd><p>Trippe, Turner (2018). Conditional Density Estimation with Bayesian Normalising Flows (<a class="reference external" href="http://arxiv.org/abs/1802.04908">http://arxiv.org/abs/1802.04908</a>)</p>
+</dd>
+</dl>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../nkde.html" class="btn btn-neutral float-right" title="Neighborhood Kernel Density Estimation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="planar.html" class="btn btn-neutral float-left" title="Planar Flow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Jonas Rothfuss, Fabio Ferreira
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
