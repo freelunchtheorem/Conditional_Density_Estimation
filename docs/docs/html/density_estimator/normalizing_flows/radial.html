@@ -181,8 +181,11 @@ defining it as a mapping from the transformed distribution <span class="math not
 Hence the flow is called <cite>InvertedRadialFlow</cite> in our implementation and the <cite>forward</cite> method is not implemented.</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\mathbf{\gamma} \in \mathbb{R}^d, \alpha, \beta \in \mathbb{R}\\f^{-1}(\mathbf{x}) = \mathbf{x} + \dfrac{\alpha\beta(\mathbf{x} - \mathbf{\gamma})}{\alpha + |\mathbf{x}-\mathbf{\gamma}|}\end{aligned}\end{align} \]</div>
-<p>To make sure <span class="math notranslate nohighlight">\(f(x)\)</span> exists, <span class="math notranslate nohighlight">\(\alpha \geq 0\)</span> needs to hold. Therefore we apply a softplus transformation to <span class="math notranslate nohighlight">\(\alpha\)</span>
-before assigning it.</p>
+<p>To ensure <span class="math notranslate nohighlight">\(f(x)\)</span> exists we have to constrain the parameters of the flow:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\alpha \geq 0\)</span> needs to hold. Therefore we apply a softplus transformation to <span class="math notranslate nohighlight">\(\alpha\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\beta \geq -1\)</span> needs to hold. We apply <span class="math notranslate nohighlight">\(f(x) = \exp(x) - 1\)</span> to <span class="math notranslate nohighlight">\(\beta\)</span> before assignment</p></li>
+</ul>
 <p>Jacobian determinant:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\det(\mathbf{J}^{-1}) =

@@ -13,8 +13,10 @@ Hence the flow is called `InvertedRadialFlow` in our implementation and the `for
 
     f^{-1}(\mathbf{x}) = \mathbf{x} + \dfrac{\alpha\beta(\mathbf{x} - \mathbf{\gamma})}{\alpha + |\mathbf{x}-\mathbf{\gamma}|}
 
-To make sure :math:`f(x)` exists, :math:`\alpha \geq 0` needs to hold. Therefore we apply a softplus transformation to :math:`\alpha`
-before assigning it.
+To ensure :math:`f(x)` exists we have to constrain the parameters of the flow:
+
+- :math:`\alpha \geq 0` needs to hold. Therefore we apply a softplus transformation to :math:`\alpha`
+- :math:`\beta \geq -1` needs to hold. We apply :math:`f(x) = \exp(x) - 1` to :math:`\beta` before assignment
 
 Jacobian determinant:
 
