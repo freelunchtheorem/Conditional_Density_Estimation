@@ -21,8 +21,7 @@ logger.configure(
     '/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster',
     EXP_PREFIX)
 
-with open(LOCATION, 'rb') as f:
-    results_from_pkl_file = dict(pickle.load(f))
+results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
 gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
 results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST)
 # Fix problem with accessing columns indexed by None values
