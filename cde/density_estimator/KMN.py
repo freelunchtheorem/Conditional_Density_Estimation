@@ -45,14 +45,15 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
           entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
           weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
           weight_normalization: boolean specifying whether weight normalization shall be used
-                  data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
+          data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
+          dropout: (float) the probability of switching off nodes during training
           random_seed: (optional) seed (int) of the random number generators used
   """
 
   def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=50, keep_edges=True,
                init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
                n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_decay=0.0,
-               weight_normalization=True, data_normalization=True, random_seed=None):
+               weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -83,6 +84,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.weight_decay = weight_decay
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
+    self.dropout = dropout
 
     if init_scales == 'default':
         init_scales = np.array([0.7, 0.3])
@@ -142,7 +144,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     implementation of the KMN
     """
     with tf.variable_scope(self.name):
-      self.layer_in_x, self.layer_in_y = self._build_input_layers() # add playeholders, data_normalization and data_noise if desired
+      # add playeholders, data_normalization and data_noise if desired. Also sets up the placeholder for dropout prob
+      self.layer_in_x, self.layer_in_y = self._build_input_layers()
 
       self.X_in = L.get_output(self.layer_in_x)
       self.Y_in = L.get_output(self.layer_in_y)
@@ -158,6 +161,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         hidden_sizes=self.hidden_sizes,
         hidden_nonlinearity=self.hidden_nonlinearity,
         output_nonlinearity=None,
+        dropout_ph=self.dropout_ph if self.dropout else None
       )
 
       self.core_output_layer = core_network.output_layer

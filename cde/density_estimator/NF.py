@@ -28,6 +28,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
             weight_normalization: (boolean) whether weight normalization shall be used for the neural network
             data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std
+            dropout: (float) the probability of switching off nodes during training
             random_seed: (optional) seed (int) of the random number generators used
     """
 
@@ -114,8 +115,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             self.sess.run(self.train_step,
                           feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True, self.dropout_ph: self.dropout})
             if verbose and not i % 100:
-                log_loss = self.sess.run(self.log_loss,
-                                         feed_dict={self.X_ph: X, self.Y_ph: Y, self.dropout_ph: self.dropout})
+                log_loss = self.sess.run(self.log_loss, feed_dict={self.X_ph: X, self.Y_ph: Y})
                 if not eval_set:
                     print('Step {:4}: train log-loss {: .4f}'.format(i, log_loss))
                 else:

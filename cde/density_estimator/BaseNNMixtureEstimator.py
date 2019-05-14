@@ -176,7 +176,8 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     for i in range(n_epoch):
 
       # run inference, update trainable variables of the model
-      info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
+      info_dict = self.inference.update(feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True,
+                                                   self.dropout_ph: self.dropout})
 
       # compute evaluation loss
       if eval_set is not None:

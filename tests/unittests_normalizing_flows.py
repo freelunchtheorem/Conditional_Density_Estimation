@@ -19,7 +19,7 @@ class TestFlows(unittest.TestCase):
             u = tf.constant([[-2.], [1.], [10.], [2.]])
             w = tf.constant([[80.], [-1.], [1.], [1.]])
             # Compute w * û
-            inv = sess.run(w*InvertedPlanarFlow._u_circ(u, w))
+            inv = sess.run(w * InvertedPlanarFlow._u_circ(u, w))
             for i in inv:
                 self.assertGreater(i, -1.)
 
@@ -95,7 +95,7 @@ class TestFlows(unittest.TestCase):
                 x, y = np.array(test['x']), np.array(test['y'])
                 model.fit(x, y)
                 p = model.pdf(x, y)
-                self.assertEqual(p.shape, (len(y), ))
+                self.assertEqual(p.shape, (len(y),))
                 # every test has equal first and last elements, theses are basic sanity tests
                 self.assertAlmostEqual(p[0], p[-1])
                 self.assertNotAlmostEqual(p[0], p[1])
@@ -133,7 +133,7 @@ class TestFlows(unittest.TestCase):
                 if event_dims == 1:
                     self.assertEqual(ildj_y.shape, (batch_size, 1))
                 else:
-                    self.assertEqual(ildj_y.shape, (batch_size, ))
+                    self.assertEqual(ildj_y.shape, (batch_size,))
 
                 # probability: (batch_size, event_dims) -> (batch_size, 1)
                 self.assertEqual(y.shape, (batch_size, event_dims))
@@ -141,7 +141,7 @@ class TestFlows(unittest.TestCase):
                 if event_dims == 1:
                     self.assertEqual(p.shape, (batch_size, 1))
                 else:
-                    self.assertEqual(p.shape, (batch_size, ))
+                    self.assertEqual(p.shape, (batch_size,))
 
                 # the first an same element of every test is the same, this is a basic sanity test
                 self.assertEqual(p[0], p[2])
@@ -222,10 +222,10 @@ class Test_NF_2d_gaussian(unittest.TestCase):
         std = 23
         X, Y = self.get_samples(mu=mu, std=std)
 
-        model1 = NormalizingFlowEstimator("nf_estimator_2d_planar_no_id", 1, 1, flows_type=('planar', ),
-                                         n_training_epochs=50, random_seed=22)
+        model1 = NormalizingFlowEstimator("nf_estimator_2d_planar_no_id", 1, 1, flows_type=('planar',),
+                                          n_training_epochs=50, random_seed=22)
         model2 = NormalizingFlowEstimator("nf_estimator_2d_planar_id", 1, 1, flows_type=('planar', 'identity'),
-                                         n_training_epochs=50, random_seed=22)
+                                          n_training_epochs=50, random_seed=22)
         model1.fit(X, Y)
         model2.fit(X, Y)
 
@@ -302,6 +302,7 @@ class TestMultiModal(unittest.TestCase):
     This tests whether the flows can model multimodal distributions
     The distributions used aren't actually conditional distributions
     """
+
     def test_bi_modal_planar_chain(self):
         with tf.Session() as sess:
             bimix_gauss = tf.contrib.distributions.Mixture(
@@ -312,9 +313,10 @@ class TestMultiModal(unittest.TestCase):
                 ])
             x = tf.distributions.Normal(loc=0., scale=1.).sample([5000])
             y = bimix_gauss.sample([5000])
-            x,y = sess.run([x, y])
+            x, y = sess.run([x, y])
 
-            model = NormalizingFlowEstimator("nf_estimator_bimodal_planar", 1, 1, flows_type=('affine', 'planar', 'planar', 'planar'),
+            model = NormalizingFlowEstimator("nf_estimator_bimodal_planar", 1, 1,
+                                             flows_type=('affine', 'planar', 'planar', 'planar'),
                                              n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
@@ -332,9 +334,10 @@ class TestMultiModal(unittest.TestCase):
                 ])
             x = tf.distributions.Normal(loc=0., scale=1.).sample([5000])
             y = bimix_gauss.sample([5000])
-            x,y = sess.run([x, y])
+            x, y = sess.run([x, y])
 
-            model = NormalizingFlowEstimator("nf_estimator_trimodal_chain", 1, 1, flows_type=('affine', 'radial', 'radial', 'radial'),
+            model = NormalizingFlowEstimator("nf_estimator_trimodal_chain", 1, 1,
+                                             flows_type=('affine', 'radial', 'radial', 'radial'),
                                              n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
@@ -354,7 +357,8 @@ class TestMultiModal(unittest.TestCase):
             x = np.ones(5000)
             y = sess.run(bimix_gauss.sample([5000]))
 
-            model = NormalizingFlowEstimator("nf_estimator_bimodal_radial", 1, 1, flows_type=('radial', 'radial', 'radial'),
+            model = NormalizingFlowEstimator("nf_estimator_bimodal_radial", 1, 1,
+                                             flows_type=('radial', 'radial', 'radial'),
                                              n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
@@ -374,8 +378,8 @@ class TestLogProbability(unittest.TestCase):
             model.fit(X, Y)
 
             x, y = np.random.normal(size=(1000, 3)), np.random.normal(size=(1000, 3))
-            prob = model.pdf(x,y)
-            log_prob = model.log_pdf(x,y)
+            prob = model.pdf(x, y)
+            log_prob = model.log_pdf(x, y)
             self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
 
 
@@ -391,14 +395,15 @@ class TestRegularization(unittest.TestCase):
         X, Y = self.get_samples(std=2, mean=20)
         with tf.Session() as sess:
             model = NormalizingFlowEstimator("nf_data_normalization", 1, 1, flows_type=('affine', 'radial', 'radial'),
-                                             x_noise_std=None, y_noise_std=None, data_normalization=True, n_training_epochs=100)
+                                             x_noise_std=None, y_noise_std=None, data_normalization=True,
+                                             n_training_epochs=100)
             model.fit(X, Y)
 
             # test if data statistics were properly assigned to tf graph
             x_mean, x_std = model.sess.run([model.mean_x_sym, model.std_x_sym])
             print(x_mean, x_std)
-            mean_diff = float(np.abs(x_mean-20))
-            std_diff = float(np.abs(x_std-2))
+            mean_diff = float(np.abs(x_mean - 20))
+            std_diff = float(np.abs(x_std - 2))
             self.assertLessEqual(mean_diff, 0.5)
             self.assertLessEqual(std_diff, 0.5)
 
@@ -413,8 +418,10 @@ class TestRegularization(unittest.TestCase):
             x = np.ones(5000)
             y = sess.run(bimix_gauss.sample([5000]))
 
-            model = NormalizingFlowEstimator("nf_estimator_bimodal_radial_gaussian", 1, 1, flows_type=('radial', 'radial', 'radial'),
-                                             data_normalization=True, x_noise_std=0.1, y_noise_std=0.1, n_training_epochs=1000, random_seed=22)
+            model = NormalizingFlowEstimator("nf_estimator_bimodal_radial_gaussian", 1, 1,
+                                             flows_type=('radial', 'radial', 'radial'),
+                                             data_normalization=True, x_noise_std=0.1, y_noise_std=0.1,
+                                             n_training_epochs=1000, random_seed=22)
             model.fit(x, y)
 
             p_est = model.pdf(x, y)
@@ -431,13 +438,42 @@ class TestRegularization(unittest.TestCase):
                 ])
             x = np.ones(5000)
             y = sess.run(bimix_gauss.sample([5000]))
-            model = NormalizingFlowEstimator("nf_estimator_weight_decay", 1, 1, flows_type=('affine', 'radial', 'radial'),
-                                             data_normalization=True, weight_decay=0.0001, n_training_epochs=1000, random_seed=22)
+            model = NormalizingFlowEstimator("nf_estimator_weight_decay", 1, 1,
+                                             flows_type=('affine', 'radial', 'radial'),
+                                             data_normalization=True, weight_decay=0.0001, n_training_epochs=1000,
+                                             random_seed=22)
             model.fit(x, y)
 
             p_est = model.pdf(x, y)
             p_true = sess.run(bimix_gauss.prob(y))
             self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.01)
+
+    def test_dropout(self):
+        with tf.Session() as sess:
+            bimix_gauss = tf.contrib.distributions.Mixture(
+                cat=tf.distributions.Categorical(probs=[0.5, 0.5]),
+                components=[
+                    tf.distributions.Normal(loc=-1., scale=0.5),
+                    tf.distributions.Normal(loc=+1., scale=0.5),
+                ])
+            x = np.ones(5000)
+            y = sess.run(bimix_gauss.sample([5000]))
+
+            dropout_model = NormalizingFlowEstimator("nf_dropout_reasonable", 1, 1,
+                                                     flows_type=('affine', 'radial', 'radial'),
+                                                     data_normalization=True, dropout=0.5, random_seed=22)
+            full_dropout = NormalizingFlowEstimator("nf_dropout_full", 1, 1,
+                                                    flows_type=('affine', 'radial', 'radial'),
+                                                    data_normalization=True, dropout=0.85, random_seed=22)
+            dropout_model.fit(x, y)
+            full_dropout.fit(x, y)
+
+            p_est = dropout_model.pdf(x, y)
+            p_est_trash = full_dropout.pdf(x, y)
+            p_true = sess.run(bimix_gauss.prob(y))
+
+            self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.02)
+            self.assertGreater(np.mean(np.abs(p_true - p_est_trash)), 0.02)
 
 
 class TestSerialization(unittest.TestCase):

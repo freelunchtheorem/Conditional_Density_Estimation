@@ -266,6 +266,47 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     self.assertLessEqual(np.mean(np.abs(p_true - p_est_dec)), 0.1)
     self.assertLess(np.mean(p_est_full_dec), np.mean(p_est_dec))
 
+  def test_KMN_dropout(self):
+      mu = -2.0
+      std = 2.0
+      X, Y = self.get_samples(mu=mu, std=std)
+
+      for method in ["agglomerative"]:
+        with tf.Session() as sess:
+          model = KernelMixtureNetwork("kmn_dropout_"+method, 1, 1, center_sampling_method=method, n_centers=20,
+                                       hidden_sizes=(16, 16), init_scales=np.array([0.5]), train_scales=True,
+                                       data_normalization=False, dropout=0.5)
+          model.fit(X, Y)
+
+          y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+          x = np.asarray([mu for i in range(y.shape[0])])
+          p_est = model.pdf(x, y)
+          p_true = norm.pdf(y, loc=mu, scale=std)
+          self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+          p_est = model.cdf(x, y)
+          p_true = norm.cdf(y, loc=mu, scale=std)
+          self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_MDN_dropout(self):
+    mu = -8
+    std = 2.5
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    dropout_model = MixtureDensityNetwork("mdn_dropout_reasonable", 1, 1, n_centers=5, weight_normalization=True,
+                                          dropout=0.5, n_training_epochs=500)
+    dropout_model.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_est = dropout_model.pdf(x, y)
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = dropout_model.cdf(x, y)
+    p_true = norm.cdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
   def test_MDN_with_2d_gaussian2(self):
     mu = -5
     std = 2.5
