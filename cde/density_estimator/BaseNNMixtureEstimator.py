@@ -5,9 +5,12 @@ import tensorflow as tf
 
 from cde.density_estimator.BaseNNEstimator import BaseNNEstimator
 from cde.utils.tf_utils.map_inference import MAP_inference
+from cde.utils.tf_utils.adamW import AdamWOptimizer
 
 
 class BaseNNMixtureEstimator(BaseNNEstimator):
+  weight_decay = 0.0
+
   def mean_(self, x_cond, n_samples=None):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
@@ -283,7 +286,7 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     with tf.variable_scope(self.name):
       # setup inference procedure
       self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
-      optimizer = tf.train.AdamOptimizer(5e-3)
+      optimizer = AdamWOptimizer(self.weight_decay) if self.weight_decay else tf.train.AdamOptimizer(5e-3)
       self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
 
     self.sess = tf.get_default_session()

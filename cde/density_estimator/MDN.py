@@ -28,6 +28,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
         entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
+        weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
         weight_normalization: (boolean) whether weight normalization shall be used
         data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
         random_seed: (optional) seed (int) of the random number generators used
@@ -35,7 +36,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
 
   def __init__(self, name, ndim_x, ndim_y, n_centers=10, hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, n_training_epochs=1000,
-               x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
+               x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_decay=0.0, weight_normalization=True, data_normalization=True, random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -59,6 +60,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
     self.entropy_reg_coef = entropy_reg_coef
+    self.weight_decay = weight_decay
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
 

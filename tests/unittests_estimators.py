@@ -243,6 +243,29 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     p_true = norm.cdf(y, loc=mu, scale=std)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+  def test_MDN_weight_decay(self):
+    mu = 5
+    std = 5
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.0)
+    decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=1e-5)
+    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.9)
+    no_decay.fit(X, Y)
+    decay.fit(X, Y)
+    full_decay.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_est_no_dec = no_decay.pdf(x, y)
+    p_est_dec = decay.pdf(x, y)
+    p_est_full_dec = full_decay.pdf(x, y)
+    p_true = norm.pdf(y, loc=mu, scale=std)
+
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est_no_dec)), 0.1)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est_dec)), 0.1)
+    self.assertLess(np.mean(p_est_full_dec), np.mean(p_est_dec))
+
   def test_MDN_with_2d_gaussian2(self):
     mu = -5
     std = 2.5
