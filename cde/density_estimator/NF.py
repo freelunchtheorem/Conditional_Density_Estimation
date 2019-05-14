@@ -33,7 +33,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
                  hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None,
-                 weight_decay=0.0, weight_normalization=True, data_normalization=True,
+                 weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0,
                  random_seed=None):
         Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
@@ -68,6 +68,9 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         # whether to normalize the data to zero mean, and uniform variance
         self.data_normalization = data_normalization
+
+        # the prob of dropping a node
+        self.dropout = dropout
 
         # gradients for planar flows tend to explode -> clip them by global norm
         self.gradient_clipping = True if 'planar' in flows_type else False
@@ -108,9 +111,11 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             self._compute_data_normalization(X, Y)
 
         for i in range(0, self.n_training_epochs + 1):
-            self.sess.run(self.train_step, feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True})
+            self.sess.run(self.train_step,
+                          feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True, self.dropout_ph: self.dropout})
             if verbose and not i % 100:
-                log_loss = self.sess.run(self.log_loss, feed_dict={self.X_ph: X, self.Y_ph: Y})
+                log_loss = self.sess.run(self.log_loss,
+                                         feed_dict={self.X_ph: X, self.Y_ph: Y, self.dropout_ph: self.dropout})
                 if not eval_set:
                     print('Step {:4}: train log-loss {: .4f}'.format(i, log_loss))
                 else:
@@ -118,51 +123,6 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                     print('Step {:4}: train log-loss {: .4f} eval log-loss {: .4f}'.format(i, log_loss, eval_ll))
 
         self.fitted = True
-
-    def pdf(self, X, Y):
-        """ Predicts the conditional probability p(y|x). Requires the model to be fitted
-
-        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        :return: conditional probability p(y|x) - numpy array of shape (n_query_samples, )
-        """
-        assert self.fitted, "model must be fitted to evaluate the likelihood score"
-
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
-        assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
-        return p
-
-    def log_pdf(self, X, Y):
-        """ Predicts the log of the conditional probability p(y|x). Requires the model to be fitted
-
-        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        :return: log of the conditional probability p(y|x) - numpy array of shape (n_query_samples, )
-        """
-        assert self.fitted, "model must be fitted to evaluate the likelihood score"
-
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.log_pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
-        assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
-        return p
-
-    def cdf(self, X, Y):
-        """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
-        The cumulative density function is currently only supported for ndim_y == 1
-
-        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        :return: conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
-        """
-        assert self.fitted, "model must be fitted to evaluate the likelihood score"
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.cdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1, "N_dim should be 1, is {}".format(p.ndim)
-        assert p.shape[0] == X.shape[0], "Shapes should be equal, are {} != {}".format(p.shape[0], X.shape[0])
-        return p
 
     def reset_fit(self):
         """
@@ -199,7 +159,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         implementation of the flow model
         """
         with tf.variable_scope(self.name):
-            # adds placeholders, data normalization and data noise to graph as desired
+            # adds placeholders, data normalization and data noise to graph as desired. Also sets up a placeholder
+            # for dropout
             self.layer_in_x, self.layer_in_y = self._build_input_layers()
             self.y_input = L.get_output(self.layer_in_y)
 
@@ -214,7 +175,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                 hidden_sizes=self.hidden_sizes,
                 hidden_nonlinearity=self.hidden_nonlinearity,
                 output_nonlinearity=None,
-                weight_normalization=self.weight_normalization
+                weight_normalization=self.weight_normalization,
+                dropout_ph=self.dropout_ph if self.dropout else None
             )
             outputs = L.get_output(core_network.output_layer)
             flow_params = tf.split(value=outputs, num_or_size_splits=param_split_sizes, axis=1)

@@ -707,7 +707,10 @@ class SpatialExpectedSoftmaxLayer(Layer):
 
 
 class DropoutLayer(Layer):
-    def __init__(self, incoming, p=0.5, rescale=True, **kwargs):
+    def __init__(self, incoming, p, rescale=False, **kwargs):
+        """
+        :param p: probability of setting the output of a node to 0. Should be a tf placeholder
+        """
         super(DropoutLayer, self).__init__(incoming, **kwargs)
         self.p = p
         self.rescale = rescale
@@ -724,9 +727,7 @@ class DropoutLayer(Layer):
         if deterministic or self.p == 0:
             return input
         else:
-            # Using theano constant to prevent upcasting
-            # one = T.constant(1)
-
+            # I don't know what this is for. TensorFlow rescales automatically when using tf.nn.dropout
             retain_prob = 1. - self.p
             if self.rescale:
                 input /= retain_prob

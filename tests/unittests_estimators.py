@@ -248,9 +248,9 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     std = 5
     X, Y = self.get_samples(mu=mu, std=std)
 
-    no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.0)
-    decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=1e-5)
-    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.9)
+    no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.0, weight_normalization=False)
+    decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=1e-5, weight_normalization=False)
+    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.9, weight_normalization=False)
     no_decay.fit(X, Y)
     decay.fit(X, Y)
     full_decay.fit(X, Y)
@@ -680,7 +680,7 @@ if __name__ == '__main__':
    'unittests_estimators.TestConditionalDensityEstimators_2d_gaussian',
    'unittests_estimators.TestRegularization',
    'unittests_estimators.TestSerializationDensityEstimators',
-    'unittests_estimators.TestLogProbability'
+   'unittests_estimators.TestLogProbability'
    ]
   suite = unittest.TestSuite()
   for t in testmodules:

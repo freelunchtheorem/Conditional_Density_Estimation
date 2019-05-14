@@ -29,6 +29,9 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
     # was the model fitted to the data or not
     fitted = False
 
+    # set to >0. to use dropout during training. Determines the probability of dropping the output of a node
+    dropout = 0.0
+
     def reset_fit(self):
         """
         Reset all tensorflow objects to enable the model to be trained again
@@ -223,6 +226,9 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
             layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
         if self.y_noise_std is not None:
             layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+
+        # setup dropout. This placeholder will remain unused if dropout is not implemented by the MLP
+        self.dropout_ph = tf.placeholder_with_default(0., shape=())
 
         return layer_in_x, layer_in_y
 

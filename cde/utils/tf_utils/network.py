@@ -16,7 +16,12 @@ class MLP(LayersPowered, Serializable):
                  output_nonlinearity, hidden_W_init=L.XavierUniformInitializer(), hidden_b_init=tf.zeros_initializer(),
                  output_W_init=L.XavierUniformInitializer(), output_b_init=tf.zeros_initializer(),
                  input_var=None, input_layer=None, input_shape=None, batch_normalization=False, weight_normalization=False,
+                 dropout_ph=None
                  ):
+        """
+        :param dropout_ph: None if no dropout should be used. Else a scalar placeholder that determines the prob of dropping a node.
+        Remember to set placeholder to Zero during test / eval
+        """
 
         Serializable.quick_init(self, locals())
 
@@ -39,6 +44,8 @@ class MLP(LayersPowered, Serializable):
                     b=hidden_b_init,
                     weight_normalization=weight_normalization
                 )
+                if dropout_ph is not None:
+                    l_hid = L.DropoutLayer(l_hid, dropout_ph, rescale=False)
                 if batch_normalization:
                     l_hid = L.batch_norm(l_hid)
                 self._layers.append(l_hid)
