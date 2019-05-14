@@ -4,6 +4,7 @@ import tensorflow as tf
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.tf_utils.network import MLP
+from cde.utils.tf_utils.adamW import AdamWOptimizer
 from .BaseNNEstimator import BaseNNEstimator
 from .normalizing_flows import FLOWS
 from cde.utils.serializable import Serializable
@@ -24,6 +25,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             n_training_epochs: (int) Number of epochs for training
             x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
             y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+            weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
             weight_normalization: (boolean) whether weight normalization shall be used for the neural network
             data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std
             random_seed: (optional) seed (int) of the random number generators used
@@ -31,7 +33,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
                  hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None,
-                 weight_normalization=True, data_normalization=True, random_seed=None):
+                 weight_decay=0.0, weight_normalization=True, data_normalization=True,
+                 random_seed=None):
         Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
         assert all([f in FLOWS.keys() for f in flows_type])
@@ -53,9 +56,12 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         self.n_training_epochs = n_training_epochs
 
-        # regularization parameters, currently not used
+        # regularization parameters
         self.x_noise_std = x_noise_std
         self.y_noise_std = y_noise_std
+
+        # decoupled weight decay
+        self.weight_decay = weight_decay
 
         # normalizing the network weights
         self.weight_normalization = weight_normalization
@@ -69,7 +75,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         # as we'll be using reversed flows, sampling is too slow to be useful
         self.can_sample = False
         self.has_pdf = True
-        self.has_cdf = True
+        # tf has a cdf implementation only for 1-D Normal Distribution
+        self.has_cdf = True if self.ndim_y == 1 else False
 
         self.fitted = False
 
@@ -184,6 +191,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             ],
             'x_noise_std': [0.1, 0.2, 0.4, None],
             'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
+            'weight_decay': [1e-5, 0.0]
         }
 
     def _build_model(self):
@@ -252,7 +260,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             self.loss = -tf.reduce_prod(self.pdf_)
             self.log_loss = -tf.reduce_sum(self.log_pdf_)
 
-            optimizer = tf.train.AdamOptimizer()
+            optimizer = AdamWOptimizer(self.weight_decay) if self.weight_decay else tf.train.AdamOptimizer()
+
             if self.gradient_clipping:
                 gradients, variables = zip(*optimizer.compute_gradients(self.log_loss))
                 gradients, _ = tf.clip_by_global_norm(gradients, 3e5)

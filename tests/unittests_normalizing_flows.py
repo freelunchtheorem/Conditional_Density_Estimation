@@ -421,6 +421,24 @@ class TestRegularization(unittest.TestCase):
             p_true = sess.run(bimix_gauss.prob(y))
             self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
 
+    def test_weight_decay(self):
+        with tf.Session() as sess:
+            bimix_gauss = tf.contrib.distributions.Mixture(
+                cat=tf.distributions.Categorical(probs=[0.5, 0.5]),
+                components=[
+                    tf.distributions.Normal(loc=-1., scale=0.5),
+                    tf.distributions.Normal(loc=+1., scale=0.5),
+                ])
+            x = np.ones(5000)
+            y = sess.run(bimix_gauss.sample([5000]))
+            model = NormalizingFlowEstimator("nf_estimator_weight_decay", 1, 1, flows_type=('affine', 'radial', 'radial'),
+                                             data_normalization=True, weight_decay=0.0001, n_training_epochs=1000, random_seed=22)
+            model.fit(x, y)
+
+            p_est = model.pdf(x, y)
+            p_true = sess.run(bimix_gauss.prob(y))
+            self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.01)
+
 
 class TestSerialization(unittest.TestCase):
     def get_samples(self, std=1.0):
