@@ -120,8 +120,11 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         avg_scores = np.mean(scores_array, axis=-1)
         best_idx = np.argmax(avg_scores)
         selected_params = param_list[best_idx]
+        assert len(avg_scores) == len(param_list)
 
         if verbose:
+            for (score, param) in zip(avg_scores, param_list):
+                print('Score: {} - Params: {}'.format(score, param))
             print("Completed grid search - Selected params: {}".format(selected_params))
             print("Refitting model with selected params")
 
