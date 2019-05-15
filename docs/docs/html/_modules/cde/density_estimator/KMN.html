@@ -194,14 +194,17 @@
 <span class="sd">          automatically deactivated during</span>
 <span class="sd">          y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -&gt; regularization through noise</span>
 <span class="sd">          entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution</span>
+<span class="sd">          weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply</span>
 <span class="sd">          weight_normalization: boolean specifying whether weight normalization shall be used</span>
-<span class="sd">                  data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std</span>
+<span class="sd">          data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std</span>
+<span class="sd">          dropout: (float) the probability of switching off nodes during training</span>
 <span class="sd">          random_seed: (optional) seed (int) of the random number generators used</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ndim_x</span><span class="p">,</span> <span class="n">ndim_y</span><span class="p">,</span> <span class="n">center_sampling_method</span><span class="o">=</span><span class="s1">&#39;k_means&#39;</span><span class="p">,</span> <span class="n">n_centers</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">keep_edges</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                <span class="n">init_scales</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">hidden_sizes</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">hidden_nonlinearity</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span> <span class="n">train_scales</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-               <span class="n">n_training_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">x_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">entropy_reg_coef</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">weight_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+               <span class="n">n_training_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">x_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_noise_std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">entropy_reg_coef</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+               <span class="n">weight_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
     <span class="n">Serializable</span><span class="o">.</span><span class="n">quick_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">locals</span><span class="p">())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_check_uniqueness_of_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -229,8 +232,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">x_noise_std</span> <span class="o">=</span> <span class="n">x_noise_std</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">y_noise_std</span> <span class="o">=</span> <span class="n">y_noise_std</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">entropy_reg_coef</span> <span class="o">=</span> <span class="n">entropy_reg_coef</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">weight_normalization</span> <span class="o">=</span> <span class="n">weight_normalization</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">data_normalization</span> <span class="o">=</span> <span class="n">data_normalization</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
 
     <span class="k">if</span> <span class="n">init_scales</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
         <span class="n">init_scales</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">])</span>
@@ -290,7 +295,8 @@
 <span class="sd">    implementation of the KMN</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_input_layers</span><span class="p">()</span> <span class="c1"># add playeholders, data_normalization and data_noise if desired</span>
+      <span class="c1"># add playeholders, data_normalization and data_noise if desired. Also sets up the placeholder for dropout prob</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_input_layers</span><span class="p">()</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">X_in</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_in_x</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">Y_in</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_output</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_in_y</span><span class="p">)</span>
@@ -306,6 +312,7 @@
         <span class="n">hidden_sizes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_sizes</span><span class="p">,</span>
         <span class="n">hidden_nonlinearity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_nonlinearity</span><span class="p">,</span>
         <span class="n">output_nonlinearity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dropout_ph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_ph</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="k">else</span> <span class="kc">None</span>
       <span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">core_output_layer</span> <span class="o">=</span> <span class="n">core_network</span><span class="o">.</span><span class="n">output_layer</span>

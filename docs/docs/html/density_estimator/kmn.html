@@ -193,7 +193,7 @@ the neural network weights. This property is controlled by the boolean train_sca
 </ul>
 <span class="target" id="module-cde.density_estimator"></span><dl class="class">
 <dt id="cde.density_estimator.KernelMixtureNetwork">
-<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">KernelMixtureNetwork</code><span class="sig-paren">(</span><em>name</em>, <em>ndim_x</em>, <em>ndim_y</em>, <em>center_sampling_method='k_means'</em>, <em>n_centers=50</em>, <em>keep_edges=True</em>, <em>init_scales='default'</em>, <em>hidden_sizes=(16</em>, <em>16)</em>, <em>hidden_nonlinearity=&lt;function tanh&gt;</em>, <em>train_scales=True</em>, <em>n_training_epochs=1000</em>, <em>x_noise_std=None</em>, <em>y_noise_std=None</em>, <em>entropy_reg_coef=0.0</em>, <em>weight_normalization=True</em>, <em>data_normalization=True</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/KMN.html#KernelMixtureNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.KernelMixtureNetwork" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">cde.density_estimator.</code><code class="descname">KernelMixtureNetwork</code><span class="sig-paren">(</span><em>name</em>, <em>ndim_x</em>, <em>ndim_y</em>, <em>center_sampling_method='k_means'</em>, <em>n_centers=50</em>, <em>keep_edges=True</em>, <em>init_scales='default'</em>, <em>hidden_sizes=(16</em>, <em>16)</em>, <em>hidden_nonlinearity=&lt;function tanh&gt;</em>, <em>train_scales=True</em>, <em>n_training_epochs=1000</em>, <em>x_noise_std=None</em>, <em>y_noise_std=None</em>, <em>entropy_reg_coef=0.0</em>, <em>weight_decay=0.0</em>, <em>weight_normalization=True</em>, <em>data_normalization=True</em>, <em>dropout=0.0</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cde/density_estimator/KMN.html#KernelMixtureNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cde.density_estimator.KernelMixtureNetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Kernel Mixture Network Estimator</p>
 <p><a class="reference external" href="https://arxiv.org/abs/1705.07111">https://arxiv.org/abs/1705.07111</a></p>
 <dl class="field-list simple">
@@ -211,8 +211,10 @@ the neural network weights. This property is controlled by the boolean train_sca
 <li><p><strong>deactivated during</strong> (<em>automatically</em>) – </p></li>
 <li><p><strong>y_noise_std</strong> – (optional) standard deviation of Gaussian noise over the the training data Y -&gt; regularization through noise</p></li>
 <li><p><strong>entropy_reg_coef</strong> – (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution</p></li>
-<li><p><strong>weight_normalization</strong> – boolean specifying whether weight normalization shall be used
-data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std</p></li>
+<li><p><strong>weight_decay</strong> – (float) the amount of decoupled (<a class="reference external" href="http://arxiv.org/abs/1711.05101">http://arxiv.org/abs/1711.05101</a>) weight decay to apply</p></li>
+<li><p><strong>weight_normalization</strong> – boolean specifying whether weight normalization shall be used</p></li>
+<li><p><strong>data_normalization</strong> – (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std</p></li>
+<li><p><strong>dropout</strong> – (float) the probability of switching off nodes during training</p></li>
 <li><p><strong>random_seed</strong> – (optional) seed (int) of the random number generators used</p></li>
 </ul>
 </dd>

@@ -180,6 +180,9 @@
     <span class="c1"># was the model fitted to the data or not</span>
     <span class="n">fitted</span> <span class="o">=</span> <span class="kc">False</span>
 
+    <span class="c1"># set to &gt;0. to use dropout during training. Determines the probability of dropping the output of a node</span>
+    <span class="n">dropout</span> <span class="o">=</span> <span class="mf">0.0</span>
+
     <span class="k">def</span> <span class="nf">reset_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reset all tensorflow objects to enable the model to be trained again</span>
@@ -374,6 +377,9 @@
             <span class="n">layer_in_x</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">GaussianNoiseLayer</span><span class="p">(</span><span class="n">layer_in_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_noise_std</span><span class="p">,</span> <span class="n">noise_on_ph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">train_phase</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_noise_std</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">layer_in_y</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">GaussianNoiseLayer</span><span class="p">(</span><span class="n">layer_in_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_noise_std</span><span class="p">,</span> <span class="n">noise_on_ph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">train_phase</span><span class="p">)</span>
+
+        <span class="c1"># setup dropout. This placeholder will remain unused if dropout is not implemented by the MLP</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_ph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder_with_default</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="n">layer_in_x</span><span class="p">,</span> <span class="n">layer_in_y</span>
 
