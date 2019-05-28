@@ -533,7 +533,7 @@ if __name__ == '__main__':
         'unittests_normalizing_flows.Test_NF_2d_gaussian',
         'unittests_normalizing_flows.TestLogProbability',
         'unittests_normalizing_flows.TestFlows',
-        'unittests_normalizing_flows.TestMultiModal',
+        # 'unittests_normalizing_flows.TestMultiModal',
         'unittests_normalizing_flows.TestRegularization',
         'unittests_normalizing_flows.TestSerialization',
         # 'unittests_normalizing_flows.TestFitByCrossval',
