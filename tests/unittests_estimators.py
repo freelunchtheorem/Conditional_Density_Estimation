@@ -424,56 +424,6 @@ class TestRegularization(unittest.TestCase):
 
       self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
 
-  def test5_MDN_entropy_regularization(self):
-    X1, Y1 = self.get_samples(std=1, mean=2)
-    X2, Y2 = self.get_samples(std=1, mean=-2)
-
-    # DATA for GMM with two modes
-    X = np.expand_dims(np.concatenate([X1, X2], axis=0), axis=1)
-    Y = np.expand_dims(np.concatenate([Y1, Y2], axis=0), axis=1)
-
-    with tf.Session() as sess:
-      model_no_reg = MixtureDensityNetwork("mdn_no_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
-                                          entropy_reg_coef=0.0)
-      model_no_reg.fit(X, Y)
-
-      entropy1 = np.mean(
-        sess.run(model_no_reg.softmax_entropy, feed_dict={model_no_reg.X_ph: X, model_no_reg.Y_ph: Y}))
-
-      model_reg = MixtureDensityNetwork("mdn_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
-                                        entropy_reg_coef=10.0)
-      model_reg.fit(X, Y)
-      entropy2 = np.mean(sess.run(model_reg.softmax_entropy, feed_dict={model_reg.X_ph: X, model_reg.Y_ph: Y}))
-
-      print(entropy1)
-      print(entropy2)
-      self.assertGreaterEqual(entropy1 / entropy2, 10)
-
-  def test6_KMN_entropy_regularization(self):
-    X1, Y1 = self.get_samples(std=1, mean=2)
-    X2, Y2 = self.get_samples(std=1, mean=-2)
-
-    # DATA for GMM with two modes
-    X = np.expand_dims(np.concatenate([X1, X2], axis=0), axis=1)
-    Y = np.expand_dims(np.concatenate([Y1, Y2], axis=0), axis=1)
-
-    with tf.Session() as sess:
-      model_no_reg = KernelMixtureNetwork("kmn_no_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
-                                          entropy_reg_coef=0.0)
-      model_no_reg.fit(X, Y)
-
-      entropy1 = np.mean(
-        sess.run(model_no_reg.softmax_entropy, feed_dict={model_no_reg.X_ph: X, model_no_reg.Y_ph: Y}))
-
-      model_reg = KernelMixtureNetwork("kmn_entropy_reg", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
-                                        entropy_reg_coef=10.0)
-      model_reg.fit(X, Y)
-      entropy2 = np.mean(sess.run(model_reg.softmax_entropy, feed_dict={model_reg.X_ph: X, model_reg.Y_ph: Y}))
-
-      print(entropy1)
-      print(entropy2)
-      self.assertGreaterEqual(entropy1 / entropy2, 10)
-
   def test7_data_normalization(self):
     X, Y = self.get_samples(std=2, mean=20)
     with tf.Session() as sess:
