@@ -39,9 +39,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
           keep_edges: Keep the extreme y values as center to keep expressiveness
           init_scales: List or scalar that describes (initial) values of bandwidth parameter
           train_scales: Boolean that describes whether or not to make the scales trainable
-          x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise. Adding noise is
-          automatically deactivated during
-          y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+          x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X
+          y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y
+          adaptive_noise_fn: (callable) that takes the number of samples and the data dimensionality as arguments and returns
+                           the noise std as float - if used, the x_noise_std and y_noise_std have no effect
           entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
           weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
           weight_normalization: boolean specifying whether weight normalization shall be used
@@ -52,8 +53,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
 
   def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=50, keep_edges=True,
                init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
-               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_decay=0.0,
-               weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
+               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,  entropy_reg_coef=0.0,
+               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -80,7 +81,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     # regularization parameters
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
-    self.entropy_reg_coef = entropy_reg_coef
+    self.adaptive_noise_fn = adaptive_noise_fn
     self.weight_decay = weight_decay
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
@@ -127,6 +128,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     else:
       Y_normalized = Y
 
+    self._compute_noise_intensity(X, Y)
+
     # sample locations and assign them to tf locs variable
     sampled_locs = sample_center_points(Y_normalized, method=self.center_sampling_method, k=self.n_centers,
                                      keep_edges=self.keep_edges, random_state=self.random_state)
@@ -144,7 +147,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     implementation of the KMN
     """
     with tf.variable_scope(self.name):
-      # add playeholders, data_normalization and data_noise if desired. Also sets up the placeholder for dropout prob
+      # add placeholders, data_normalization and data_noise if desired. Also sets up the placeholder for dropout prob
       self.layer_in_x, self.layer_in_y = self._build_input_layers()
 
       self.X_in = L.get_output(self.layer_in_x)

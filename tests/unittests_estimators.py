@@ -10,7 +10,7 @@ import scipy.stats as stats
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, \
-  ConditionalKernelDensityEstimation, LSConditionalDensityEstimation, NeighborKernelDensityEstimation
+  ConditionalKernelDensityEstimation, LSConditionalDensityEstimation, NeighborKernelDensityEstimation, NormalizingFlowEstimator
 
 class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
 
@@ -337,9 +337,9 @@ class TestSerializationDensityEstimators(unittest.TestCase):
 
 class TestRegularization(unittest.TestCase):
 
-  def get_samples(self, std=1.0, mu=2):
+  def get_samples(self, std=1.0, mu=2, n_samples=2000):
     np.random.seed(22)
-    data = np.random.normal([mu, mu], std, size=(2000, 2))
+    data = np.random.normal([mu, mu], std, size=(n_samples, 2))
     X = data[:, 0]
     Y = data[:, 1]
     return X, Y
@@ -489,6 +489,56 @@ class TestRegularization(unittest.TestCase):
       self.assertLessEqual(cond_cov[0][0], std**2 * 1.3)
       self.assertGreaterEqual(cond_cov[1][1], std**2 * 0.7)
       self.assertLessEqual(cond_cov[1][1], std**2 * 1.3)
+
+  def test_MDN_adaptive_noise(self):
+    adaptive_noise_fn = lambda n, d: 0.0 if n < 1000 else 5.0
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=999)
+    est = MixtureDensityNetwork("mdn_adaptive_noise_999", 1, 1, y_noise_std=0.0, x_noise_std=0.0, adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_999 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=1002)
+    est = MixtureDensityNetwork("mdn_adaptive_noise_1002", 1, 1, y_noise_std=0.0, x_noise_std=0.0,
+                                adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_1002 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    self.assertLess(std_999, std_1002)
+    self.assertGreater(std_1002, 2)
+
+  def test_KMN_adaptive_noise(self):
+    adaptive_noise_fn = lambda n, d: 0.0 if n < 1000 else 5.0
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=999)
+    est = KernelMixtureNetwork("kmn_999", 1, 1, n_centers=5, y_noise_std=0.0, x_noise_std=0.0, adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_999 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=1002)
+    est = KernelMixtureNetwork("kmn_1002", 1, 1, n_centers=5, y_noise_std=0.0, x_noise_std=0.0,
+                                adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_1002 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    self.assertLess(std_999, std_1002)
+    self.assertGreater(std_1002, 2)
+
+  def test_NF_adaptive_noise(self):
+    adaptive_noise_fn = lambda n, d: 0.0 if n < 1000 else 5.0
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=999)
+    est = NormalizingFlowEstimator("nf_999", 1, 1, y_noise_std=0.0, x_noise_std=0.0, adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_999 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    X, Y = self.get_samples(mu=0, std=1, n_samples=1002)
+    est = NormalizingFlowEstimator("nf_1002", 1, 1, y_noise_std=0.0, x_noise_std=0.0, adaptive_noise_fn=adaptive_noise_fn)
+    est.fit(X, Y)
+    std_1002 = est.std_(x_cond=np.array([[0.0]]))[0]
+
+    self.assertLess(std_999, std_1002)
+    self.assertGreater(std_1002, 2)
 
   def test_MDN_weight_decay(self):
     mu = 5

@@ -208,6 +208,25 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
             tf.assign(self.std_y_sym, self.y_std)
         ])
 
+    def _compute_noise_intensity(self, X, Y):
+        # computes the noise intensity based on the number of samples and dimensionality of the data
+
+        n_samples = X.shape[0]
+
+        if self.adaptive_noise_fn is not None:
+            self.x_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x)
+            self.y_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_y)
+
+            assert self.x_noise_std >= 0.0 and self.y_noise_std >= 0.0
+
+            # assign them to tf variables
+            sess = tf.get_default_session()
+            sess.run([
+                tf.assign(self.x_noise_std_sym, self.x_noise_std),
+                tf.assign(self.y_noise_std_sym, self.y_noise_std),
+            ])
+
+
     def _build_input_layers(self):
         # Input_Layers & placeholders
         self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
@@ -224,11 +243,16 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
             layer_in_y = L.NormalizationLayer(layer_in_y, self.ndim_y, name="data_norm_y")
             self.mean_y_sym, self.std_y_sym = layer_in_y.get_params()
 
+        if self.x_noise_std is None:
+            self.x_noise_std = 0.0
+        if self.y_noise_std is None:
+            self.y_noise_std = 0.0
+
         # add noise layer if desired
-        if self.x_noise_std is not None:
-            layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase)
-        if self.y_noise_std is not None:
-            layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase)
+        self.x_noise_std_sym = tf.Variable(self.x_noise_std, trainable=False, dtype=tf.float32)
+        self.y_noise_std_sym = tf.Variable(self.y_noise_std, trainable=False, dtype=tf.float32)
+        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std_sym, noise_on_ph=self.train_phase)
+        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std_sym, noise_on_ph=self.train_phase)
 
         # setup dropout. This placeholder will remain unused if dropout is not implemented by the MLP
         self.dropout_ph = tf.placeholder_with_default(0., shape=())

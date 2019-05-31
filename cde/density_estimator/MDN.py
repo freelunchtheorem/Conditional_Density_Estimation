@@ -27,6 +27,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         n_training_epochs: Number of epochs for training
         x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
         y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+        adaptive_noise_fn: (callable) that takes the number of samples and the data dimensionality as arguments and returns
+                                   the noise std as float - if used, the x_noise_std and y_noise_std have no effect
         entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
         weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
         weight_normalization: (boolean) whether weight normalization shall be used
@@ -37,8 +39,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
 
   def __init__(self, name, ndim_x, ndim_y, n_centers=10, hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh,
-               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, entropy_reg_coef=0.0, weight_decay=0.0,
-               weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
+               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None, entropy_reg_coef=0.0,
+               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -62,6 +64,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
     self.entropy_reg_coef = entropy_reg_coef
+    self.adaptive_noise_fn = adaptive_noise_fn
     self.weight_decay = weight_decay
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
@@ -97,6 +100,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     if self.data_normalization: # this must happen after the initialization
       self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
 
+    self._compute_noise_intensity(X, Y)
+
     # train the model
     self._partial_fit(X, Y, n_epoch=self.n_training_epochs, verbose=verbose, eval_set=eval_set)
     self.fitted = True
@@ -107,8 +112,9 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     """
 
     with tf.variable_scope(self.name):
-      # adds playeholders, data_normalization and data_noise if desired. Also adds a placeholder for dropout probability
+      # adds placeholders, data_normalization and data_noise if desired. Also adds a placeholder for dropout probability
       self.layer_in_x, self.layer_in_y = self._build_input_layers()
+
       # create core multi-layer perceptron
       mlp_output_dim = 2 * self.ndim_y * self.n_centers + self.n_centers
       core_network = MLP(

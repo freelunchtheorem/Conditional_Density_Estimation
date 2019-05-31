@@ -25,6 +25,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             n_training_epochs: (int) Number of epochs for training
             x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
             y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
+            adaptive_noise_fn: (callable) that takes the number of samples and the data dimensionality as arguments and returns
+                                   the noise std as float - if used, the x_noise_std and y_noise_std have no effect
             weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
             weight_normalization: (boolean) whether weight normalization shall be used for the neural network
             data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std
@@ -33,7 +35,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
     """
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
-                 hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None,
+                 hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,
                  weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0,
                  random_seed=None):
         Serializable.quick_init(self, locals())
@@ -60,6 +62,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         # regularization parameters
         self.x_noise_std = x_noise_std
         self.y_noise_std = y_noise_std
+        self.adaptive_noise_fn = adaptive_noise_fn
 
         # decoupled weight decay
         self.weight_decay = weight_decay
@@ -110,6 +113,8 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         if self.data_normalization:
             self._compute_data_normalization(X, Y)
+
+        self._compute_noise_intensity(X, Y)
 
         for i in range(0, self.n_training_epochs + 1):
             self.sess.run(self.train_step,
