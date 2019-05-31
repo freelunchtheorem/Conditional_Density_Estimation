@@ -195,7 +195,7 @@ class TestConditionalDensityEstimators_2d_gaussian(unittest.TestCase):
     import time
     t = time.time()
     model = KernelMixtureNetwork("kmn_sampling", 1, 1, center_sampling_method='k_means', n_centers=5,
-                                 n_training_epochs=500, data_normalization=False)
+                                 n_training_epochs=1000, data_normalization=True)
     print("time to build model:", time.time() - t)
     t = time.time()
 
@@ -337,9 +337,9 @@ class TestSerializationDensityEstimators(unittest.TestCase):
 
 class TestRegularization(unittest.TestCase):
 
-  def get_samples(self, std=1.0, mean=2):
+  def get_samples(self, std=1.0, mu=2):
     np.random.seed(22)
-    data = np.random.normal([mean, mean], std, size=(2000, 2))
+    data = np.random.normal([mu, mu], std, size=(2000, 2))
     X = data[:, 0]
     Y = data[:, 1]
     return X, Y
@@ -425,7 +425,7 @@ class TestRegularization(unittest.TestCase):
       self.assertGreaterEqual(pdf_distance_no_noise/pdf_distance_noise, 2.0)
 
   def test7_data_normalization(self):
-    X, Y = self.get_samples(std=2, mean=20)
+    X, Y = self.get_samples(std=2, mu=20)
     with tf.Session() as sess:
       model = KernelMixtureNetwork("kmn_data_normalization", 1, 1, n_centers=2, x_noise_std=None, y_noise_std=None,
                                           data_normalization=True, n_training_epochs=100)
@@ -490,6 +490,73 @@ class TestRegularization(unittest.TestCase):
       self.assertGreaterEqual(cond_cov[1][1], std**2 * 0.7)
       self.assertLessEqual(cond_cov[1][1], std**2 * 1.3)
 
+  def test_MDN_weight_decay(self):
+    mu = 5
+    std = 5
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, hidden_sizes=(32, 32), n_centers=10,
+                                     n_training_epochs=2000, weight_decay=0.0, weight_normalization=False)
+    decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10,  hidden_sizes=(32, 32),
+                                  n_training_epochs=2000, weight_decay=1e-4, weight_normalization=False)
+    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, hidden_sizes=(32, 32),
+                                       n_training_epochs=2000, weight_decay=0.9, weight_normalization=False)
+    no_decay.fit(X, Y)
+    decay.fit(X, Y)
+    full_decay.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    l1_err_no_dec = np.mean(np.abs(no_decay.pdf(x, y) - p_true))
+    l1_err_dec = np.mean(np.abs(decay.pdf(x, y) - p_true))
+    l1_err_full_dec = np.mean(np.abs(full_decay.pdf(x, y) - p_true))
+
+    self.assertLessEqual(l1_err_dec, 0.1)
+    self.assertLessEqual(l1_err_dec, l1_err_no_dec)
+    self.assertLessEqual(l1_err_dec, l1_err_full_dec)
+
+  def test_KMN_dropout(self):
+    mu = -2.0
+    std = 2.0
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    for method in ["agglomerative"]:
+      with tf.Session() as sess:
+        model = KernelMixtureNetwork("kmn_dropout_"+method, 1, 1, center_sampling_method=method, n_centers=20,
+                                     hidden_sizes=(16, 16), init_scales=np.array([0.5]), train_scales=True,
+                                     data_normalization=False, dropout=0.5)
+        model.fit(X, Y)
+
+        y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+        x = np.asarray([mu for i in range(y.shape[0])])
+        p_est = model.pdf(x, y)
+        p_true = norm.pdf(y, loc=mu, scale=std)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+        p_est = model.cdf(x, y)
+        p_true = norm.cdf(y, loc=mu, scale=std)
+        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+  def test_MDN_dropout(self):
+    mu = -8
+    std = 2.5
+    X, Y = self.get_samples(mu=mu, std=std)
+
+    dropout_model = MixtureDensityNetwork("mdn_dropout_reasonable", 1, 1, n_centers=5, weight_normalization=True,
+                                          dropout=0.5, n_training_epochs=500)
+    dropout_model.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_est = dropout_model.pdf(x, y)
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
+    p_est = dropout_model.cdf(x, y)
+    p_true = norm.cdf(y, loc=mu, scale=std)
+    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
+
 class TestLogProbability(unittest.TestCase):
 
   def test_KMN_log_pdf(self):
@@ -553,7 +620,6 @@ class TestLogProbability(unittest.TestCase):
     log_prob = model.log_pdf(x, y)
     self.assertLessEqual(np.mean(np.abs(prob - np.exp(log_prob))), 0.001)
 
-
 class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
   def get_samples(self):
     np.random.seed(22)
@@ -599,73 +665,6 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
     self.assertEqual(model.get_params()["n_centers"], 10)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
-
-class TestDropout(unittest.TestCase):
-  def test_KMN_dropout(self):
-    mu = -2.0
-    std = 2.0
-    X, Y = self.get_samples(mu=mu, std=std)
-
-    for method in ["agglomerative"]:
-      with tf.Session() as sess:
-        model = KernelMixtureNetwork("kmn_dropout_"+method, 1, 1, center_sampling_method=method, n_centers=20,
-                                     hidden_sizes=(16, 16), init_scales=np.array([0.5]), train_scales=True,
-                                     data_normalization=False, dropout=0.5)
-        model.fit(X, Y)
-
-        y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
-        x = np.asarray([mu for i in range(y.shape[0])])
-        p_est = model.pdf(x, y)
-        p_true = norm.pdf(y, loc=mu, scale=std)
-        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-        p_est = model.cdf(x, y)
-        p_true = norm.cdf(y, loc=mu, scale=std)
-        self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-  def test_MDN_dropout(self):
-    mu = -8
-    std = 2.5
-    X, Y = self.get_samples(mu=mu, std=std)
-
-    dropout_model = MixtureDensityNetwork("mdn_dropout_reasonable", 1, 1, n_centers=5, weight_normalization=True,
-                                          dropout=0.5, n_training_epochs=500)
-    dropout_model.fit(X, Y)
-
-    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
-    x = np.asarray([mu for i in range(y.shape[0])])
-    p_est = dropout_model.pdf(x, y)
-    p_true = norm.pdf(y, loc=mu, scale=std)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-    p_est = dropout_model.cdf(x, y)
-    p_true = norm.cdf(y, loc=mu, scale=std)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.1)
-
-
-class TestWeightDecay(unittest.TestCase):
-  def test_MDN_weight_decay(self):
-    mu = 5
-    std = 5
-    X, Y = self.get_samples(mu=mu, std=std)
-
-    no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.0, weight_normalization=False)
-    decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=1e-5, weight_normalization=False)
-    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, data_normalization=False, weight_decay=0.9, weight_normalization=False)
-    no_decay.fit(X, Y)
-    decay.fit(X, Y)
-    full_decay.fit(X, Y)
-
-    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
-    x = np.asarray([mu for i in range(y.shape[0])])
-    p_est_no_dec = no_decay.pdf(x, y)
-    p_est_dec = decay.pdf(x, y)
-    p_est_full_dec = full_decay.pdf(x, y)
-    p_true = norm.pdf(y, loc=mu, scale=std)
-
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est_no_dec)), 0.1)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est_dec)), 0.1)
-    self.assertLess(np.mean(p_est_full_dec), np.mean(p_est_dec))
 
 
 if __name__ == '__main__':

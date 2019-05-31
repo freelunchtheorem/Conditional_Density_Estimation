@@ -97,8 +97,8 @@ class TestFlows(unittest.TestCase):
                 p = model.pdf(x, y)
                 self.assertEqual(p.shape, (len(y),))
                 # every test has equal first and last elements, theses are basic sanity tests
-                self.assertAlmostEqual(p[0], p[-1])
-                self.assertNotAlmostEqual(p[0], p[1])
+                self.assertAlmostEqual(p[0], p[-1], places=5)
+                self.assertNotAlmostEqual(p[0], p[1], places=5)
 
     def _test_flow_correct_dims(self, flow_class):
         tests = [

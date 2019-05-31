@@ -242,9 +242,11 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
   def _sample_rows_individually(self, X):
     weights, locs, scales = self._get_mixture_components(X)
 
+    assert locs.shape[1] == scales.shape[1] == weights.shape[1]
+
     Y = np.zeros(shape=(X.shape[0], self.ndim_y))
     for i in range(X.shape[0]):
-      idx = np.random.choice(range(self.n_centers), p=weights[i, :])
+      idx = np.random.choice(range(locs.shape[1]), p=weights[i, :])
       Y[i, :] = np.random.normal(loc=locs[i, idx, :], scale=scales[i, idx, :])
     assert X.shape[0] == Y.shape[0]
     return X, Y
@@ -287,7 +289,8 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     with tf.variable_scope(self.name):
       # setup inference procedure
       self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
-      optimizer = AdamWOptimizer(self.weight_decay) if self.weight_decay else tf.train.AdamOptimizer(5e-3)
+      optimizer = AdamWOptimizer(weight_decay=self.weight_decay, learning_rate=2e-3) if self.weight_decay \
+        else tf.train.AdamOptimizer(learning_rate=2e-3)
       self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
 
     self.sess = tf.get_default_session()
