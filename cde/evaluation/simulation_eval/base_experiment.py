@@ -7,7 +7,8 @@ RESULTS_FILE = 'results.pkl'
 
 KEYS_OF_INTEREST = [
     'task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
-    'y_noise_std', 'ndim_x', 'ndim_y', 'flows_type', 'n_centers', "n_mc_samples", "n_x_cond", 'mean_est',
+    'y_noise_std', 'ndim_x', 'ndim_y', 'flows_type', 'n_centers', 'dropout', 'weight_normalization', 'weight_decay',
+    "n_mc_samples", "n_x_cond", 'mean_est',
     'std_est', 'mean_sim', 'std_sim', 'kl_divergence', 'hellinger_distance', 'js_divergence',
     'x_cond', 'random_seed', "mean_abs_diff", "std_abs_diff",
     "time_to_fit"
