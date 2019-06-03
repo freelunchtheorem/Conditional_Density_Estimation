@@ -31,8 +31,8 @@ or clone the GitHub repository and run
 pip install .
 ``` 
 Note that the package only supports tensorflow versions between 1.4 and 1.7.
-## Documentation
-See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A technical report & paper will soon be released and linked here.
+## Documentation and paper
+See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
 
 ## Usage
 The following code snipped holds an easy example that demonstrates how to use the cde package.
