@@ -82,6 +82,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.x_noise_std = x_noise_std
     self.y_noise_std = y_noise_std
     self.adaptive_noise_fn = adaptive_noise_fn
+    self.entropy_reg_coef = entropy_reg_coef
     self.weight_decay = weight_decay
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization

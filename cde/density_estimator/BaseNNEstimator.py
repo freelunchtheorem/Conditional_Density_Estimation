@@ -249,10 +249,10 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
             self.y_noise_std = 0.0
 
         # add noise layer if desired
-        self.x_noise_std_sym = tf.Variable(self.x_noise_std, trainable=False, dtype=tf.float32)
-        self.y_noise_std_sym = tf.Variable(self.y_noise_std, trainable=False, dtype=tf.float32)
-        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std_sym, noise_on_ph=self.train_phase)
-        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std_sym, noise_on_ph=self.train_phase)
+        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase, name='x')
+        self.x_noise_std_sym = layer_in_x.get_params()[0]
+        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase, name='y')
+        self.y_noise_std_sym = layer_in_y.get_params()[0]
 
         # setup dropout. This placeholder will remain unused if dropout is not implemented by the MLP
         self.dropout_ph = tf.placeholder_with_default(0., shape=())

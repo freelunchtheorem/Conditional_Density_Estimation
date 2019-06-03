@@ -739,10 +739,17 @@ class DropoutLayer(Layer):
         return input_shape
 
 class GaussianNoiseLayer(Layer):
-    def __init__(self, incoming, noise_std, noise_on_ph=None, **kwargs):
+    def __init__(self, incoming, noise_std, noise_on_ph=None, name='', **kwargs):
         super(GaussianNoiseLayer, self).__init__(incoming, **kwargs)
-        self.noise_std = noise_std
-        self.noise_on_ph = noise_on_ph # boolean placeholder that controlls whether noise shall be added or not (i.e. train vs. test time)
+
+        self.noise_std = self.add_param(
+            tf.Variable(noise_std, dtype=tf.float32, name='noise_std_' + name, trainable=False),
+            (1,),
+            name='noise_std_' + name,
+            trainable=False
+        )
+        # boolean placeholder that controlls whether noise shall be added or not (i.e. train vs. test time)
+        self.noise_on_ph = noise_on_ph
 
     def get_output_for(self, input, **kwargs):
         if self.noise_on_ph is not None:
