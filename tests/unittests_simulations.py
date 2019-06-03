@@ -78,13 +78,75 @@ class TestGaussianMixture(unittest.TestCase):
     self.assertLessEqual(np.sum((cov_mc - cov) ** 2), 0.1)
 
   def test_sampling(self):
-    gmm = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
+    gmm = GaussianMixture(n_kernels=5, random_seed=54, ndim_x=3, ndim_y=2)
 
-    ## simulate unconditionally
-    x, y = gmm.simulate(n_samples=10 ** 6)
+    mean_y = gmm.mean_(x_cond=np.zeros((1, 3))).squeeze()
+    cov_y = gmm.covariance(x_cond=np.zeros((1, 3))).squeeze()
 
-    # simulte conditionally
-    x_cond = 2 * np.ones(shape=(10 ** 6, 2))
+    mean_x = gmm.weights.dot(gmm.means_x)
+    cov_x = np.zeros((3,3))
+    for j in range(gmm.weights.shape[0]):
+      cov_x += gmm.weights[j] * gmm.covariances_x[j]
+      a = (gmm.means_x[j] - mean_x)
+      cov_x += gmm.weights[j] * np.outer(a, a)
+
+    ## simulate unconditionally from GMM
+    x_gmm, y_gmm = gmm.simulate(n_samples=10 ** 6)
+    y_gauss = np.random.multivariate_normal(mean_y, cov_y, size=10 ** 6)
+    x_gauss = np.random.multivariate_normal(mean_x, cov_x, size=10 ** 6)
+
+    score_gauss = np.mean(gmm.pdf(x_gauss, y_gauss))
+    score_gmm = np.mean(gmm.pdf(x_gmm, y_gmm))
+
+    self.assertLess(score_gauss, score_gmm)
+
+  def test_sampling2(self):
+    gmm = GaussianMixture(n_kernels=5, random_seed=54, ndim_x=3, ndim_y=2)
+
+    ## simulate unconditionally from GMM
+    x_gmm, y_gmm = gmm.simulate(n_samples=10 ** 6)
+
+    mean_x = np.mean(x_gmm, axis=0)
+    cov_x = np.cov(x_gmm.T)
+
+    mean_y = np.mean(y_gmm, axis=0)
+    cov_y = np.cov(y_gmm.T)
+
+    y_gauss = np.random.multivariate_normal(mean_y, cov_y, size=10 ** 6)
+    x_gauss = np.random.multivariate_normal(mean_x, cov_x, size=10 ** 6)
+
+    score_gauss = np.mean(gmm.log_pdf(x_gauss, y_gauss))
+    score_gmm = np.mean(gmm.log_pdf(x_gmm, y_gmm))
+
+    print(score_gmm, score_gauss)
+    self.assertLess(score_gauss, score_gmm)
+
+  def test_sampling3(self):
+    gmm = GaussianMixture(n_kernels=4, random_seed=54, ndim_x=3, ndim_y=2)
+
+    ## simulate unconditionally from GMM
+    x_gmm, y_gmm = gmm.simulate(n_samples=10 ** 5)
+    samples = np.concatenate([x_gmm, y_gmm], axis=-1)
+    mean_emp = np.mean(samples, axis=0)
+    mean_true = gmm.weights.dot(gmm.means)
+    mean_diff = np.mean(np.abs(mean_emp - mean_true))
+
+    self.assertLess(mean_diff, 0.01)
+
+  def test_conditional_sampling1(self):
+    gmm = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=4, ndim_y=5)
+
+    # simulate conditionally
+    x_cond = 2 * np.ones(shape=(10 ** 5, 4))
+    _,  y_sample = gmm.simulate_conditional(x_cond)
+    self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
+
+  def test_conditional_sampling2(self):
+    gmm = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=4, ndim_y=2)
+
+    # simulate conditionally
+    x_cond = np.zeros(shape=(10 ** 4, 4))
+    x_cond[0][0] = 0.001
     _,  y_sample = gmm.simulate_conditional(x_cond)
     self.assertLessEqual(np.mean(np.abs(gmm.mean_(x_cond)[0] - y_sample.mean(axis=0))), 0.1)
 

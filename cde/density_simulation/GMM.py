@@ -138,9 +138,9 @@ class GaussianMixture(BaseConditionalDensitySimulation):
     X = self._handle_input_dimensionality(X)
 
     if np.all(np.all(X == X[0, :], axis=1)):
-      return self._simulate_rows_same(X)
+      return self._simulate_cond_rows_same(X)
     else:
-      return self._simulate_rows_individually(X)
+      return self._simulate_cond_rows_individually(X)
 
 
   def simulate(self, n_samples=1000):
@@ -155,10 +155,16 @@ class GaussianMixture(BaseConditionalDensitySimulation):
 
     assert n_samples > 0
 
-    scales = np.diagonal(self.covariances, axis1=1, axis2=2)
-    samples = self._sample(self.weights, self.means, scales, n_samples)
+    n_samples_comp = self.random_state.multinomial(n_samples, self.weights)
+
+    samples = np.vstack([gaussian.rvs(size=n, random_state=self.random_state)
+                                     for gaussian, n in zip(self.gaussians, n_samples_comp)])
+
+    # shuffle rows to make data i.i.d.
+    #self.random_state.shuffle(samples)
+
     x_samples = samples[:, :self.ndim_x]
-    y_samples = samples[:, :self.ndim_y]
+    y_samples = samples[:, self.ndim_x:]
 
     assert x_samples.shape == (n_samples, self.ndim_x)
     assert y_samples.shape == (n_samples, self.ndim_y)
@@ -206,37 +212,30 @@ class GaussianMixture(BaseConditionalDensitySimulation):
       covs[i] = c1 + c2
     return covs
 
-  def _simulate_rows_individually(self, X):
+  def _simulate_cond_rows_individually(self, X):
     W_x = self._W_x(X)
-    Y = np.zeros(shape=(X.shape[0], self.ndim_y))
+    y_samples = np.zeros(shape=(X.shape[0], self.ndim_y))
+
     for i in range(X.shape[0]):
       discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), W_x[i, :]))
-      idx = discrete_dist.rvs()
-      Y[i, :] = self.gaussians_y[idx].rvs()
-    assert X.shape[0] == Y.shape[0]
-    return X, Y
+      idx = discrete_dist.rvs(random_state=self.random_state)
+      y_samples[i, :] = self.gaussians_y[idx].rvs(random_state=self.random_state)
 
-  def _draw_from_discrete(self, w_x):
-    discrete_dist = stats.rv_discrete(values=(range(self.n_kernels), w_x))
-    idx = discrete_dist.rvs()
-    return self.gaussians_y[idx].rvs()
+    return X, y_samples
 
-  def _simulate_rows_same(self, X):
+  def _simulate_cond_rows_same(self, X):
     n_samples = X.shape[0]
     weights = self._W_x(X)[0]
-    scales = np.diagonal(self.covariances_y, axis1=1, axis2=2)
-    y_sample = self._sample(weights, self.means_y, scales, n_samples)
-    return X, y_sample
 
-  def _sample(self, weights, locs, scales, n_samples):
-    gmm = GMM(n_components=self.n_kernels, covariance_type='diag', max_iter=5, tol=1e-1, random_state=self.random_state)
-    gmm.fit(np.random.normal(size=(100,self.ndim_y)))
-    gmm.converged_ = True
-    gmm.weights_ = weights
-    gmm.means_ = locs
-    gmm.covariances_ = scales
-    samples, _ = gmm.sample(n_samples)
-    return samples
+    n_samples_comp = self.random_state.multinomial(n_samples, weights)
+
+    y_samples = np.vstack([gaussian.rvs(size=n, random_state=self.random_state)
+                         for gaussian, n in zip(self.gaussians_y, n_samples_comp)])
+
+    # shuffle rows to make data i.i.d.
+    self.random_state.shuffle(y_samples)
+
+    return X, y_samples
 
 
   def _sample_weights(self, n_weights):
