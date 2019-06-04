@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from numbers import Number
+import types
 
 class GoodnessOfFitSingleResult:
-  def __init__(self, x_cond, estimator_params, probabilistic_model_params):
+  def __init__(self, estimator_params, probabilistic_model_params, x_cond=None):
     self.cond_values = x_cond
 
     self.time_to_fit = None
@@ -26,7 +26,7 @@ class GoodnessOfFitSingleResult:
     self.n_observations = None
 
     self.x_cond = x_cond
-    self.n_x_cond = len(x_cond)
+    self.n_x_cond = len(x_cond) if x_cond is not None else None
     self.result_df = None
     self.random_seed = probabilistic_model_params['random_seed']
 
@@ -45,9 +45,9 @@ class GoodnessOfFitSingleResult:
           value = self.probabilistic_model_params[key]
         else:
            value = None
-        if isinstance(value, list) and len(value) > 1:
+        if (isinstance(value, list) or isinstance(value, tuple)) and len(value) > 1:
           value = str(value)
-        if isinstance(value, tuple) and len(value) > 1:
+        if callable(value):
           value = str(value)
         report_dict[key] = value
       return report_dict

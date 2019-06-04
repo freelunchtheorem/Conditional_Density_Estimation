@@ -48,7 +48,7 @@ class GoodnessOfFitResults:
       file_handle_results_csv.close()
 
   def plot_metric(self, plot_dicts, metric='hellinger_distance', keys_of_interest=None,
-                  figsize=(20,8), layout=None, fig=None, color=None):
+                  figsize=(20,8), layout=None, fig=None, color=None, log_scale_x=True, log_scale_y=True):
     """
     Generates a plot for a metric with axis x representing the n_observations and y representing the metric.
     Args:
@@ -116,8 +116,8 @@ class GoodnessOfFitResults:
         axarr[i].plot(n_obs, metric_values_mean, color=c, label=label)
         axarr[i].fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
 
-      axarr[i].set_xscale('log')
-      axarr[i].set_yscale('log')
+      if log_scale_x: axarr[i].set_xscale('log')
+      if log_scale_y: axarr[i].set_yscale('log')
       axarr[i].set_xlabel('n_observations')
       axarr[i].set_ylabel(metric)
       axarr[i].set_title(ax_title)

@@ -7,13 +7,12 @@ import traceback
 """ do not remove, imports required for globals() call """
 from cde.density_estimator import LSConditionalDensityEstimation, KernelMixtureNetwork, MixtureDensityNetwork, ConditionalKernelDensityEstimation, NeighborKernelDensityEstimation, NormalizingFlowEstimator
 from cde.density_simulation import EconDensity, GaussianMixture, ArmaJump, JumpDiffusionModel, SkewNormal, LinearGaussian, LinearStudentT
-from cde.model_fitting.GoodnessOfFit import GoodnessOfFit, sample_x_cond
+from cde.model_fitting.GoodnessOfFitLogProb import GoodnessOfFitLogProb
 from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
+from cde.model_fitting.ConfigRunner import load_dumped_estimators, _hash_task_dict, _create_configurations, _add_seeds_to_sim_params
 from cde.utils import io
 from cde.utils.async_executor import AsyncExecutor
 from ml_logger import logger
-import hashlib
-import base64
 import tensorflow as tf
 import os
 import config
@@ -22,7 +21,7 @@ import time
 EXP_CONFIG_FILE = 'exp_configs.pkl'
 RESULTS_FILE = 'results.pkl'
 
-class ConfigRunner():
+class ConfigRunnerLogProb():
   """
   Args:
     exp_prefix: (str) prefix of experiment configuration
@@ -56,15 +55,13 @@ class ConfigRunner():
 
     keys_of_interest: list of strings, each representing a column in the dataframe / csv export
 
-    n_mc_samples: number of samples used for monte carlo sampling (a warning is printed if n_mc_samples is less than 10**5
-
-    n_x_cond: (int) number of x conditionals to be sampled
+    n_test_samples: number of samples used to compute test score
 
     n_seeds: (int) number of different seeds for sampling the data
   """
 
-  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_mc_samples=10 ** 7,
-               n_x_cond=5, n_seeds=5, use_gpu=True, tail_measures=True):
+  def __init__(self, exp_prefix, est_params, sim_params, observations, keys_of_interest, n_test_samples=10 ** 5,
+               n_seeds=5, use_gpu=True):
 
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
@@ -73,12 +70,10 @@ class ConfigRunner():
     sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
     self.observations = observations
-    self.n_mc_samples = n_mc_samples
-    self.n_x_cond = n_x_cond
+    self.n_test_samples = n_test_samples
     self.keys_of_interest = keys_of_interest
     self.exp_prefix = exp_prefix
     self.use_gpu = use_gpu
-    self.tail_measures = tail_measures
 
     logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix, color='green')
 
@@ -103,7 +98,6 @@ class ConfigRunner():
       self.gof_single_res_collection = {}
 
     self.gof_results = GoodnessOfFitResults(self.gof_single_res_collection)
-
 
   def _generate_configuration_variants(self, est_params, sim_params):
     """
@@ -138,11 +132,12 @@ class ConfigRunner():
         n_obs_max = max(self.observations)
         X_max, Y_max = sim.simulate(n_obs_max)
         X_max, Y_max = sim._handle_input_dimensionality(X_max, Y_max)
+        X_test, Y_test = sim.simulate(self.n_test_samples)
 
         for obs in self.observations:
           X, Y = X_max[:obs], Y_max[:obs]
-          x_cond = sample_x_cond(X=X_max, n_x_cond=self.n_x_cond)
-          configured_sims.append(dict({"simulator_name": simulator_name, 'simulator_config': config, "n_obs": obs, "X": X, "Y": Y, "x_cond": x_cond}))
+          configured_sims.append(dict({"simulator_name": simulator_name, 'simulator_config': config, "n_obs": obs,
+                                       "X": X, "Y": Y, "X_test": X_test, "Y_test": Y_test}))
 
     # merge simulator variants together with estimator variants
     task_number = 0
@@ -154,15 +149,12 @@ class ConfigRunner():
           simulator_dict['estimator_name'] = estimator_name
           simulator_dict['estimator_config'] = config
           simulator_dict['task_name'] = '%s_task_%i'%(estimator_name, task_number)
-
-          simulator_dict["n_mc_samples"] = self.n_mc_samples
           configs.append(simulator_dict)
           task_number += 1
 
     return configs
 
-  def run_configurations(self, estimator_filter=None,
-                         limit=None, dump_models=False, multiprocessing=True, n_workers=None):
+  def run_configurations(self, dump_models=False, multiprocessing=True, n_workers=None):
     """
     Runs the given configurations, i.e.
     1) fits the estimator to the simulation and
@@ -187,16 +179,10 @@ class ConfigRunner():
 
     """
     self.dump_models = dump_models
-    ''' Asserts, Setup and applying Filters/Limits  '''
-    assert len(self.configs) > 0
-    self._apply_filters(estimator_filter)
 
-    if limit is not None:
-      assert limit > 0, "limit must not be negative"
-      logger.log("Limit enabled. Running only the first {} configurations".format(limit))
-      tasks = self.configs[:limit]
-    else:
-      tasks = self.configs
+    ''' Asserts '''
+    assert len(self.configs) > 0
+    tasks = self.configs
 
     ''' Run the configurations '''
 
@@ -253,9 +239,8 @@ class ConfigRunner():
           sess.run(tf.global_variables_initializer())
 
           ''' train the model '''
-          gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
-                              n_observations=task['n_obs'], n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'],
-                              task_name = task['task_name'], tail_measures=self.tail_measures)
+          gof = GoodnessOfFitLogProb(estimator=estimator, probabilistic_model=simulator, X_train=task['X'], Y_train=task['Y'],
+                                     X_test=task['X_test'], Y_test=task['Y_test'], task_name = task['task_name'])
 
           t = time.time()
           gof.fit_estimator(print_fit_result=True)
@@ -325,14 +310,6 @@ class ConfigRunner():
       print(str(e))
       traceback.print_exc()
 
-  def _apply_filters(self, estimator_filter):
-
-    if estimator_filter is not None:
-      self.configs = [tupl for tupl in self.configs if estimator_filter in tupl["estimator"].__class__.__name__]
-
-    if len(self.configs) == 0:
-      print("no tasks to execute after filtering for the estimator")
-      return None
 
   def _setup_file_names(self):
     if self.prefix_filename is not None:
@@ -358,89 +335,4 @@ class ConfigRunner():
 
 
 
-def _add_seeds_to_sim_params(n_seeds, sim_params):
-  seeds = [20 + i for i in range(n_seeds)]
-  for sim_instance in sim_params.keys():
-    sim_params[sim_instance]['random_seed'] = seeds
-  return sim_params
 
-
-def _create_configurations(params_dict, verbose=False):
-  confs = {}
-  for conf_instance, conf_dict in params_dict.items():
-    if verbose: print(conf_instance)
-    conf_product = list(itertools.product(*list(conf_dict.values())))
-    conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
-    confs[conf_instance] = conf_product_dicts
-  return confs
-
-
-def _hash_task_dict(task_dict):
-  assert {'simulator_name', 'simulator_config', 'estimator_name', 'estimator_config'} < set(task_dict.keys())
-  task_dict = copy.deepcopy(task_dict)
-
-  tpls = _make_hashable(task_dict)
-  return make_hash_sha256(tpls)
-
-def _make_hashable(o):
-    if isinstance(o, (tuple, list)):
-        return tuple((_make_hashable(e) for e in o))
-    if isinstance(o, dict):
-        return tuple(sorted((k, _make_hashable(v)) for k, v in o.items()))
-
-    if isinstance(o, (set, frozenset)):
-        return tuple(sorted(_make_hashable(e) for e in o))
-    return o
-
-def make_hash_sha256(o):
-    hasher = hashlib.sha256()
-    hasher.update(repr(_make_hashable(o)).encode())
-    return base64.b64encode(hasher.digest()).decode()
-
-
-# todo: might find a better place for this function
-def load_dumped_estimators(gof_result, task_id=None):
-  """
-  Loads the estimators that have been dumped during the configuration runs into a GoodnessOfFitResults object at the corresponding single
-  result entry. Assumes an ml-logger instance has been set-up and configured correctly.
-    Args:
-        gof_result: a GoodnessOfFitResults object containing single result entries.
-        task_id: can either be None in which case all estimators are loaded, a list or a scalar value that indicates the task number for
-        which the estimator is/are loaded.
-
-      Returns:
-         returns the modified gof_result including the loaded estimators
-  """
-  assert logger
-  assert task_id is None or isinstance(task_id, list) or np.isscalar(task_id)
-
-
-  if np.isscalar(task_id):
-    task_id = [task_id]
-
-  if task_id is not None:
-    """ assumes that task_names end with a number separated by '_', e.g. MixtureDensityNetwork_task_128 """
-    results_to_use = [(key, singl_res) for task in task_id for key, singl_res in gof_result.single_results_dict.items()
-                      if singl_res.task_name.rsplit('_', 1)[1] == str(task)]
-  else:
-    results_to_use = list(gof_result.single_results_dict.items())
-
-
-  for key, single_result in results_to_use:
-    with tf.Session(graph=tf.Graph()):
-      single_result.estimator = load_dumped_estimator(single_result)
-      gof_result.single_results_dict[key] = single_result
-
-  return gof_result
-
-
-def load_dumped_estimator(dict_entry):
-  assert len(dict_entry) == 1
-  if type(dict_entry) == dict and len(dict_entry) == 1:
-    dict_entry = list(dict_entry.values())[0]
-
-  with tf.Session(graph=tf.Graph()) as sess:
-    dict_entry.estimator = logger.load_pkl("model_dumps/" + dict_entry.task_name + ".pkl")
-    print("loaded estimator for entry " + dict_entry.task_name)
-
-  return dict_entry
