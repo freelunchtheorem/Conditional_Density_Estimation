@@ -1,14 +1,11 @@
 import numpy as np
-import sklearn
 import tensorflow as tf
-import edward as ed
 from edward.models import Categorical, Mixture, MultivariateNormalDiag
 from cde.utils.tf_utils.network import MLP
 import cde.utils.tf_utils.layers as L
 from cde.utils.tf_utils.layers_powered import LayersPowered
 from cde.utils.serializable import Serializable
 
-#import matplotlib.pyplot as plt
 
 from .BaseNNMixtureEstimator import BaseNNMixtureEstimator
 
@@ -31,6 +28,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
                                    the noise std as float - if used, the x_noise_std and y_noise_std have no effect
         entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
         weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
+        l2_reg: (float) the amount of l2 penalty on neural network weights
+        l1_reg: (float) the amount of l1 penalty on neural network weights
         weight_normalization: (boolean) whether weight normalization shall be used
         data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
         dropout: (float) the probability of switching off nodes during training
@@ -40,7 +39,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
 
   def __init__(self, name, ndim_x, ndim_y, n_centers=10, hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh,
                n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None, entropy_reg_coef=0.0,
-               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
+               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
+               random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -66,6 +66,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
     self.entropy_reg_coef = entropy_reg_coef
     self.adaptive_noise_fn = adaptive_noise_fn
     self.weight_decay = weight_decay
+    self.l2_reg = l2_reg
+    self.l1_reg = l1_reg
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
     self.dropout = dropout
@@ -156,11 +158,9 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
                      in zip(tf.unstack(self.locs, axis=1), tf.unstack( self.scales, axis=1))]
       self.mixture = mixture = Mixture(cat=cat, components=components, value=tf.zeros_like(self.y_input))
 
-      # softmax entropy penalty -> regularization
-      self.softmax_entropy = tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1)
-      self.entropy_reg_coef_ph = tf.placeholder_with_default(float(self.entropy_reg_coef), name='entropy_reg_coef', shape=())
-      self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
-      tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+      # regularization
+      self._add_softmax_entropy_regularization()
+      self._add_l1_l2_regularization(core_network)
 
       # tensor to store samples
       self.samples = mixture.sample() #TODO either use it or remove it

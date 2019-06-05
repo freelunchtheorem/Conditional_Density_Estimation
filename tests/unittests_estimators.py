@@ -334,7 +334,6 @@ class TestSerializationDensityEstimators(unittest.TestCase):
     diff = np.sum(np.abs(pdf_after - pdf_before))
     self.assertAlmostEqual(diff, 0, places=2)
 
-
 class TestRegularization(unittest.TestCase):
 
   def get_samples(self, std=1.0, mu=2, n_samples=2000):
@@ -548,9 +547,9 @@ class TestRegularization(unittest.TestCase):
     no_decay = MixtureDensityNetwork("mdn_no_weight_decay", 1, 1, hidden_sizes=(32, 32), n_centers=10,
                                      n_training_epochs=2000, weight_decay=0.0, weight_normalization=False)
     decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10,  hidden_sizes=(32, 32),
-                                  n_training_epochs=2000, weight_decay=1e-4, weight_normalization=False)
+                                  n_training_epochs=2000, weight_decay=1e-3, weight_normalization=False)
     full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, hidden_sizes=(32, 32),
-                                       n_training_epochs=2000, weight_decay=0.9, weight_normalization=False)
+                                       n_training_epochs=2000, weight_decay=0.2, weight_normalization=False)
     no_decay.fit(X, Y)
     decay.fit(X, Y)
     full_decay.fit(X, Y)
@@ -565,6 +564,84 @@ class TestRegularization(unittest.TestCase):
     self.assertLessEqual(l1_err_dec, 0.1)
     self.assertLessEqual(l1_err_dec, l1_err_no_dec)
     self.assertLessEqual(l1_err_dec, l1_err_full_dec)
+
+  def test_MDN_l1_l2_regularization(self):
+    mu = 5
+    std = 5
+    X, Y = self.get_samples(mu=mu, std=std, n_samples=500)
+
+    mdn_no_reg = MixtureDensityNetwork("mdn_no_reg", 1, 1, hidden_sizes=(32, 32), n_centers=10,
+                                     n_training_epochs=1000, l2_reg=0.0, weight_normalization=False)
+    mdn_reg_l2 = MixtureDensityNetwork("mdn_reg_l2", 1, 1, n_centers=10, hidden_sizes=(32, 32),
+                                  n_training_epochs=1000, l2_reg=1.0, weight_normalization=False)
+    mdn_reg_l1 = MixtureDensityNetwork("mdn_reg_l1", 1, 1, n_centers=10, hidden_sizes=(32, 32),
+                                       n_training_epochs=1000, l1_reg=1.0, weight_normalization=False)
+    mdn_no_reg.fit(X, Y)
+    mdn_reg_l2.fit(X, Y)
+    mdn_reg_l1.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    err_no_reg = np.mean(np.abs(mdn_no_reg.pdf(x, y) - p_true))
+    err_reg_l2 = np.mean(np.abs(mdn_reg_l2.pdf(x, y) - p_true))
+    err_reg_l1 = np.mean(np.abs(mdn_reg_l1.pdf(x, y) - p_true))
+
+    self.assertLessEqual(err_reg_l2, err_no_reg)
+    self.assertLessEqual(err_reg_l1, err_no_reg)
+
+  def test_KMN_l1_l2_regularization(self):
+    mu = 5
+    std = 5
+    X, Y = self.get_samples(mu=mu, std=std, n_samples=500)
+
+    kmn_no_reg = KernelMixtureNetwork("kmn_no_reg", 1, 1, hidden_sizes=(32, 32), n_centers=10,
+                                     n_training_epochs=1000, l2_reg=0.0, weight_normalization=False)
+    kmn_reg_l2 = KernelMixtureNetwork("kmn_reg_l2", 1, 1, n_centers=10, hidden_sizes=(32, 32),
+                                  n_training_epochs=1000, l2_reg=1.0, weight_normalization=False)
+    kmn_reg_l1 = KernelMixtureNetwork("kmn_reg_l1", 1, 1, n_centers=10, hidden_sizes=(32, 32),
+                                       n_training_epochs=1000, l1_reg=1.0, weight_normalization=False)
+    kmn_no_reg.fit(X, Y)
+    kmn_reg_l2.fit(X, Y)
+    kmn_reg_l1.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    err_no_reg = np.mean(np.abs(kmn_no_reg.pdf(x, y) - p_true))
+    err_reg_l2 = np.mean(np.abs(kmn_reg_l2.pdf(x, y) - p_true))
+    err_reg_l1 = np.mean(np.abs(kmn_reg_l1.pdf(x, y) - p_true))
+
+    self.assertLessEqual(err_reg_l2, err_no_reg)
+    self.assertLessEqual(err_reg_l1, err_no_reg)
+
+  def test_NF_l1_l2_regularization(self):
+    mu = 5
+    std = 5
+    X, Y = self.get_samples(mu=mu, std=std, n_samples=500)
+
+    flows = ('affine', 'radial', 'radial', 'radial', 'radial')
+    nf_no_reg = NormalizingFlowEstimator("nf_no_reg", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+                                         weight_normalization=False, l1_reg=0.0, l2_reg=0.0)
+    nf_reg_l2 = NormalizingFlowEstimator("nf_reg_l2", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+                                         weight_normalization=False, l1_reg=0.0, l2_reg=10.0)
+    nf_reg_l1 = NormalizingFlowEstimator("nf_reg_l1", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+                                         weight_normalization=False, l1_reg=10.0, l2_reg=0.0)
+    nf_no_reg.fit(X, Y)
+    nf_reg_l2.fit(X, Y)
+    nf_reg_l1.fit(X, Y)
+
+    y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
+    x = np.asarray([mu for i in range(y.shape[0])])
+    p_true = norm.pdf(y, loc=mu, scale=std)
+    err_no_reg = np.mean(np.abs(nf_no_reg.pdf(x, y) - p_true))
+    err_reg_l2 = np.mean(np.abs(nf_reg_l2.pdf(x, y) - p_true))
+    err_reg_l1 = np.mean(np.abs(nf_reg_l1.pdf(x, y) - p_true))
+
+    print(err_no_reg, err_reg_l2, err_reg_l1)
+
+    self.assertLessEqual(err_reg_l2, err_no_reg)
+    self.assertLessEqual(err_reg_l1, err_no_reg)
 
   def test_KMN_dropout(self):
     mu = -2.0

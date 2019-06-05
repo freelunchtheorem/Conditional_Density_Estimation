@@ -239,6 +239,14 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     assert y_sample.shape == (X.shape[0], self.ndim_y)
     return X, y_sample
 
+  def _add_softmax_entropy_regularization(self):
+      # softmax entropy penalty -> regularization
+      self.softmax_entropy = tf.reduce_mean(tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1))
+      self.entropy_reg_coef_ph = tf.placeholder_with_default(float(self.entropy_reg_coef), name='entropy_reg_coef',
+                                                             shape=())
+      self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
+      tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+
   def _sample_rows_individually(self, X):
     weights, locs, scales = self._get_mixture_components(X)
 

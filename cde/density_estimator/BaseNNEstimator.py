@@ -3,6 +3,7 @@ import tensorflow as tf
 import sklearn
 import os
 import itertools
+import warnings
 from multiprocessing import Manager
 
 from cde.utils.tf_utils.layers_powered import LayersPowered
@@ -258,6 +259,23 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         self.dropout_ph = tf.placeholder_with_default(0., shape=())
 
         return layer_in_x, layer_in_y
+
+    def _add_l1_l2_regularization(self, core_network):
+        if self.l1_reg > 0 or self.l2_reg > 0:
+
+            # weight norm should not be combined with l1 / l2 regularization
+            if self.weight_normalization is True:
+                warnings.WarningMessage("l1 / l2 regularization has no effect when weigh normalization is used")
+
+            weight_vector = tf.concat(
+                [tf.reshape(param, (-1,)) for param in core_network.get_params_internal() if '/W' in param.name],
+                axis=0)
+            if self.l2_reg > 0:
+                self.l2_reg_loss = self.l2_reg * tf.reduce_sum(weight_vector ** 2)
+                tf.losses.add_loss(self.l2_reg_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+            if self.l1_reg > 0:
+                self.l1_reg_loss = self.l1_reg * tf.reduce_sum(tf.abs(weight_vector))
+                tf.losses.add_loss(self.l1_reg_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
 
     def __getstate__(self):
         state = LayersPowered.__getstate__(self)

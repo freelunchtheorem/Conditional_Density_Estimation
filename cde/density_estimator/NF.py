@@ -36,7 +36,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
     def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
                  hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,
-                 weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0,
+                 weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
                  random_seed=None):
         Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
@@ -66,6 +66,10 @@ class NormalizingFlowEstimator(BaseNNEstimator):
 
         # decoupled weight decay
         self.weight_decay = weight_decay
+
+        # l1 / l2 regularization
+        self.l2_reg = l2_reg
+        self.l1_reg = l1_reg
 
         # normalizing the network weights
         self.weight_normalization = weight_normalization
@@ -217,6 +221,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                 self.pdf_ = target_dist.prob(self.y_input)
                 self.log_pdf_ = target_dist.log_prob(self.y_input)
 
+
             if self.data_normalization:
                 self.pdf_ = self.pdf_ / tf.reduce_prod(self.std_y_sym)
                 self.log_pdf_ = self.log_pdf_ - tf.reduce_sum(tf.log(self.std_y_sym))
@@ -224,8 +229,12 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                 if self.ndim_y == 1:
                     self.cdf_ = self.cdf_ / tf.reduce_prod(self.std_y_sym)
 
+            # regularization
+            self._add_l1_l2_regularization(core_network)
+
             self.loss = -tf.reduce_prod(self.pdf_)
-            self.log_loss = -tf.reduce_sum(self.log_pdf_)
+            self.reg_loss = tf.reduce_sum(tf.losses.get_regularization_losses(scope=self.name)) #r egularization losses
+            self.log_loss = -tf.reduce_sum(self.log_pdf_) + self.reg_loss
 
             optimizer = AdamWOptimizer(self.weight_decay) if self.weight_decay else tf.train.AdamOptimizer()
 

@@ -45,6 +45,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
                            the noise std as float - if used, the x_noise_std and y_noise_std have no effect
           entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
           weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
+          l2_reg: (float) the amount of l2 penalty on neural network weights
+          l1_reg: (float) the amount of l1 penalty on neural network weights
           weight_normalization: boolean specifying whether weight normalization shall be used
           data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
           dropout: (float) the probability of switching off nodes during training
@@ -54,7 +56,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
   def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=50, keep_edges=True,
                init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
                n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,  entropy_reg_coef=0.0,
-               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, random_seed=None):
+               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
+               random_seed=None):
 
     Serializable.quick_init(self, locals())
     self._check_uniqueness_of_scope(name)
@@ -84,6 +87,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.adaptive_noise_fn = adaptive_noise_fn
     self.entropy_reg_coef = entropy_reg_coef
     self.weight_decay = weight_decay
+    self.l2_reg = l2_reg
+    self.l1_reg = l1_reg
     self.weight_normalization = weight_normalization
     self.data_normalization = data_normalization
     self.dropout = dropout
@@ -198,11 +203,9 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
       self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in self.locs_array for scale in scales_array]
       self.mixture = mixture = Mixture(cat=cat, components=components)
 
-      # softmax entropy penalty -> regularization
-      self.softmax_entropy = tf.reduce_sum(- tf.multiply(tf.log(self.weights), self.weights), axis=1)
-      self.entropy_reg_coef_ph = tf.placeholder_with_default(float(self.entropy_reg_coef), name='entropy_reg_coef', shape=())
-      self.softmax_entrop_loss = self.entropy_reg_coef_ph * self.softmax_entropy
-      tf.losses.add_loss(self.softmax_entrop_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
+      # regularization
+      self._add_softmax_entropy_regularization()
+      self._add_l1_l2_regularization(core_network)
 
       # tensor to compute probabilities
       if self.data_normalization:
