@@ -62,7 +62,7 @@ def get_full_path(output_dir, suffix=".pickle", file_name=None):
   return full_path
 
 
-def load_time_series_csv(file_path, delimiter=',', time_format=None):
+def load_time_series_csv(file_path, delimiter=',', time_format=None, time_columns=None):
   """ Loads a .csv time series file (e.g. EuroStoxx50) as a pandas dataframe and applies some basic formatting.
   The basic formatting includes:
   a) if no time column is available in the .csv, calling this function sorts the data according to the first column
@@ -74,6 +74,7 @@ def load_time_series_csv(file_path, delimiter=',', time_format=None):
     file_path: an absolute or relative path to the .csv file as str
     delimiter: the column separator used in the .csv file
     time_format: optional but if set (must be str), the function tries to re-arrange the date column into a deviating format
+    time_columns: optional list of strings indicating the names of the time columns within the csv file
 
   Returns:
     a pandas dataframe containing the information from the .csv file. If a time or date colum is available, the df contains the date as
@@ -88,7 +89,10 @@ def load_time_series_csv(file_path, delimiter=',', time_format=None):
     POSSIBLE_TIME_FORMATS = [time_format]
 
   columns = list(time_series.columns.values)
-  TIME_COLUMNS = ['time', 'date']
+  if time_columns is None:
+    TIME_COLUMNS = ['time', 'date']
+  else:
+    TIME_COLUMNS = time_columns
   #time_col = [s for s in columns if "time" in s]
   time_col = [s for s in columns for t in TIME_COLUMNS if t in s]
 
