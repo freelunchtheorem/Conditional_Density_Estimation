@@ -70,11 +70,7 @@ class TestGaussianMixture(unittest.TestCase):
     gmm = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=2, ndim_y=2)
     x_cond = np.array([[1.0, 1.0]])
     cov = gmm.covariance(x_cond)
-
     cov_mc = covariance_pdf(gmm, x_cond)
-
-    print(cov[0])
-    print(cov_mc[0])
     self.assertLessEqual(np.sum((cov_mc - cov) ** 2), 0.1)
 
   def test_sampling(self):
@@ -165,6 +161,18 @@ class TestGaussianMixture(unittest.TestCase):
 
     self.assertEqual(hash_x1, hash_x2)
     self.assertEqual(hash_y1, hash_y2)
+
+  def test_parameter_consistency(self):
+    gmm1 = GaussianMixture(n_kernels=2, random_seed=54, ndim_x=3, ndim_y=5)
+    gmm2 = GaussianMixture(n_kernels=2, random_seed=57, ndim_x=3, ndim_y=5)
+
+    X = np.random.normal(size=(30, 3))
+    Y = np.random.normal(size=(30, 5))
+
+    p1 = gmm1.pdf(X, Y)
+    p2 = gmm2.pdf(X, Y)
+
+    assert np.all(np.equal(p1, p2))
 
   def test_hash(self):
     from cde.model_fitting.ConfigRunner import make_hash_sha256
