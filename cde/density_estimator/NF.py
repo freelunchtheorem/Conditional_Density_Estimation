@@ -20,6 +20,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             flows_type: (tuple of strings) The chain of individual flows that together make up the full flow. The
                         individual flows can be any of: *affine*, *planar*, *radial*, *identity*. They will be applied in order
                         going from the base distribution to the transformed distribution.
+            n_flows: (int) number of radial flows - if flows_type is set, this parameter is ignored
             hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network
             hidden_nonlinearity: (tf function) nonlinearity of the hidden layers
             n_training_epochs: (int) Number of epochs for training
@@ -34,13 +35,13 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             random_seed: (optional) seed (int) of the random number generators used
     """
 
-    def __init__(self, name, ndim_x, ndim_y, flows_type=('affine', 'radial', 'radial', 'radial'), hidden_sizes=(16, 16),
+    def __init__(self, name, ndim_x, ndim_y, flows_type=None, n_flows=10, hidden_sizes=(16, 16),
                  hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,
                  weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
                  random_seed=None):
         Serializable.quick_init(self, locals())
         self._check_uniqueness_of_scope(name)
-        assert all([f in FLOWS.keys() for f in flows_type])
+
 
         self.name = name
         self.ndim_x = ndim_x
@@ -51,6 +52,9 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         tf.set_random_seed(random_seed)
 
         # charateristics of the flows to be used
+        if flows_type is None:
+            flows_type = ['affine'] + ['radial' for _ in range(n_flows)]
+        assert all([f in FLOWS.keys() for f in flows_type])
         self.flows_type = flows_type
 
         # specification of the network
@@ -70,6 +74,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         # l1 / l2 regularization
         self.l2_reg = l2_reg
         self.l1_reg = l1_reg
+
 
         # normalizing the network weights
         self.weight_normalization = weight_normalization

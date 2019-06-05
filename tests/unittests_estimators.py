@@ -548,22 +548,17 @@ class TestRegularization(unittest.TestCase):
                                      n_training_epochs=2000, weight_decay=0.0, weight_normalization=False)
     decay = MixtureDensityNetwork("mdn_weight_decay", 1, 1, n_centers=10,  hidden_sizes=(32, 32),
                                   n_training_epochs=2000, weight_decay=1e-3, weight_normalization=False)
-    full_decay = MixtureDensityNetwork("mdn_full_weight_decay", 1, 1, n_centers=10, hidden_sizes=(32, 32),
-                                       n_training_epochs=2000, weight_decay=0.2, weight_normalization=False)
     no_decay.fit(X, Y)
     decay.fit(X, Y)
-    full_decay.fit(X, Y)
 
     y = np.arange(mu - 3 * std, mu + 3 * std, 6 * std / 20)
     x = np.asarray([mu for i in range(y.shape[0])])
     p_true = norm.pdf(y, loc=mu, scale=std)
     l1_err_no_dec = np.mean(np.abs(no_decay.pdf(x, y) - p_true))
     l1_err_dec = np.mean(np.abs(decay.pdf(x, y) - p_true))
-    l1_err_full_dec = np.mean(np.abs(full_decay.pdf(x, y) - p_true))
 
     self.assertLessEqual(l1_err_dec, 0.1)
     self.assertLessEqual(l1_err_dec, l1_err_no_dec)
-    self.assertLessEqual(l1_err_dec, l1_err_full_dec)
 
   def test_MDN_l1_l2_regularization(self):
     mu = 5
@@ -620,12 +615,11 @@ class TestRegularization(unittest.TestCase):
     std = 5
     X, Y = self.get_samples(mu=mu, std=std, n_samples=500)
 
-    flows = ('affine', 'radial', 'radial', 'radial', 'radial')
-    nf_no_reg = NormalizingFlowEstimator("nf_no_reg", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+    nf_no_reg = NormalizingFlowEstimator("nf_no_reg", 1, 1, hidden_sizes=(32, 32), n_flows=10,
                                          weight_normalization=False, l1_reg=0.0, l2_reg=0.0)
-    nf_reg_l2 = NormalizingFlowEstimator("nf_reg_l2", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+    nf_reg_l2 = NormalizingFlowEstimator("nf_reg_l2", 1, 1, hidden_sizes=(32, 32), n_flows=10,
                                          weight_normalization=False, l1_reg=0.0, l2_reg=10.0)
-    nf_reg_l1 = NormalizingFlowEstimator("nf_reg_l1", 1, 1, hidden_sizes=(32, 32), flows_type=flows,
+    nf_reg_l1 = NormalizingFlowEstimator("nf_reg_l1", 1, 1, hidden_sizes=(32, 32), n_flows=10,
                                          weight_normalization=False, l1_reg=10.0, l2_reg=0.0)
     nf_no_reg.fit(X, Y)
     nf_reg_l2.fit(X, Y)
@@ -791,8 +785,6 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
     p_true = norm.pdf(y, loc=2, scale=1)
     self.assertEqual(model.get_params()["n_centers"], 10)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
-
-
 
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")
