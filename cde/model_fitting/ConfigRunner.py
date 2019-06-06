@@ -360,18 +360,21 @@ class ConfigRunner():
 
 def _add_seeds_to_sim_params(n_seeds, sim_params):
   seeds = [20 + i for i in range(n_seeds)]
-  for sim_instance in sim_params.keys():
-    sim_params[sim_instance]['random_seed'] = seeds
+  for sim_name, sim_param_dict in sim_params:
+    sim_param_dict['random_seed'] = seeds
   return sim_params
 
 
-def _create_configurations(params_dict, verbose=False):
+def _create_configurations(params_tuples, verbose=False):
   confs = {}
-  for conf_instance, conf_dict in params_dict.items():
+  for conf_instance, conf_dict in params_tuples:
     if verbose: print(conf_instance)
     conf_product = list(itertools.product(*list(conf_dict.values())))
     conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
-    confs[conf_instance] = conf_product_dicts
+    if conf_instance in confs.keys():
+      confs[conf_instance].extend(conf_product_dicts)
+    else:
+      confs[conf_instance] = conf_product_dicts
   return confs
 
 

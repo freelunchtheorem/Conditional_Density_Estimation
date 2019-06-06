@@ -66,6 +66,13 @@ class ConfigRunnerLogProb():
     assert est_params and exp_prefix and sim_params and keys_of_interest
     assert observations.all()
 
+    # convert to dicts to list of tuples
+    if isinstance(est_params, dict):
+      est_params = list(est_params.items())
+
+    if isinstance(sim_params, dict):
+      sim_params = list(sim_params.items())
+
     # every simulator configuration will be run multiple times with different randomness seeds
     sim_params = _add_seeds_to_sim_params(n_seeds, sim_params)
 
