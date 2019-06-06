@@ -13,33 +13,42 @@ RESULTS_FILE = 'results.pkl'
 
 def question6():
 
-    class Rule_of_thumb1:
+    class Rule_of_thumb:
+
+        def __init__(self, scale_factor):
+            self.scale_factor = scale_factor
+
         def __call__(self, n, d):
-            return 0.5 * n**(-1 / (4+d))
+            return self.scale_factor * n**(-1 / (4+d))
 
         def __str__(self):
-            return "rule_of_thumb_1"
+            return "rule_of_thumb_%.2f" % self.scale_factor
 
-    class Rule_of_thumb2:
-        def __call__(self, n, d):
-            return n ** (-1 / (4 + d))
-
-        def __str__(self):
-            return "rule_of_thumb_2"
 
     class Fixed_Rate:
+        def __init__(self, scale_factor):
+            self.scale_factor = scale_factor
+
         def __call__(self, n, d):
-            return 0.2
+            return self.scale_factor
 
         def __str__(self):
-            return "fixed_rate_0.2"
+            return "fixed_rate_%.2f" % self.scale_factor
 
     class Quadratic_Rate:
+        def __init__(self, scale_factor):
+            self.scale_factor = scale_factor
+
         def __call__(self, n, d):
-            return n**(-1 / (1+d))
+            return self.scale_factor * n**(-1 / (1+d))
 
         def __str__(self):
-            return "quadratic_rate"
+            return "quadratic_rate_%.2f" % self.scale_factor
+
+    adaptive_noise_functions = [Rule_of_thumb(1.0), Rule_of_thumb(0.7), Rule_of_thumb(0.5),
+                                Fixed_Rate(0.4), Fixed_Rate(0.2), Fixed_Rate(0.1),
+                                Quadratic_Rate(5.0), Quadratic_Rate(2.0), Quadratic_Rate(1.0)]
+
 
     estimator_params = {
         'MixtureDensityNetwork':
@@ -49,7 +58,7 @@ def question6():
                 'hidden_sizes': [(32, 32)],
                 'x_noise_std': [None],
                 'y_noise_std': [None],
-                'adaptive_noise_fn': [Rule_of_thumb1(), Rule_of_thumb2(), Fixed_Rate(), Quadratic_Rate()],
+                'adaptive_noise_fn': adaptive_noise_functions,
                 'dropout': [0.],
                 'weight_decay': [0.],
                 'weight_normalization': [True],
@@ -62,7 +71,7 @@ def question6():
                 'hidden_sizes': [(32, 32)],
                 'x_noise_std': [None],
                 'y_noise_std': [None],
-                'adaptive_noise_fn': [Rule_of_thumb1(), Rule_of_thumb2(), Fixed_Rate(), Quadratic_Rate()],
+                'adaptive_noise_fn': adaptive_noise_functions,
                 'dropout': [0.],
                 'weight_decay': [0.],
                 'weight_normalization': [True],
@@ -70,12 +79,12 @@ def question6():
             },
         'NormalizingFlowEstimator':
             {
-                'flows_type': [('affine', 'radial', 'radial', 'radial')],
+                'n_flows': [10],
                 'n_training_epochs': [1000],
                 'hidden_sizes': [(32, 32)],
                 'x_noise_std': [None],
                 'y_noise_std': [None],
-                'adaptive_noise_fn': [Rule_of_thumb1(), Rule_of_thumb2(), Fixed_Rate(), Quadratic_Rate()],
+                'adaptive_noise_fn': adaptive_noise_functions,
                 'dropout': [0.],
                 'weight_decay': [0.],
                 'weight_normalization': [True],
@@ -93,12 +102,6 @@ def question6():
             'ndim_x': [2],
             'ndim_y': [2],
             'means_std': [1.5]
-        },
-        'ArmaJump': {
-            'c': [0.1],
-            'arma_a1': [0.9],
-            'std': [0.05],
-            'jump_prob': [0.05],
         },
         'SkewNormal': {}
     }
