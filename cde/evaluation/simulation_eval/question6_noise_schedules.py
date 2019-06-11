@@ -45,9 +45,22 @@ def question6():
         def __str__(self):
             return "quadratic_rate_%.2f" % self.scale_factor
 
+    class Polynomial_Rate:
+        def __init__(self, scale_factor, order):
+            self.scale_factor = scale_factor
+            self.order = order
+
+        def __call__(self, n, d):
+            return self.scale_factor * n ** (-1 / (self.order + d))
+
+        def __str__(self):
+            return "polynomial_rate_%i_%.2f" % (self.order, self.scale_factor)
+
     adaptive_noise_functions = [Rule_of_thumb(1.0), Rule_of_thumb(0.7), Rule_of_thumb(0.5),
                                 Fixed_Rate(0.4), Fixed_Rate(0.2), Fixed_Rate(0.1),
-                                Quadratic_Rate(5.0), Quadratic_Rate(2.0), Quadratic_Rate(1.0)]
+                                Quadratic_Rate(5.0), Quadratic_Rate(2.0), Quadratic_Rate(1.0),
+                                Polynomial_Rate(1.0, 2), Polynomial_Rate(2.0, 2),
+                                Polynomial_Rate(1.0, 3), Polynomial_Rate(2.0, 3)]
 
 
     estimator_params = {

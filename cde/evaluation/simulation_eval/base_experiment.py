@@ -20,7 +20,7 @@ KEYS_OF_INTEREST_TAILS = ["VaR_sim", "VaR_est", "VaR_abs_diff", "CVaR_sim", "CVa
 KEYS_OF_INTEREST_LOGPROB = [
     'task_name', 'estimator', 'simulator', 'n_observations', 'center_sampling_method', 'x_noise_std',
     'y_noise_std', 'ndim_x', 'ndim_y', 'flows_type', 'n_centers', 'dropout', 'weight_normalization', 'weight_decay',
-    'random_seed', 'time_to_fit', 'score', 'adaptive_noise_fn'
+    'random_seed', 'time_to_fit', 'score', 'adaptive_noise_fn', 'l1_reg', 'l2_reg'
 ]
 
 
