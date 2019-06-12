@@ -63,7 +63,9 @@ for estimator in estimators:
     plt.suptitle('noise schedules %s'%estimator)
     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_rule_of_thumb_%s.png"%estimator))
 
-#
+
+# fixed noise intensity
+
 for estimator in estimators:
     plot_dict = dict(
         [
@@ -96,6 +98,7 @@ for estimator in estimators:
     plt.suptitle('noise schedules %s'%estimator)
     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_fixed_rate_%s.png"%estimator))
 
+# quadratic rate
 
 for estimator in estimators:
     plot_dict = dict(
@@ -129,26 +132,34 @@ for estimator in estimators:
     plt.suptitle('noise schedules %s'%estimator)
     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_quadratic_rate_%s.png"%estimator))
 
+
+# polynomial rate
+
 for estimator in estimators:
     plot_dict = dict(
         [
             (
                 simulator,
                 {
-                    "rule_of_thumb_5.0": {
+                    "polynomial_rate_2_1.00": {
                         "simulator": simulator,
                         "estimator": estimator,
-                        "adaptive_noise_fn": "rule_of_thumb_0.70"
+                        "adaptive_noise_fn": "polynomial_rate_2_1.00"
                     },
-                    "quadratic_rate_5.0": {
+                    "polynomial_rate_2_2.00": {
                         "simulator": simulator,
                         "estimator": estimator,
-                        "adaptive_noise_fn": "quadratic_rate_5.00"
+                        "adaptive_noise_fn": "polynomial_rate_2_2.00"
                     },
-                    "fixed_rate_0.2": {
+                    "polynomial_rate_3_1.00": {
                         "simulator": simulator,
                         "estimator": estimator,
-                        "adaptive_noise_fn": "fixed_rate_0.20"
+                        "adaptive_noise_fn": "polynomial_rate_3_1.00"
+                    },
+                    "polynomial_rate_3_2.00": {
+                        "simulator": simulator,
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "polynomial_rate_3_2.00"
                     },
                 },
             )
@@ -161,6 +172,103 @@ for estimator in estimators:
     fig.axes[0].set_ylim((-2.2, -1.93))
     fig.axes[2].set_ylim((1.3, 1.63))
     plt.suptitle('noise schedules %s'%estimator)
+    fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_polynomial_%s.png"%estimator))
+
+# comparison
+
+for estimator in estimators:
+    plot_dict = dict(
+        [
+            ("EconDensity",
+                {
+                "rule_of_thumb": {
+                    "simulator": "EconDensity",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_1.00"
+                },
+                "quadratic_rate": {
+                    "simulator": "EconDensity",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "quadratic_rate_5.00"
+                },
+                "fixed_rate": {
+                    "simulator": "EconDensity",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "fixed_rate_0.20"
+                },
+                "poly_rate": {
+                    "simulator": "EconDensity",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "polynomial_rate_2_2.00"
+                },
+                },
+            ),
+
+            (
+                "GaussianMixture",
+                    {
+                    "rule_of_thumb": {
+                        "simulator": "GaussianMixture",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "rule_of_thumb_0.50"
+                    },
+                    "quadratic_rate": {
+                        "simulator": "GaussianMixture",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "quadratic_rate_1.00"
+                    },
+                    "fixed_rate": {
+                        "simulator": "GaussianMixture",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "fixed_rate_0.20"
+                    },
+                    "poly_rate": {
+                        "simulator": "GaussianMixture",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "polynomial_rate_2_1.00"
+                    },
+                },
+            ),
+
+                    (
+                    "SkewNormal",
+                    {
+                    "rule_of_thumb": {
+                        "simulator": "SkewNormal",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_0.70"
+                    },
+                    "quadratic_rate": {
+                        "simulator": "SkewNormal",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "quadratic_rate_5.00"
+                    },
+                    "fixed_rate": {
+                        "simulator": "SkewNormal",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "fixed_rate_0.20"
+                    },
+                    "poly_rate": {
+                        "simulator": "SkewNormal",
+                        "estimator": estimator,
+                        "adaptive_noise_fn": "polynomial_rate_2_2.00" if estimator == "KernelMixtureNetwork" else
+                        (
+                            "polynomial_rate_3_1.00" if estimator == "MixtureDensityNetwork" else "polynomial_rate_2_1.00")
+                    },
+                    },
+                ),
+        ]
+    )
+    fig = gof_result.plot_metric(
+        plot_dict, metric="score", figsize=(12, 4.5), layout=(1, 3), log_scale_y=False
+    )
+    fig.axes[0].set_ylim((-2.2, -1.93))
+    fig.axes[2].set_ylim((1.3, 1.63))
+    plt.suptitle('noise schedules %s'%estimator)
     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.png"%estimator))
+    fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.pdf" % estimator))
+
+
+
 
 
