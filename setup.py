@@ -25,7 +25,8 @@ setup(name='cde',
         'scikit_learn',
         'statsmodels',
         'ml_logger<=99.99',
-        'progressbar2'
+        'progressbar2',
+        'xlrd'
       ],
       dependency_links=["https://github.com/jonasrothfuss/ml_logger/archive/2000b38177e3c4892e4fee74d769c1fc0a659424.zip#egg=ml_logger-99.99"],
       zip_safe=False)

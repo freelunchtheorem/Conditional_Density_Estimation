@@ -12,3 +12,4 @@ git+https://github.com/jonasrothfuss/ml_logger.git
 statsmodels
 sphinx_rtd_theme
 progressbar2
+xlrd
