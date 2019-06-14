@@ -83,8 +83,10 @@ class GoodnessOfFitResults:
         axarr = np.array([axarr])
     for i, (ax_title, graph_dicts) in enumerate(plot_dicts.items()):
 
-      n_curves_to_plot = len(graph_dicts)
-      color_iter = iter(cm.gist_rainbow(np.linspace(0, 1, n_curves_to_plot))) if color is None else copy.deepcopy(color)
+      if color is None:
+        color_iter = iter(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+      else:
+        color_iter = copy.deepcopy(color)
 
 
       # d_keys = list(graph_dicts.values()[0].keys())
@@ -114,7 +116,7 @@ class GoodnessOfFitResults:
         c = next(color_iter)
 
         axarr[i].plot(n_obs, metric_values_mean, color=c, label=label)
-        axarr[i].fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.2, color=c)
+        axarr[i].fill_between(n_obs, metric_values_mean - metric_values_std, metric_values_mean + metric_values_std, alpha=0.1, color=c)
 
       if log_scale_x: axarr[i].set_xscale('log')
       if log_scale_y: axarr[i].set_yscale('log')
