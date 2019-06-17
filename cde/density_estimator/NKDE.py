@@ -50,7 +50,7 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
 
     self.epsilon = epsilon
     self.bandwidth = bandwidth
-    self.parameter_selection = param_selection
+    self.param_selection = param_selection
     self.weighted = weighted
     self.n_jobs = n_jobs
 
@@ -153,9 +153,9 @@ class NeighborKernelDensityEstimation(BaseDensityEstimator):
     if isinstance(self.bandwidth, (int, float)):
       self.bandwidth = self.y_std * self.bandwidth
 
-    if self.parameter_selection == 'normal_reference':
+    if self.param_selection == 'normal_reference':
       self.bandwidth = self._normal_reference()
-    elif self.parameter_selection == 'cv_ml':
+    elif self.param_selection == 'cv_ml':
       self.bandwidth, self.epsilon = self._cv_ml()
 
   def _log_pdf(self, X, Y):

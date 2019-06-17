@@ -24,7 +24,15 @@ class GoodnessOfFitResults:
   def generate_results_dataframe(self, keys_of_interest):
     dfs = []
     for i, single_result in enumerate(self.single_results_dict.values()):
-      df = pd.DataFrame(single_result.report_dict(keys_of_interest=keys_of_interest))
+
+      result_dict = single_result.report_dict(keys_of_interest=keys_of_interest)
+
+      # ndarrays of size > 1 cannot be processed and are replaced by a None
+      for key, value in result_dict.items():
+        if isinstance(value, np.ndarray) and value.size > 1:
+          result_dict[key] = None
+
+      df = pd.DataFrame(result_dict)
       dfs.append(df)
 
     self.results_df = pd.concat(dfs, axis=0)
