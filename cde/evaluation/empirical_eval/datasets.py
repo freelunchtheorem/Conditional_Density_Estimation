@@ -45,14 +45,18 @@ class Dataset:
         assert X.shape[1] == self.ndim_x and Y.shape[1] == self.ndim_y
         return X, Y
 
-    def get_train_valid_split(self, valid_portion, shuffle=False, random_seed=None):
+    def get_train_valid_split(self, valid_portion, shuffle=False, random_state=None):
         X, Y = self.get_target_feature_split()
         n_instances = X.shape[0]
 
         idx_split = int((1.0 - valid_portion) * n_instances)
         idx = np.arange(n_instances)
+
         if shuffle:
-            np.random.RandomState(random_seed).shuffle(idx)
+            if random_state is not None:
+                random_state.shuffle(idx)
+            else:
+                np.random.shuffle(idx)
         idx_train, idx_valid = idx[:idx_split],  idx[idx_split:]
 
         X_train, Y_train = X[idx_train,:], Y[idx_train,:]
@@ -62,6 +66,10 @@ class Dataset:
 
     def _process_df(self, df):
         return df
+
+    def __str__(self):
+        return "%s (ndim_x = %i, ndim_y = %i)"%(str(self.__class__.__name__), self.ndim_x, self.ndim_y)
+
 
 class EuroStoxx50(Dataset):
 
