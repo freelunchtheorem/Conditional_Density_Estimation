@@ -120,3 +120,5 @@ data/
 
 # personal config files
 config_personal.py
+
+bash_scripts/

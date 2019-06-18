@@ -82,7 +82,11 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
             X_train, Y_train = X[train_indices], Y[train_indices]
             X_test, Y_test = X[test_indices], Y[test_indices]
 
-            with tf.Session():
+            config = tf.ConfigProto(device_count={"CPU": 1},
+                                    inter_op_parallelism_threads=1,
+                                    intra_op_parallelism_threads=1)
+
+            with tf.Session(config=config):
                 kwargs_dict = {**original_params, **param_list[param_idx]}
                 kwargs_dict['name'] = 'cv_%i_%i_%i_' % (param_idx, fold_idx, i_rand) + self.name
                 model = self.__class__(**kwargs_dict)
@@ -124,8 +128,6 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         assert len(avg_scores) == len(param_list)
 
         if verbose:
-            for (score, param) in zip(avg_scores, param_list):
-                print('Score: {} - Params: {}'.format(score, param))
             print("Completed grid search - Selected params: {}".format(selected_params))
             print("Refitting model with selected params")
 

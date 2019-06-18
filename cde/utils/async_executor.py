@@ -37,6 +37,20 @@ class AsyncExecutor:
     def _populate_pool(self):
         self._pool = [_start_process(_dummy_fun) for _ in range(self.num_workers)]
 
+class LoopExecutor:
+
+    def run(self, target, *args_iter, verbose=False):
+        tasks = list(zip(*args_iter))
+        n_tasks = len(tasks)
+
+        if verbose:
+          pbar = ProgressBar(max_value=n_tasks)
+
+        for i, task in enumerate(tasks):
+            target(*task)
+            if verbose:
+                pbar.update(i+1)
+
 
 def execute_batch_async_pdf(pdf_fun, X, Y, n_jobs=-1, batch_size=None):
     """
