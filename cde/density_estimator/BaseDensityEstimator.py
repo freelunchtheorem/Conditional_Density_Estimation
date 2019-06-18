@@ -65,7 +65,7 @@ class BaseDensityEstimator(ConditionalDensity):
     if param_grid is None:
       param_grid = self._param_grid()
 
-    cv_model = GridSearchCV(self, param_grid, fit_params=None, n_jobs=n_jobs, refit=True, cv=n_folds, verbose=verbose, )
+    cv_model = GridSearchCV(self, param_grid, n_jobs=n_jobs, refit=True, cv=n_folds, verbose=verbose, )
     with warnings.catch_warnings():
       warnings.simplefilter("ignore")  # don't print division by zero warning
       cv_model.fit(X, Y)
