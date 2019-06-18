@@ -6,6 +6,10 @@ from datetime import datetime
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../data'))
 
+UCI_DATASETS = []
+
+def _UCI(C):
+    UCI_DATASETS.append(C)
 
 class Dataset:
 
@@ -93,6 +97,7 @@ class NCYTaxiDropoffPredict(Dataset):
     ndim_y = 2
 
     data_file_name = 'yellow_tripdata_2016-01.csv'
+    data_file_name_processed = 'yellow_tipdata_2016-01_processed.csv'
     download_url = 'https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2016-01.csv'
 
     target_columns = ['dropoff_loc_lat', 'dropoff_loc_lon']
@@ -104,6 +109,21 @@ class NCYTaxiDropoffPredict(Dataset):
     too_close_radius = 0.00001
     min_duration = 30
     max_duration = 3 * 3600
+
+    def __init__(self, n_samples=10**4, seed=22):
+        self.n_samples = n_samples
+        self.random_state = np.random.RandomState(seed)
+
+    def get_df(self):
+        data_file_path_processed = os.path.join(DATA_DIR, self.data_file_name_processed)
+        if os.path.isfile(data_file_path_processed):
+            df = pd.read_csv(data_file_path_processed)
+            print("loading %s"%data_file_path_processed)
+        else:
+            df = super(NCYTaxiDropoffPredict, self).get_df().dropna()
+            print("save processed NYC data as csv to %s"%data_file_path_processed)
+            df.to_csv(data_file_path_processed)
+        return df.sample(n=self.n_samples, random_state=self.random_state)
 
     def _process_df(self, df): # does some data cleaning
         data = df.values
@@ -157,7 +177,7 @@ class NCYTaxiDropoffPredict(Dataset):
 
         print('{} total rejected journeys'.format(np.sum(np.invert(ind).astype(int))))
 
-        df = df.append(pd.DataFrame(
+        df_processed = pd.DataFrame(
             {"pickup_loc_lat": pickup_loc_lat,
              "pickup_loc_lon": pickup_loc_lon,
              "dropoff_loc_lat": dropoff_loc_lat,
@@ -169,9 +189,12 @@ class NCYTaxiDropoffPredict(Dataset):
              "pickup_time_of_day_sin": np.sin(pickup_time_of_day),
              "pickup_time_of_day_cos": np.cos(pickup_time_of_day),
              "dropoff_time_day_of_week": dropoff_time_day_of_week.astype(np.int),
-             "dropoff_time_of_day": dropoff_time_of_day, "duration": duration}), ignore_index=True)
+             "dropoff_time_of_day": dropoff_time_of_day, "duration": duration})
 
-        return df
+        return df_processed
+
+    def __str__(self):
+        return "%s (n_samples = %i, ndim_x = %i, ndim_y = %i)" % (str(self.__class__.__name__), self.n_samples, self.ndim_x, self.ndim_y)
 
 class UCI_Dataset(Dataset):
     uci_base_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/'
@@ -189,6 +212,7 @@ class UCI_Dataset(Dataset):
     def feature_columns(self):
         return list(self.get_df().columns[:-1])
 
+@_UCI
 class BostonHousing(UCI_Dataset):
     uci_data_path = 'housing/housing.data'
     data_file_name = 'housing.data'
@@ -202,6 +226,7 @@ class BostonHousing(UCI_Dataset):
         df = pd.read_fwf(self.data_file_path, header=None)
         return df
 
+@_UCI
 class Conrete(UCI_Dataset):
     uci_data_path = 'concrete/compressive/Concrete_Data.xls'
     data_file_name = 'concrete.xls'
@@ -215,6 +240,7 @@ class Conrete(UCI_Dataset):
         df = pd.read_excel(self.data_file_path).dropna()
         return df
 
+@_UCI
 class Energy(UCI_Dataset):
     uci_data_path ='00242/ENB2012_data.xlsx'
     data_file_name = 'energy.xlsx'
@@ -228,6 +254,7 @@ class Energy(UCI_Dataset):
         df = pd.read_excel(self.data_file_path).dropna()
         return df
 
+@_UCI
 class Power(UCI_Dataset):
     download_url = 'https://www.dropbox.com/s/w7qkzjtuynwxjke/power.csv?dl=1'
     data_file_name = 'power.csv'
@@ -241,6 +268,7 @@ class Power(UCI_Dataset):
         df = pd.read_csv(self.data_file_path).dropna()
         return df
 
+@_UCI
 class Protein(UCI_Dataset):
     uci_data_path = '00265/CASP.csv'
     data_file_name = 'protein.csv'
@@ -254,6 +282,7 @@ class Protein(UCI_Dataset):
         df = pd.read_csv(self.data_file_path).dropna()
         return df
 
+@_UCI
 class WineRed(UCI_Dataset):
     uci_data_path = 'wine-quality/winequality-red.csv'
     data_file_name = 'wine_red.csv'
@@ -267,6 +296,7 @@ class WineRed(UCI_Dataset):
         df = pd.read_csv(self.data_file_path, delimiter=';').dropna()
         return df
 
+@_UCI
 class WineWhite(UCI_Dataset):
     uci_data_path = 'wine-quality/winequality-white.csv'
     data_file_name = 'wine_white.csv'
@@ -280,6 +310,7 @@ class WineWhite(UCI_Dataset):
         df = pd.read_csv(self.data_file_path, delimiter=';').dropna()
         return df
 
+@_UCI
 class Yacht(UCI_Dataset):
     uci_data_path = '00243/yacht_hydrodynamics.data'
     data_file_name = 'yacht.data'
