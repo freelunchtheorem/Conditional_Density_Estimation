@@ -93,7 +93,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
     self.data_normalization = data_normalization
     self.dropout = dropout
 
-    if init_scales == 'default':
+    if type(init_scales) is str and init_scales == 'default':
         init_scales = np.array([0.7, 0.3])
 
     self.n_scales = len(init_scales)

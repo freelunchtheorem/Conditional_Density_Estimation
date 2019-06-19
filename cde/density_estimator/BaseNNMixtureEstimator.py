@@ -297,7 +297,7 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     with tf.variable_scope(self.name):
       # setup inference procedure
       self.inference = MAP_inference(scope=self.name, data={self.mixture: self.y_input})
-      optimizer = AdamWOptimizer(weight_decay=self.weight_decay, learning_rate=2e-3) if self.weight_decay \
+      optimizer = AdamWOptimizer(weight_decay=self.weight_decay, learning_rate=5e-3) if self.weight_decay \
         else tf.train.AdamOptimizer(learning_rate=2e-3)
       self.inference.initialize(var_list=tf.trainable_variables(scope=self.name), optimizer=optimizer, n_iter=self.n_training_epochs)
 
