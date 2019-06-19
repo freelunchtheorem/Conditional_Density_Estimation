@@ -10,6 +10,7 @@ UCI_DATASETS = []
 
 def _UCI(C):
     UCI_DATASETS.append(C)
+    return C
 
 class Dataset:
 
@@ -49,24 +50,37 @@ class Dataset:
         assert X.shape[1] == self.ndim_x and Y.shape[1] == self.ndim_y
         return X, Y
 
-    def get_train_valid_split(self, valid_portion, shuffle=False, random_state=None):
+    def get_train_valid_splits(self, valid_portion, n_splits, shuffle=False, random_state=None):
+
         X, Y = self.get_target_feature_split()
+
         n_instances = X.shape[0]
+        valid_size = int(valid_portion * n_instances)
+        assert valid_size * n_splits <= n_instances
 
-        idx_split = int((1.0 - valid_portion) * n_instances)
         idx = np.arange(n_instances)
-
         if shuffle:
             if random_state is not None:
                 random_state.shuffle(idx)
             else:
                 np.random.shuffle(idx)
-        idx_train, idx_valid = idx[:idx_split],  idx[idx_split:]
 
-        X_train, Y_train = X[idx_train,:], Y[idx_train,:]
-        X_valid, Y_valid = X[idx_valid,:], Y[idx_valid,:]
+        X_trains, Y_trains, X_valids, Y_valids = [], [], [], []
 
-        return X_train, Y_train, X_valid, Y_valid
+        for i in reversed(range(n_splits)):
+            idx_start = (n_instances // n_splits) * i
+            idx_end = idx_start + valid_size
+
+            idx_train, idx_valid = np.concatenate([idx[:idx_start], idx[idx_end:]]),  idx[idx_start:idx_end]
+
+            assert len(set(idx_train) | set(idx_valid)) == n_instances
+
+            X_trains.append(X[idx_train, :])
+            Y_trains.append(Y[idx_train, :])
+            X_valids.append(X[idx_valid, :])
+            Y_valids.append(Y[idx_valid, :])
+
+        return X_trains, Y_trains, X_valids, Y_valids
 
     def _process_df(self, df):
         return df
@@ -349,5 +363,6 @@ def _process_time(pickup_datetime, dropoff_datetime):
 if __name__ == "__main__":
     dataset = Yacht()
     df = dataset.get_df()
-    X, Y = dataset.get_target_feature_split()
-    print(X.shape, Y.shape)
+    a = dataset.get_train_valid_splits(0.2, 5, shuffle=True)
+    print(a)
+    # print(X.shape, Y.shape)
