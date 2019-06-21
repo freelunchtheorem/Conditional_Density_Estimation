@@ -241,7 +241,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             self.reg_loss = tf.reduce_sum(tf.losses.get_regularization_losses(scope=self.name)) #r egularization losses
             self.log_loss = -tf.reduce_sum(self.log_pdf_) + self.reg_loss
 
-            optimizer = AdamWOptimizer(self.weight_decay) if self.weight_decay else tf.train.AdamOptimizer()
+            optimizer = AdamWOptimizer(self.weight_decay, learning_rate=5e-3) if self.weight_decay else tf.train.AdamOptimizer()
 
             if self.gradient_clipping:
                 gradients, variables = zip(*optimizer.compute_gradients(self.log_loss))

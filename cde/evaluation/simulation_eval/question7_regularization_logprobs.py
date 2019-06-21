@@ -24,17 +24,6 @@ def question7():
         def __str__(self):
             return "rule_of_thumb_%.2f" % self.scale_factor
 
-
-    class Fixed_Rate:
-        def __init__(self, scale_factor):
-            self.scale_factor = scale_factor
-
-        def __call__(self, n, d):
-            return self.scale_factor
-
-        def __str__(self):
-            return "fixed_rate_%.2f" % self.scale_factor
-
     class Quadratic_Rate:
         def __init__(self, scale_factor):
             self.scale_factor = scale_factor

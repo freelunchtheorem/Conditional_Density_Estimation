@@ -268,162 +268,276 @@ FIGSIZE = (15, 4.5)
 #
 
 
-# Econ Density
-simulator = 'EconDensity'
+#
+# # Econ Density
+# simulator = 'EconDensity'
+# plot_dict = dict(
+#     [
+#         (
+#             estimator,
+#             {
+#                 "noise_reg (ours)": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "rule_of_thumb_0.70" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_1.00"
+#                 },
+#                 "l1_reg_1.0": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l1_reg": 1.0
+#                 },
+#                 "l2_reg_1.0": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l2_reg": 1.0
+#                 },
+#                 "weight_decay_0.01": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "weight_decay": 0.01
+#                 },
+#                 "no_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "rule_of_thumb_0.00"
+#                 },
+#             },
+#         )
+#         for estimator in estimators
+#     ]
+# )
+#
+# fig = gof_result.plot_metric(
+#     plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
+# )
+# fig.axes[0].set_ylim((-2.8, -1.95))
+# fig.axes[1].set_ylim((-2.8, -1.95))
+# fig.axes[2].set_ylim((-2.8, -1.95))
+#
+#
+# # fig.axes[3].set_ylim((1.5, 1.615))
+# plt.suptitle('Regularization %s'%simulator)
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
+#
+#
+#
+# # Skew Norm
+# simulator = 'SkewNormal'
+# plot_dict = dict(
+#     [
+#         (
+#             estimator,
+#             {
+#                 "noise_reg (ours)": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "polynomial_rate_2_2.00" if estimator == "KernelMixtureNetwork" else (
+#                         "polynomial_rate_2_1.00" if estimator == "NormalizingFlowEstimator" else "polynomial_rate_3_1.00"
+#                     ),
+#                 },
+#                 "l1_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l1_reg": 1.0
+#                 },
+#                 "l2_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l2_reg": 1.0
+#                 },
+#                 "weight_decay": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "weight_decay": 0.00 if estimator == "KernelMixtureNetwork" else 0.01
+#                 },
+#                 "no_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "rule_of_thumb_0.00"
+#                 },
+#             },
+#         )
+#         for estimator in estimators
+#     ]
+# )
+#
+# fig = gof_result.plot_metric(
+#     plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
+# )
+# fig.axes[0].set_ylim((1.0, 1.61))
+# fig.axes[1].set_ylim((1.0, 1.61))
+# fig.axes[2].set_ylim((1.0, 1.61))
+#
+#
+# # fig.axes[3].set_ylim((1.5, 1.615))
+# plt.suptitle('Regularization - Skew Normal')
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
+#
+#
+# # Gaussian Mixture
+# simulator = 'GaussianMixture_2d'
+# plot_dict = dict(
+#     [
+#         (
+#             estimator,
+#             {
+#                 "noise_reg (ours)": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "quadratic_rate_1.00",
+#                     "weight_normalization": False
+#                 },
+#                 "l1_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l1_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
+#                 },
+#                 "l2_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "l2_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
+#                 },
+#                 "weight_decay": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "weight_decay": 0.001
+#                 },
+#                 "no_reg": {
+#                     "simulator": simulator,
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "rule_of_thumb_0.00"
+#                 },
+#             },
+#         )
+#         for estimator in estimators
+#     ]
+# )
+#
+# fig = gof_result.plot_metric(
+#     plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
+# )
+# fig.axes[0].set_ylim((-6.5, -2.9))
+# fig.axes[1].set_ylim((-6.5, -2.9))
+# fig.axes[2].set_ylim((-6.5, -2.9))
+#
+#
+# plt.suptitle('Regularization - Gaussian Mixture')
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
+# fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
+
+
+# Gaussian Mixture & SkewNorm
+
 plot_dict = dict(
     [
         (
             estimator,
             {
-                "l1_reg_1.0": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "l1_reg": 1.0
-                },
-                "l2_reg_1.0": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "l2_reg": 1.0
-                },
-                "weight_decay_0.01": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "weight_decay": 0.01
-                },
-                "noise_reg (ours)": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.70" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_1.00"
-                },
                 "no_reg": {
-                    "simulator": simulator,
+                    "simulator": 'GaussianMixture_2d',
                     "estimator": estimator,
                     "adaptive_noise_fn": "rule_of_thumb_0.00"
                 },
-            },
-        )
-        for estimator in estimators
-    ]
-)
-
-fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
-)
-fig.axes[0].set_ylim((-2.8, -1.95))
-fig.axes[1].set_ylim((-2.8, -1.95))
-fig.axes[2].set_ylim((-2.8, -1.95))
-
-
-# fig.axes[3].set_ylim((1.5, 1.615))
-plt.suptitle('Regularization %s'%simulator)
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
-
-
-
-# Skew Norm
-simulator = 'SkewNormal'
-plot_dict = dict(
-    [
-        (
-            estimator,
-            {
                 "l1_reg": {
-                    "simulator": simulator,
+                    "simulator": 'GaussianMixture_2d',
                     "estimator": estimator,
-                    "l1_reg": 1.0
+                    "l1_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
                 },
                 "l2_reg": {
-                    "simulator": simulator,
+                    "simulator": 'GaussianMixture_2d',
                     "estimator": estimator,
-                    "l2_reg": 1.0
+                    "l2_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
                 },
                 "weight_decay": {
-                    "simulator": simulator,
+                    "simulator": 'GaussianMixture_2d',
                     "estimator": estimator,
                     "weight_decay": 0.00 if estimator == "KernelMixtureNetwork" else 0.01
                 },
                 "noise_reg (ours)": {
-                    "simulator": simulator,
+                    "simulator": 'GaussianMixture_2d',
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "quadratic_rate_1.00",
+                    "weight_normalization": False
+                },
+            },
+        )
+        for estimator in estimators
+    ] + [
+        (
+            estimator + "_skew",
+            {  "no_reg": {
+                    "simulator": 'SkewNormal',
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "rule_of_thumb_0.00"
+                },
+                "l1_reg": {
+                    "simulator": 'SkewNormal',
+                    "estimator": estimator,
+                    "l1_reg": 1.0
+                },
+                "l2_reg": {
+                    "simulator": 'SkewNormal',
+                    "estimator": estimator,
+                    "l2_reg": 1.0
+                },
+                "weight_decay": {
+                    "simulator": 'SkewNormal',
+                    "estimator": estimator,
+                    "weight_decay": 0.001 if estimator == "KernelMixtureNetwork" else 0.01
+                },
+                "noise_reg (ours)": {
+                    "simulator": 'SkewNormal',
                     "estimator": estimator,
                     "adaptive_noise_fn": "polynomial_rate_2_2.00" if estimator == "KernelMixtureNetwork" else (
                         "polynomial_rate_2_1.00" if estimator == "NormalizingFlowEstimator" else "polynomial_rate_3_1.00"
                     ),
                 },
-                "no_reg": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.00"
-                },
             },
         )
         for estimator in estimators
     ]
 )
 
-fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
-)
-fig.axes[0].set_ylim((0.8, 1.61))
-fig.axes[1].set_ylim((0.8, 1.61))
-fig.axes[2].set_ylim((0.8, 1.61))
 
-
-# fig.axes[3].set_ylim((1.5, 1.615))
-plt.suptitle('Regularization - Skew Normal')
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
-
-
-# Gaussian Mixture
-simulator = 'GaussianMixture_2d'
-plot_dict = dict(
-    [
-        (
-            estimator,
-            {
-                "l1_reg": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "l1_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
-                },
-                "l2_reg": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "l2_reg": 0.1 if estimator == "MixtureDensityNetwork" else 1.0
-                },
-                "weight_decay": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "weight_decay": 0.001
-                },
-                "noise_reg (ours)": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "quadratic_rate_1.00",
-                    "weight_normalization": False
-                },
-                "no_reg": {
-                    "simulator": simulator,
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.00"
-                },
-            },
-        )
-        for estimator in estimators
-    ]
-)
+colors = iter(['#1f77b4', '#2ca02c', '#9467bd', '#ff7f0e', '#d62728'])
 
 fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
+    plot_dict, metric="score", figsize=(12, 6), layout=(2, 3), log_scale_y=False, color=colors
 )
-fig.axes[0].set_ylim((-7, -2.9))
-fig.axes[1].set_ylim((-7, -2.9))
-fig.axes[2].set_ylim((-7, -2.9))
+
+for i in range(0, 3):
+    fig.axes[i].set_ylim((-6.5, -2.9))
+
+for i in range(3, 6):
+    fig.axes[i].set_ylim((1.0, 1.61))
+
+for i in range(6):
+    fig.axes[i].set_title("")
+    fig.axes[i].set_xlabel('')
+    fig.axes[i].set_ylabel('')
+    fig.axes[i].get_legend().remove()
+
+fig.axes[0].set_title("Mixture Density Network")
+fig.axes[1].set_title("Kernel Mixture Network")
+fig.axes[2].set_title("Normalizing Flow")
+
+fig.axes[0].set_xlabel('number of train observations')
+fig.axes[0].set_ylabel('log-likelihood')
+
+fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
+                xycoords=fig.axes[0].yaxis.label, textcoords='offset points',
+                size='large', ha='right', va='center', rotation=90)
+fig.axes[3].annotate("Skew Normal", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 22.0, 0),
+                xycoords=fig.axes[3].yaxis.label, textcoords='offset points',
+                size='large', ha='right', va='center', rotation=90)
+plt.legend(["noise_reg (ours)", "l1_reg", "l2_reg", "weight_decay", "no_reg"])
+fig.tight_layout()
 
 
-plt.suptitle('Regularization - Gaussian Mixture')
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.png"%simulator))
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_%s.pdf"%simulator))
+plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)",])
 
-
+fig.tight_layout()
+fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.png"))
+fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.pdf"))
