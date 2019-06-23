@@ -130,13 +130,14 @@ class NCYTaxiDropoffPredict(Dataset):
 
     def get_df(self):
         data_file_path_processed = os.path.join(DATA_DIR, self.data_file_name_processed)
-        if os.path.isfile(data_file_path_processed):
-            df = pd.read_csv(data_file_path_processed)
-            print("loading %s"%data_file_path_processed)
-        else:
+        if not os.path.isfile(data_file_path_processed):
             df = super(NCYTaxiDropoffPredict, self).get_df().dropna()
-            print("save processed NYC data as csv to %s"%data_file_path_processed)
-            df.to_csv(data_file_path_processed)
+            print("save processed NYC data as csv to %s" % data_file_path_processed)
+            df.to_csv(data_file_path_processed)            
+
+        print("loading %s" % data_file_path_processed)
+        df = pd.read_csv(data_file_path_processed)
+
         return df.sample(n=self.n_samples, random_state=self.random_state)
 
     def _process_df(self, df): # does some data cleaning

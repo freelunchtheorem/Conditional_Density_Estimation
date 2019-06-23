@@ -128,8 +128,8 @@ def run_benchmark_train_test_fit_cv_ml(dataset, model_dict, seed=27, n_train_val
     # rearrange results as pandas df
     final_results_dict = {'scores_mean': [], 'scores_std': [], 'dataset': []}
     for estimator_key, scores in result_dict.items():
-        final_results_dict['scores_mean'].append(np.mean(scores))
-        final_results_dict['scores_std'].append(np.std(scores))
+        final_results_dict['scores_mean'].append(np.nanmean(scores))
+        final_results_dict['scores_std'].append(np.nanstd(scores))
         final_results_dict['dataset'].append(str(dataset))
 
     df = pd.DataFrame.from_dict(data=final_results_dict, orient='columns')
