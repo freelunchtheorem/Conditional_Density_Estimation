@@ -362,8 +362,8 @@ def _process_time(pickup_datetime, dropoff_datetime):
 
 
 if __name__ == "__main__":
-    dataset = Yacht()
-    df = dataset.get_df()
-    a = dataset.get_train_valid_splits(0.2, 5, shuffle=True)
-    print(a)
-    # print(X.shape, Y.shape)
+    for dataset_class in [EuroStoxx50, NCYTaxiDropoffPredict] + UCI_DATASETS:
+        dataset = dataset_class()
+        _, Y = dataset.get_target_feature_split()
+        n_samples = Y.shape[0]
+        print("%s: n_samples = %i, ndim_x = %i, ndim_y = %i"%(str(dataset.__class__.__name__), n_samples, dataset.ndim_x, dataset.ndim_y))
