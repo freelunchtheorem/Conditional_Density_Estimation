@@ -102,6 +102,38 @@ class EuroStoxx50(Dataset):
 
     data_file_name = 'eurostoxx50.csv'
 
+    def get_train_valid_splits(self, valid_portion, n_splits, shift_size=100, shuffle=False, random_state=None):
+        # needs extra treatment since it's time-series data --> shifts train and valid set by shift_size each split
+        # --> ensures that the valid data is always in the future of the train data
+
+        assert shuffle is False
+
+        X, Y = self.get_target_feature_split()
+
+        n_instances = X.shape[0]
+        valid_size = int(valid_portion * n_instances)
+        training_size = n_instances - valid_size - n_splits*shift_size
+        assert valid_size * n_splits <= n_instances
+
+        idx = np.arange(n_instances)
+
+        X_trains, Y_trains, X_valids, Y_valids = [], [], [], []
+
+        for i in reversed(range(n_splits)):
+            idx_train_start = int(i * shift_size)
+            idx_valid_start = idx_train_start + training_size
+            idx_valid_end = idx_valid_start + valid_size
+
+            idx_train, idx_valid = idx[idx_train_start:idx_valid_start], idx[idx_valid_start:idx_valid_end]
+
+
+            X_trains.append(X[idx_train, :])
+            Y_trains.append(Y[idx_train, :])
+            X_valids.append(X[idx_valid, :])
+            Y_valids.append(Y[idx_valid, :])
+
+        return X_trains, Y_trains, X_valids, Y_valids
+
     def download_dataset(self):
         raise AssertionError("Sry, the EuroStoxx 50 data is proprietary and won't be open-sourced")
 
