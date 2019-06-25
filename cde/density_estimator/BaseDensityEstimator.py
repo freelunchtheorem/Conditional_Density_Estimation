@@ -38,7 +38,7 @@ class BaseDensityEstimator(ConditionalDensity):
     self.set_params(**estimator.get_params())
     self.fit(X, Y)
 
-  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, verbose=True, n_jobs=-1):
+  def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, verbose=True, n_jobs=-1, random_state=None):
     """ Fits the conditional density model with hyperparameter search and cross-validation.
     - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
       the conditional log-likelihood is used for simulation_eval.
