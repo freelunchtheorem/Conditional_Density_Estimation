@@ -5,12 +5,16 @@ from cde.evaluation.simulation_eval import base_experiment
 import cde.model_fitting.ConfigRunner as ConfigRunner
 import matplotlib.pyplot as plt
 import os
+import numpy as np
+import pandas as pd
 
 EXP_PREFIX = "question7_regularization_logprob"
 RESULTS_FILE = "results.pkl"
+BAYES_RESULTS_FILE = 'bayes_results.csv'
 CLUSTER_DIR = "/local/rojonas/cde/data/local"
 LOCATION = "{}/{}/{}".format(CLUSTER_DIR, EXP_PREFIX, RESULTS_FILE)
-DATA_DIR_LOCAL = "/home/jonasrothfuss/Dropbox/Eigene_Dateien/ETH/02_Projects/02_Noise_Regularization/02_Code_Conditional_Density_Estimation/data/cluster"
+# DATA_DIR_LOCAL = "/home/jonasrothfuss/Dropbox/Eigene_Dateien/ETH/02_Projects/02_Noise_Regularization/02_Code_Conditional_Density_Estimation/data/cluster"
+DATA_DIR_LOCAL = "/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster"
 
 logger.configure(
     #"/local/rojonas/cde/data/local",
@@ -507,6 +511,50 @@ fig = gof_result.plot_metric(
     plot_dict, metric="score", figsize=(12, 6), layout=(2, 3), log_scale_y=False, color=colors
 )
 
+# -- add the bayesian data from csv --
+axarr = fig.axes
+if isinstance(axarr, np.ndarray):
+    axarr = axarr.flatten()
+
+
+df = pd.read_csv(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX, BAYES_RESULTS_FILE))
+df["param_kl_weight_scale"] = df.param_kl_weight_scale * df.n_datapoints
+test_score_columns = [column for column in df.columns
+                      if column.startswith("split") and column.endswith("_test_score")]
+
+plot_list = [(estimator, density)
+             for density in ['GaussianMixture', 'SkewNormal']
+             for estimator in ['bayesian_MDN', 'bayesian_KMN', 'bayesian_NFN']
+             ]
+
+for i, (estimator, density) in enumerate(plot_list):
+    for map_mode in [True, False]:
+        color = '#ffe135' if map_mode else '#9f8170'
+        label = 'MAP' if map_mode else 'variational Bayes'
+        sub_df = df.loc[(df['density'] == density)
+                        & (df['estimator'] == estimator)
+                        & (df['param_map_mode'] == map_mode)
+                        & (df['param_kl_weight_scale'] == 1.0)]
+        n_datapoints = sorted(sub_df['n_datapoints'].unique())
+        means = np.array([], dtype=np.float32)
+        stds = np.array([], dtype=np.float32)
+
+        for n_data in n_datapoints:
+            scores = []
+            for c in test_score_columns:
+                scores += list(sub_df.loc[sub_df["n_datapoints"] == n_data][c].values)
+            scores = np.array(scores, dtype=np.float32)
+            means = np.append(means, scores.mean())
+            stds = np.append(stds, scores.std())
+
+        print()
+        print(estimator, density, i)
+        print(means)
+        print(stds)
+
+        axarr[i].plot(n_datapoints, means, color=color, label=label)
+        axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.1, color=color)
+
 for i in range(0, 3):
     fig.axes[i].set_ylim((-6.5, -2.9))
 
@@ -536,7 +584,7 @@ plt.legend(["noise_reg (ours)", "l1_reg", "l2_reg", "weight_decay", "no_reg"])
 fig.tight_layout()
 
 
-plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)",])
+plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)", "MAP", "variational Bayes"])
 
 fig.tight_layout()
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.png"))
