@@ -30,6 +30,100 @@ estimators = [
 ]
 simulators = ["EconDensity", "GaussianMixture", "SkewNormal"]
 
+
+# comparison compact
+
+plot_dict = dict(
+    [
+        (
+            "GaussianMixture_%s" % estimator,
+            {
+                "rule_of_thumb": {
+                    "simulator": "GaussianMixture",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "rule_of_thumb_0.50"
+                },
+                "quadratic_rate": {
+                    "simulator": "GaussianMixture",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "quadratic_rate_1.00"
+                },
+                "fixed_rate": {
+                    "simulator": "GaussianMixture",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "fixed_rate_0.20"
+                },
+                "no noise": {
+                    "simulator": "GaussianMixture",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "fixed_rate_0.00"
+                },
+            },
+        ) for estimator in estimators] + [
+        (
+            "SkewNormal_%s" % estimator,
+            {
+                "rule_of_thumb": {
+                    "simulator": "SkewNormal",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_0.70"
+                },
+                "quadratic_rate": {
+                    "simulator": "SkewNormal",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "quadratic_rate_5.00"
+                },
+                "fixed_rate": {
+                    "simulator": "SkewNormal",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "fixed_rate_0.20"
+                },
+                "no noise": {
+                    "simulator": "SkewNormal",
+                    "estimator": estimator,
+                    "adaptive_noise_fn": "fixed_rate_0.00"
+                },
+            },
+        ) for estimator in estimators]
+)
+fig = gof_result.plot_metric(
+    plot_dict, metric="score", figsize=(12, 6), layout=(2, 3), log_scale_y=False
+)
+
+for i in range(6):
+    fig.axes[i].set_title("")
+    fig.axes[i].set_xlabel('')
+    fig.axes[i].set_ylabel('')
+    fig.axes[i].get_legend().remove()
+
+fig.axes[0].set_title("Mixture Density Network")
+fig.axes[1].set_title("Kernel Mixture Network")
+fig.axes[2].set_title("Normalizing Flow")
+
+fig.axes[0].set_xlabel('number of train observations')
+fig.axes[0].set_ylabel('log-likelihood')
+
+for i in range(0, 3):
+    fig.axes[i].set_ylim((-4.6, -2.9))
+
+for i in range(3, 6):
+    fig.axes[i].set_ylim((1.34, 1.63))
+
+fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
+                     xycoords=fig.axes[0].yaxis.label, textcoords='offset points',
+                     size='large', ha='right', va='center', rotation=90)
+fig.axes[3].annotate("Skew Normal", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 22.0, 0),
+                     xycoords=fig.axes[3].yaxis.label, textcoords='offset points',
+                     size='large', ha='right', va='center', rotation=90)
+
+plt.legend(["rule of thumb", "sqrt rate", "fixed rate", "no noise"], loc='lower right')
+fig.tight_layout()
+
+fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.png"))
+fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.pdf"))
+
+
+
 # # rules of thumb
 # for estimator in estimators:
 #     plot_dict = dict(
@@ -176,181 +270,94 @@ simulators = ["EconDensity", "GaussianMixture", "SkewNormal"]
 
 # comparison
 
-for estimator in estimators:
-    plot_dict = dict(
-        [
-            ("EconDensity",
-                {
-                "rule_of_thumb": {
-                    "simulator": "EconDensity",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_1.00"
-                },
-                "quadratic_rate": {
-                    "simulator": "EconDensity",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "quadratic_rate_5.00"
-                },
-                "fixed_rate": {
-                    "simulator": "EconDensity",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "fixed_rate_0.20"
-                },
-                "poly_rate": {
-                    "simulator": "EconDensity",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "polynomial_rate_2_2.00"
-                },
-                },
-            ),
-
-            (
-                "GaussianMixture",
-                    {
-                    "rule_of_thumb": {
-                        "simulator": "GaussianMixture",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "rule_of_thumb_0.50"
-                    },
-                    "quadratic_rate": {
-                        "simulator": "GaussianMixture",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "quadratic_rate_1.00"
-                    },
-                    "fixed_rate": {
-                        "simulator": "GaussianMixture",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "fixed_rate_0.20"
-                    },
-                    "poly_rate": {
-                        "simulator": "GaussianMixture",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "polynomial_rate_2_1.00"
-                    },
-                },
-            ),
-
-                    (
-                    "SkewNormal",
-                    {
-                    "rule_of_thumb": {
-                        "simulator": "SkewNormal",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_0.70"
-                    },
-                    "quadratic_rate": {
-                        "simulator": "SkewNormal",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "quadratic_rate_5.00"
-                    },
-                    "fixed_rate": {
-                        "simulator": "SkewNormal",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "fixed_rate_0.20"
-                    },
-                    "poly_rate": {
-                        "simulator": "SkewNormal",
-                        "estimator": estimator,
-                        "adaptive_noise_fn": "polynomial_rate_2_2.00" if estimator == "KernelMixtureNetwork" else
-                        (
-                            "polynomial_rate_3_1.00" if estimator == "MixtureDensityNetwork" else "polynomial_rate_2_1.00")
-                    },
-                    },
-                ),
-        ]
-    )
-    fig = gof_result.plot_metric(
-        plot_dict, metric="score", figsize=(12, 4.5), layout=(1, 3), log_scale_y=False
-    )
-    fig.axes[0].set_ylim((-2.2, -1.93))
-    fig.axes[2].set_ylim((1.3, 1.63))
-    plt.suptitle('noise schedules %s'%estimator)
-    fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.png"%estimator))
-    fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.pdf" % estimator))
-
-
-
-# comparison compact
-
-plot_dict = dict(
-    [
-        (
-            "GaussianMixture_%s" % estimator,
-            {
-                "rule_of_thumb": {
-                    "simulator": "GaussianMixture",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.50"
-                },
-                "quadratic_rate": {
-                    "simulator": "GaussianMixture",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "quadratic_rate_1.00"
-                },
-                "fixed_rate": {
-                    "simulator": "GaussianMixture",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "fixed_rate_0.20"
-                },
-            },
-        ) for estimator in estimators] + [
-        (
-            "SkewNormal_%s" % estimator,
-            {
-                "rule_of_thumb": {
-                    "simulator": "SkewNormal",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_0.70"
-                },
-                "quadratic_rate": {
-                    "simulator": "SkewNormal",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "quadratic_rate_5.00"
-                },
-                "fixed_rate": {
-                    "simulator": "SkewNormal",
-                    "estimator": estimator,
-                    "adaptive_noise_fn": "fixed_rate_0.20"
-                },
-            },
-        ) for estimator in estimators]
-)
-fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=(12, 6), layout=(2, 3), log_scale_y=False
-)
-
-for i in range(6):
-    fig.axes[i].set_title("")
-    fig.axes[i].set_xlabel('')
-    fig.axes[i].set_ylabel('')
-    fig.axes[i].get_legend().remove()
-
-fig.axes[0].set_title("Mixture Density Network")
-fig.axes[1].set_title("Kernel Mixture Network")
-fig.axes[2].set_title("Normalizing Flow")
-
-fig.axes[0].set_xlabel('number of train observations')
-fig.axes[0].set_ylabel('log-likelihood')
-
-for i in range(0, 3):
-    fig.axes[i].set_ylim((-4.6, -2.9))
-
-for i in range(3, 6):
-    fig.axes[i].set_ylim((1.29, 1.63))
-
-fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
-                     xycoords=fig.axes[0].yaxis.label, textcoords='offset points',
-                     size='large', ha='right', va='center', rotation=90)
-fig.axes[3].annotate("Skew Normal", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 22.0, 0),
-                     xycoords=fig.axes[3].yaxis.label, textcoords='offset points',
-                     size='large', ha='right', va='center', rotation=90)
-
-plt.legend(["rule of thumb", "quadratic rate", "fixed rate"], loc='lower right')
-fig.tight_layout()
-
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.png"))
-fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.pdf"))
-
-
-
-
+# for estimator in estimators:
+#     plot_dict = dict(
+#         [
+#             ("EconDensity",
+#                 {
+#                 "rule_of_thumb": {
+#                     "simulator": "EconDensity",
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_1.00"
+#                 },
+#                 "quadratic_rate": {
+#                     "simulator": "EconDensity",
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "quadratic_rate_5.00"
+#                 },
+#                 "fixed_rate": {
+#                     "simulator": "EconDensity",
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "fixed_rate_0.20"
+#                 },
+#                 "poly_rate": {
+#                     "simulator": "EconDensity",
+#                     "estimator": estimator,
+#                     "adaptive_noise_fn": "polynomial_rate_2_2.00"
+#                 },
+#                 },
+#             ),
+#
+#             (
+#                 "GaussianMixture",
+#                     {
+#                     "rule_of_thumb": {
+#                         "simulator": "GaussianMixture",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "rule_of_thumb_0.50"
+#                     },
+#                     "quadratic_rate": {
+#                         "simulator": "GaussianMixture",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "quadratic_rate_1.00"
+#                     },
+#                     "fixed_rate": {
+#                         "simulator": "GaussianMixture",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "fixed_rate_0.20"
+#                     },
+#                     "poly_rate": {
+#                         "simulator": "GaussianMixture",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "polynomial_rate_2_1.00"
+#                     },
+#                 },
+#             ),
+#
+#                     (
+#                     "SkewNormal",
+#                     {
+#                     "rule_of_thumb": {
+#                         "simulator": "SkewNormal",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "rule_of_thumb_0.50" if estimator == "NormalizingFlowEstimator" else "rule_of_thumb_0.70"
+#                     },
+#                     "quadratic_rate": {
+#                         "simulator": "SkewNormal",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "quadratic_rate_5.00"
+#                     },
+#                     "fixed_rate": {
+#                         "simulator": "SkewNormal",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "fixed_rate_0.20"
+#                     },
+#                     "poly_rate": {
+#                         "simulator": "SkewNormal",
+#                         "estimator": estimator,
+#                         "adaptive_noise_fn": "polynomial_rate_2_2.00" if estimator == "KernelMixtureNetwork" else
+#                         (
+#                             "polynomial_rate_3_1.00" if estimator == "MixtureDensityNetwork" else "polynomial_rate_2_1.00")
+#                     },
+#                     },
+#                 ),
+#         ]
+#     )
+#     fig = gof_result.plot_metric(
+#         plot_dict, metric="score", figsize=(12, 4.5), layout=(1, 3), log_scale_y=False
+#     )
+#     fig.axes[0].set_ylim((-2.2, -1.93))
+#     fig.axes[2].set_ylim((1.3, 1.63))
+#     plt.suptitle('noise schedules %s'%estimator)
+#     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.png"%estimator))
+#     fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison_%s.pdf" % estimator))

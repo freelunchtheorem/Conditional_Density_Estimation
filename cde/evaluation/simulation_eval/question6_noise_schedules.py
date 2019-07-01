@@ -57,7 +57,7 @@ def question6():
             return "polynomial_rate_%i_%.2f" % (self.order, self.scale_factor)
 
     adaptive_noise_functions = [Rule_of_thumb(1.0), Rule_of_thumb(0.7), Rule_of_thumb(0.5),
-                                Fixed_Rate(0.4), Fixed_Rate(0.2), Fixed_Rate(0.1),
+                                Fixed_Rate(0.4), Fixed_Rate(0.2), Fixed_Rate(0.1), Fixed_Rate(0.0),
                                 Quadratic_Rate(5.0), Quadratic_Rate(2.0), Quadratic_Rate(1.0),
                                 Polynomial_Rate(1.0, 2), Polynomial_Rate(2.0, 2),
                                 Polynomial_Rate(1.0, 3), Polynomial_Rate(2.0, 3)]
@@ -119,7 +119,7 @@ def question6():
         'SkewNormal': {}
     }
 
-    observations = 100 * np.logspace(0, 7, num=8, base=2.0, dtype=np.int32)
+    observations = 100 * np.logspace(0, 10, num=11, base=2.0, dtype=np.int32)
 
     return estimator_params, simulators_params, observations
 

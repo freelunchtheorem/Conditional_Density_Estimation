@@ -39,9 +39,7 @@ estimators = [
     "NeighborKernelDensityEstimation",
     "LSConditionalDensityEstimation"
 ]
-simulators = ["EconDensity", "GaussianMixture_2d", "SkewNormal"]
-
-FIGSIZE = (15, 4.5)
+simulators = ["GaussianMixture_2d", "SkewNormal"]
 
 plot_dict = dict(
     [
@@ -85,10 +83,27 @@ plot_dict = dict(
         for simulator in simulators
     ]
 )
+FIGSIZE = (10, 4.5)
+
 fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 3), log_scale_y=False
+    plot_dict, metric="score", figsize=FIGSIZE, layout=(1, 2), log_scale_y=False
 )
-plt.suptitle('CDE Benchmark')
+fig.tight_layout()
+
+for i in range(len(fig.axes)):
+    fig.axes[i].set_title('')
+    fig.axes[i].set_xlabel('')
+    fig.axes[i].set_ylabel('')
+
+fig.axes[0].set_xlabel('number of train observations')
+fig.axes[0].set_ylabel('log-likelihood')
+
+fig.axes[0].get_legend().remove()
+fig.axes[1].set_ylim((0.9, 1.62))
+
+fig.axes[0].set_title('Gaussian Mixture')
+fig.axes[1].set_title('Skew Normal')
+
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "cde_benchmarks.png"))
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "cde_benchmarks.pdf"))
 
