@@ -528,13 +528,12 @@ plot_list = [(estimator, density)
              ]
 
 for i, (estimator, density) in enumerate(plot_list):
-    for map_mode in [True, False]:
+    for map_mode in [False]:
         color = '#ffe135' if map_mode else '#9f8170'
-        label = 'MAP' if map_mode else 'variational Bayes'
+        label = 'MAP' if map_mode else 'Bayesian prior'
         sub_df = df.loc[(df['density'] == density)
                         & (df['estimator'] == estimator)
-                        & (df['param_map_mode'] == map_mode)
-                        & (df['param_kl_weight_scale'] == 1.0)]
+                        & (df['param_map_mode'] == map_mode)]
         n_datapoints = sorted(sub_df['n_datapoints'].unique())
         means = np.array([], dtype=np.float32)
         stds = np.array([], dtype=np.float32)
@@ -546,11 +545,6 @@ for i, (estimator, density) in enumerate(plot_list):
             scores = np.array(scores, dtype=np.float32)
             means = np.append(means, scores.mean())
             stds = np.append(stds, scores.std())
-
-        print()
-        print(estimator, density, i)
-        print(means)
-        print(stds)
 
         axarr[i].plot(n_datapoints, means, color=color, label=label)
         axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.1, color=color)
@@ -584,7 +578,7 @@ plt.legend(["noise_reg (ours)", "l1_reg", "l2_reg", "weight_decay", "no_reg"])
 fig.tight_layout()
 
 
-plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)", "MAP", "variational Bayes"])
+plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)", "Bayesian prior"])
 
 fig.tight_layout()
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.png"))
