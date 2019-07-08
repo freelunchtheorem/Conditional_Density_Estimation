@@ -56,9 +56,9 @@ def question6():
         def __str__(self):
             return "polynomial_rate_%i_%.2f" % (self.order, self.scale_factor)
 
-    adaptive_noise_functions = [Rule_of_thumb(1.0), Rule_of_thumb(0.7), Rule_of_thumb(0.5),
+    adaptive_noise_functions = [Rule_of_thumb(1.0), Rule_of_thumb(0.7), Rule_of_thumb(0.5), Rule_of_thumb(0.3),
                                 Fixed_Rate(0.4), Fixed_Rate(0.2), Fixed_Rate(0.1), Fixed_Rate(0.0),
-                                Quadratic_Rate(5.0), Quadratic_Rate(2.0), Quadratic_Rate(1.0),
+                                Quadratic_Rate(2.0), Quadratic_Rate(1.0), Quadratic_Rate(0.4), Quadratic_Rate(0.2),
                                 Polynomial_Rate(1.0, 2), Polynomial_Rate(2.0, 2),
                                 Polynomial_Rate(1.0, 3), Polynomial_Rate(2.0, 3)]
 
@@ -106,10 +106,6 @@ def question6():
     }
 
     simulators_params = {
-        'EconDensity': {
-            'std': [1],
-            'heteroscedastic': [True],
-        },
         'GaussianMixture': {
             'n_kernels': [5],
             'ndim_x': [2],
@@ -127,4 +123,4 @@ def question6():
 if __name__ == '__main__':
     estimator_params, simulators_params, observations = question6()
     load = base_experiment.launch_logprob_experiment(estimator_params, simulators_params, observations, EXP_PREFIX, 
-                                                     n_seeds=5, n_test_samples=5*10**5)
+                                                     n_seeds=5, n_test_samples=2*10**5)

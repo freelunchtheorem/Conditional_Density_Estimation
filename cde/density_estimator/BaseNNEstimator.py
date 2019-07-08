@@ -217,8 +217,8 @@ class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
         n_samples = X.shape[0]
 
         if self.adaptive_noise_fn is not None:
-            self.x_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x)
-            self.y_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_y)
+            self.x_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x + self.ndim_y)
+            self.y_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x + self.ndim_y)
 
             assert self.x_noise_std >= 0.0 and self.y_noise_std >= 0.0
 

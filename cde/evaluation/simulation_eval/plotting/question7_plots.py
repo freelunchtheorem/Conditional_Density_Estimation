@@ -13,8 +13,7 @@ RESULTS_FILE = "results.pkl"
 BAYES_RESULTS_FILE = 'bayes_results.csv'
 CLUSTER_DIR = "/local/rojonas/cde/data/local"
 LOCATION = "{}/{}/{}".format(CLUSTER_DIR, EXP_PREFIX, RESULTS_FILE)
-# DATA_DIR_LOCAL = "/home/jonasrothfuss/Dropbox/Eigene_Dateien/ETH/02_Projects/02_Noise_Regularization/02_Code_Conditional_Density_Estimation/data/cluster"
-DATA_DIR_LOCAL = "/home/simon/Documents/KIT/Informatik/Bachelorarbeit/Conditional_Density_Estimation/data/cluster"
+DATA_DIR_LOCAL = "/home/jonasrothfuss/Dropbox/Eigene_Dateien/ETH/02_Projects/02_Noise_Regularization/02_Code_Conditional_Density_Estimation/data/cluster"
 
 logger.configure(
     #"/local/rojonas/cde/data/local",
@@ -508,7 +507,7 @@ plot_dict = dict(
 colors = iter(['#1f77b4', '#2ca02c', '#9467bd', '#ff7f0e', '#d62728'])
 
 fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=(12, 6), layout=(2, 3), log_scale_y=False, color=colors
+    plot_dict, metric="score", figsize=(12, 5.5), layout=(2, 3), log_scale_y=False, color=colors
 )
 
 # -- add the bayesian data from csv --
@@ -528,7 +527,7 @@ plot_list = [(estimator, density)
              ]
 
 for i, (estimator, density) in enumerate(plot_list):
-    for map_mode in [True, False]:
+    for map_mode in [True]:
         color = '#ffe135' if map_mode else '#9f8170'
         label = 'MAP' if map_mode else 'variational Bayes'
         sub_df = df.loc[(df['density'] == density)
@@ -547,10 +546,9 @@ for i, (estimator, density) in enumerate(plot_list):
             means = np.append(means, scores.mean())
             stds = np.append(stds, scores.std())
 
-        print()
-        print(estimator, density, i)
-        print(means)
-        print(stds)
+        # print(estimator, density, i)
+        # print(means)
+        # print(stds)
 
         axarr[i].plot(n_datapoints, means, color=color, label=label)
         axarr[i].fill_between(n_datapoints, means - stds, means + stds, alpha=0.1, color=color)
@@ -572,7 +570,7 @@ fig.axes[1].set_title("Kernel Mixture Network")
 fig.axes[2].set_title("Normalizing Flow")
 
 fig.axes[0].set_xlabel('number of train observations')
-fig.axes[0].set_ylabel('log-likelihood')
+fig.axes[0].set_ylabel('test log-likelihood')
 
 fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
                 xycoords=fig.axes[0].yaxis.label, textcoords='offset points',
@@ -580,12 +578,15 @@ fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis
 fig.axes[3].annotate("Skew Normal", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 22.0, 0),
                 xycoords=fig.axes[3].yaxis.label, textcoords='offset points',
                 size='large', ha='right', va='center', rotation=90)
-plt.legend(["noise_reg (ours)", "l1_reg", "l2_reg", "weight_decay", "no_reg"])
-fig.tight_layout()
 
 
-plt.legend(["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)", "MAP", "variational Bayes"])
+handles, labels = plt.gca().get_legend_handles_labels()
+labels = ["no reg.", "l1 reg.", "l2 reg.", "weight decay", "noise reg. (ours)", "Variational Bayes",]
+order = [4, 0, 1, 2, 3, 5]
+plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order])
 
-fig.tight_layout()
+
+
+fig.tight_layout(h_pad=-0.3)
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.png"))
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "regularization_comparison_GMM_Skew.pdf"))
