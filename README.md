@@ -6,9 +6,9 @@
 Implementations of various methods for conditional density estimation
 
 * **Parametric neural network based methods**
-    * Mixture Density Networks (MDN)
-    * Kernel Density Estimation (KMN)
-    * Normalizing Flow Estimator (NF)
+    * Mixture Density Network (MDN)
+    * Kernel Mixture Network (KMN)
+    * Normalizing Flows (NF)
 * **Nonparametric methods**
     * Conditional Kernel Density Estimation (CKDE)
     * Neighborhood Kernel Density Estimation (NKDE)
