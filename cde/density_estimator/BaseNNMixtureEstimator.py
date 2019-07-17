@@ -106,25 +106,6 @@ class BaseNNMixtureEstimator(BaseNNEstimator):
     else:
       return self._sample_rows_individually(X)
 
-  def predict_density(self, X, Y=None, resolution=100):
-    """ Computes conditional density p(y|x) over a predefined grid of y target values
-
-      Args:
-         X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-         Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-         resolution: integer specifying the resolution of simulation_eval grid
-
-       Returns: tuple (P, Y)
-          - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
-          - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
-            in case it was provided as argument
-    """
-    if Y is None:
-        max_scale = np.max(self.sess.run(self.scales))
-        Y = np.linspace(self.y_min - 2.5 * max_scale, self.y_max + 2.5 * max_scale, num=resolution)
-    X = self._handle_input_dimensionality(X)
-    return self.sess.run(self.densities, feed_dict={self.X_ph: X, self.y_grid_ph: Y})
-
   def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**7):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of a GMM. Only if ndim_y = 1
 
