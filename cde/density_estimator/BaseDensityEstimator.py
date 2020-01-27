@@ -107,21 +107,6 @@ class BaseDensityEstimator(ConditionalDensity):
       log_prob = np.log(self.pdf(X, Y))
     return log_prob
 
-  def predict_density(self, X, Y=None, resolution=50):
-    """ Computes conditional density p(y|x) over a predefined grid of y target values
-
-      Args:
-        X: values/vectors to be conditioned on - shape: (n_instances, n_dim_x)
-        Y: (optional) y values to be evaluated from p(y|x) -  if not set, Y will be a grid with with specified resolution
-        resulution: integer specifying the resolution of simulation_eval grid
-
-      Returns: tuple (P, Y)
-         - P - density p(y|x) - shape (n_instances, resolution**n_dim_y)
-         - Y - grid with with specified resolution - shape (resolution**n_dim_y, n_dim_y) or a copy of Y \
-           in case it was provided as argument
-    """
-    raise NotImplementedError
-
   def _param_grid(self):
     raise NotImplementedError
 
