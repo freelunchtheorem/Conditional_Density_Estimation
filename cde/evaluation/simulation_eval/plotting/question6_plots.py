@@ -18,6 +18,7 @@ logger.configure(
     EXP_PREFIX,
 )
 
+
 results_from_pkl_file = dict(logger.load_pkl_log(RESULTS_FILE))
 gof_result = GoodnessOfFitResults(single_results_dict=results_from_pkl_file)
 results_df = gof_result.generate_results_dataframe(base_experiment.KEYS_OF_INTEREST_LOGPROB)
@@ -33,8 +34,7 @@ simulators = ["GaussianMixture", "SkewNormal"]
 
 #comparison compact
 
-plot_dict = dict(
-    [
+plot_list =  [
         (
             "GaussianMixture_%s" % estimator,
             {
@@ -85,9 +85,13 @@ plot_dict = dict(
                 },
             },
         ) for estimator in estimators]
-)
+
+from collections import  OrderedDict
+plot_list = [plot_list[0], plot_list[3], plot_list[1], plot_list[4], plot_list[2], plot_list[5]]
+plot_dict = OrderedDict(plot_list)
+
 fig = gof_result.plot_metric(
-    plot_dict, metric="score", figsize=(12, 5.5), layout=(2, 3), log_scale_y=False
+    plot_dict, metric="score", figsize=(7, 8.5), layout=(3, 2), log_scale_y=False
 )
 
 for i in range(6):
@@ -96,31 +100,40 @@ for i in range(6):
     fig.axes[i].set_ylabel('')
     fig.axes[i].get_legend().remove()
 
-fig.axes[0].set_title("Mixture Density Network")
-fig.axes[1].set_title("Kernel Mixture Network")
-fig.axes[2].set_title("Normalizing Flow")
-
+fig.axes[0].set_title("Skew Normal")
+fig.axes[1].set_title("Gaussian Mixture")
+# #
 fig.axes[0].set_xlabel('number of train observations')
 fig.axes[0].set_ylabel('test log-likelihood')
 
-for i in range(0, 3):
+for i in [0, 2, 4]:
     fig.axes[i].set_ylim((-4.6, -2.9))
 
-for i in range(3, 6):
+for i in [1, 3, 5]:
     fig.axes[i].set_ylim((1.34, 1.63))
-
-fig.axes[0].annotate("Gaussian Mixture", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
+#
+#
+fig.axes[0].annotate("Mixture Density Network", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 6.0, 0),
                      xycoords=fig.axes[0].yaxis.label, textcoords='offset points',
                      size='large', ha='right', va='center', rotation=90)
-fig.axes[3].annotate("Skew Normal", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 22.0, 0),
-                     xycoords=fig.axes[3].yaxis.label, textcoords='offset points',
+fig.axes[2].annotate("Kernel Mixture Network", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 15.0, 0),
+                     xycoords=fig.axes[2].yaxis.label, textcoords='offset points',
+                     size='large', ha='right', va='center', rotation=90)
+fig.axes[4].annotate("Normalizing Flow Network", xy=(0, 0.5), xytext=(-fig.axes[0].yaxis.labelpad - 15.0, 0),
+                     xycoords=fig.axes[4].yaxis.label, textcoords='offset points',
                      size='large', ha='right', va='center', rotation=90)
 
 plt.legend(["rule of thumb", "sqrt rate", "fixed rate", "no noise"], loc='lower right')
-fig.tight_layout(h_pad=-0.3)
+fig.tight_layout(pad=0.9, h_pad=0.5, w_pad=0.9)
 
+
+
+
+plt.show()
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.png"))
 fig.savefig(os.path.join(os.path.join(DATA_DIR_LOCAL, EXP_PREFIX), "noise_schedules_comparison.pdf"))
+
+
 
 
 #
