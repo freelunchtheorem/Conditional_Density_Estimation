@@ -145,7 +145,30 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
       return execute_batch_async_pdf(self._log_pdf, X, Y, n_jobs=self.n_jobs)
     else:
       return self._log_pdf(X, Y)
+    
+  def mean_std(self, X, n_samples=10 ** 6):
+    """ sample from the conditional mixture distributions - requires the model to be fitted
 
+    Args:
+      X: values to be conditioned on  - numpy array of shape (n_instances, n_dim_x)
+
+    Returns: tuple (mean, stddev)
+      - mean -  numpy array of shape (n_samples, ndim_y)
+      - stddev - - numpy array of shape (n_samples, ndim_y)
+    """
+    assert self.fitted
+    X = self._handle_input_dimensionality(X)
+
+    fact = np.multiply(self.alpha, self._gaussian_kernel(X))
+    fact = fact / np.sum(fact, axis=1)[:,None]
+    
+    mean = fact @ self.centr_y
+    print(fact.shape, self.centr_y.shape, mean.shape)
+    #return
+    expected_variance = self.bandwidth**2
+    variance_expectations = (fact @ (self.centr_y**2)) - mean**2
+    return (mean, np.sqrt(expected_variance + variance_expectations))
+    
   def sample(self, X):
     """ sample from the conditional mixture distributions - requires the model to be fitted
 
