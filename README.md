@@ -20,6 +20,8 @@ Beyond estimating conditional probability densities, the package features extens
 * **Statistical divergences:** KL-divergence, JS-divergence, Hellinger distance
 * **Percentiles and expected shortfall**
 
+For the parametric models (MDN, KMN, NF), we recommend the used of noise regularization which supperted in our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
+
 ## Installation
 
 To use the library, you can directly use the python package index:
@@ -62,7 +64,7 @@ std = model.std_(x_cond)[0][0]
 skewness = model.skewness(x_cond)[0]
 ```
 ## Citing
-If you use CDE in your research, you can cite it as follows:
+If you use our CDE implementation in your research, you can cite it as follows:
 
 ```
 @article{rothfuss2019conditional,
@@ -72,6 +74,16 @@ If you use CDE in your research, you can cite it as follows:
   year={2019}
 }
 
+```
+If you use noise regularization for regularizing the MDN, KMN or NF conditional density model, please cite
+```
+@article{rothfuss2019noisereg,
+    title={Noise Regularization for Conditional Density Estimation},
+    author={Jonas Rothfuss and Fabio Ferreira and Simon Boehm and Simon Walther 
+            and Maxim Ulrich and Tamim Asfour and Andreas Krause},
+    year={2019},
+    journal={arXiv:1907.08982},
+}
 ```
 
 ## Todo
