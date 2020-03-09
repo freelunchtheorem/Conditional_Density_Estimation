@@ -20,7 +20,7 @@ Beyond estimating conditional probability densities, the package features extens
 * **Statistical divergences:** KL-divergence, JS-divergence, Hellinger distance
 * **Percentiles and expected shortfall**
 
-For the parametric models (MDN, KMN, NF), we recommend the used of noise regularization which supperted in our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
+For the parametric models (MDN, KMN, NF), we recommend the usage of noise regularization which is supported by our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
 
 ## Installation
 
@@ -88,3 +88,4 @@ If you use noise regularization for regularizing the MDN, KMN or NF conditional 
 
 ## Todo
 - creating a branch just for our conditional estimators + python package
+- support for TensorFlow versions > 1.7 (your help would be highly appreciated here)
