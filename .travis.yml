@@ -15,8 +15,8 @@ script:
   - python tests/unittests_evaluations.py
   - python tests/unittests_simulations.py
   - python tests/unittests_utils.py
-  #- python tests/test_nf_torch.py
-  #- python tests/test_kmn_torch.py
+  #- python -m pytest tests/test_nf_torch.py
+  #- python -m pytest tests/test_kmn_torch.py
 
 notifications:
   email:
