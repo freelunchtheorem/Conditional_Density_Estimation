@@ -5,7 +5,6 @@ from ml_logger import logger
 from cde.utils.misc import take_of_type
 from cde.model_fitting.GoodnessOfFitResults import GoodnessOfFitResults
 import cde.model_fitting.ConfigRunner as ConfigRunner
-import tensorflow as tf
 import os
 import pickle
 import matplotlib.pyplot as plt
@@ -15,18 +14,16 @@ import matplotlib.pyplot as plt
 
 def fit_and_plot_estimated_vs_original_2D(estimator, simulator, n_samples):
   X, Y = simulator.simulate(n_samples)
-  with tf.Session() as sess:
-    estimator.fit(X, Y, verbose=True)
-    estimator.plot()
+  estimator.fit(X, Y, verbose=True)
+  estimator.plot()
 
 
 def plot_dumped_model(pickle_path):
   assert os.path.isfile(pickle_path), "pickle path must be file"
 
   with open(pickle_path, 'rb') as f:
-    with tf.Session() as sess:
-      model = pickle.load(f)
-      model.plot2d(x_cond=[0.5, 2.0], ylim=(-4,8), resolution=200, show=False)
+    model = pickle.load(f)
+    model.plot2d(x_cond=[0.5, 2.0], ylim=(-4,8), resolution=200, show=False)
 
 
 def comparison_plot2d_sim_est(est, sim, x_cond=[1.0, 2.0], ylim=(-4,8), resolution=200, mode='pdf'):
@@ -103,40 +100,10 @@ def get_density_plots(estimators_list, simulators_dict, path_to_results, exp_pre
   figs = []
 
   for model in models:
-    graph = model.estimator.sess.graph
-    sess = tf.Session(graph=graph)
-
-    with sess:
-      sess.run(tf.global_variables_initializer())
-      model.estimator.sess = sess
-      """ fitted density figures"""
-      plt.suptitle(model.estimator.name)
-      fig_fitted = model.estimator.plot3d()
-      figs.append(fig_fitted)
-
-      """ true density figures """
-      # todo: use newly dumped simulators
-
-      sess.close()
+    """ fitted density figures"""
+    plt.suptitle(model.estimator.name)
+    fig_fitted = model.estimator.plot3d()
+    figs.append(fig_fitted)
 
   return figs
 
-
-if __name__ == "__main__":
-  # simulator = EconDensity(std=1, heteroscedastic=True)
-  # estimator = KernelMixtureNetwork('kmn', 1, 1, center_sampling_method='all', n_centers=2000)
-  # fit_and_plot_estimated_vs_original_2D(estimator, simulator, 2000)
-  #plot_dumped_model('/home/jonasrothfuss/Documents/simulation_eval/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle')
-
-  #sim = ArmaJump().plot(xlim=(-0.2, 0.2), ylim=(-0.1, 0.1))
-
-  #pickle_path = '/home/jonasrothfuss/Documents/simulation_eval/question1_noise_reg_x/model_dumps/KernelMixtureNetwork_task_66.pickle'
-
-
-  with open(pickle_path, 'rb') as f:
-    with tf.Session() as sess:
-      model = pickle.load(f)
-      #model.plot2d(x_cond=[0.5, 2.0], ylim=(-4, 8), resolution=200, show=False)
-
-      sim = EconDensity()
-      comparison_plot2d_sim_est(model, sim, x_cond=[0.5, 2.0])

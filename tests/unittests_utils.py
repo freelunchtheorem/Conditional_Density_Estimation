@@ -2,7 +2,6 @@ import unittest
 from scipy.stats import norm
 import warnings
 import pickle
-import tensorflow as tf
 import sys
 import os
 import numpy as np

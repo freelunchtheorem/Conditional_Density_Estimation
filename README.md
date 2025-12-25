@@ -24,15 +24,15 @@ For the parametric models (MDN, KMN, NF), we recommend the usage of noise regula
 
 ## Installation
 
-To use the library, you can directly use the python package index:
+To install the PyTorch-powered package, run the provided setup script to create a clean Conda environment (Python 3.11/3.10 + CPU PyTorch + pinned NumPy/SciPy) and install the repository in editable mode:
 ```bash
-pip install cde
+bash scripts/setup_pytorch_env.sh
 ```
-or clone the GitHub repository and run 
+After activating the newly created `cde-pytorch` environment, you can reinstall the package from source with:
 ```bash
-pip install .
-``` 
-Note that the package only supports tensorflow versions between 1.4 and 1.7.
+pip install --break-system-packages -e .
+```
+If you prefer a lighter install, simply run `pip install cde` in an existing environment with PyTorch already available.
 ## Documentation and paper
 See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
 
@@ -87,5 +87,4 @@ If you use noise regularization for regularizing the MDN, KMN or NF conditional 
 ```
 
 ## Todo
-- creating a branch just for our conditional estimators + python package
-- support for TensorFlow versions > 1.7 (your help would be highly appreciated here)
+- track configuration for the new PyTorch branch and keep the legacy TensorFlow branch discoverable

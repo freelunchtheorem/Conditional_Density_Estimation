@@ -1,7 +1,6 @@
 from multiprocessing import Manager
 from cde.utils.async_executor import AsyncExecutor, LoopExecutor
 import numpy as np
-import tensorflow as tf
 import pandas as pd
 import copy
 from pprint import pprint
@@ -171,19 +170,13 @@ def _evaluate_params(estimator_class, param_dict, X_train, Y_train, X_valid, Y_v
         eval_scores = []
 
         def _eval_with_seed(seed):
-            config = tf.ConfigProto(device_count={"CPU": 1},
-                                    inter_op_parallelism_threads=1,
-                                    intra_op_parallelism_threads=1)
-            with tf.Session(config=config):
-                param_dict_local = copy.copy(param_dict)
-                param_dict_local['random_seed'] = seed
-                param_dict_local['name'] += str(seed)
-                est = estimator_class(**param_dict_local)
-                est.fit(X_train, Y_train, verbose=False)
-                score = est.score(X_valid, Y_valid)
-                eval_scores.append(score)
-
-            tf.reset_default_graph()
+            param_dict_local = copy.copy(param_dict)
+            param_dict_local['random_seed'] = seed
+            param_dict_local['name'] += str(seed)
+            est = estimator_class(**param_dict_local)
+            est.fit(X_train, Y_train, verbose=False)
+            score = est.score(X_valid, Y_valid)
+            eval_scores.append(score)
 
         executor = LoopExecutor()
         executor.run(_eval_with_seed, seeds)

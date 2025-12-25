@@ -3,7 +3,6 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import os
 import numpy as np
-import tensorflow as tf
 import pandas as pd
 import itertools
 from multiprocessing import Manager
@@ -32,33 +31,32 @@ def estimate_cov(i, j):
   print('STARTING JOB (%i,%i)'%(i,j))
   ndim_x = ndims[i]
   round_seed = seeds[j]
-  with tf.Session() as sess:
-    model = LinearGaussian(mu=0, ndim_x=ndim_x, mu_slope=0.0, std=std, std_slope=0.005, random_seed=round_seed)
-    X, Y = model.simulate(n_samples=5000)
-    ndim_x, ndim_y = X.shape[1], 1
+  model = LinearGaussian(mu=0, ndim_x=ndim_x, mu_slope=0.0, std=std, std_slope=0.005, random_seed=round_seed)
+  X, Y = model.simulate(n_samples=5000)
+  ndim_x, ndim_y = X.shape[1], 1
 
-    # fit the estimators
-    mdn = MixtureDensityNetwork('mdn_empirical' + str(ndim_x) + str(round_seed), ndim_x, ndim_y, n_centers=20,
-                                n_training_epochs=epochs,
-                                random_seed=round_seed, x_noise_std=x_noise, y_noise_std=y_noise,
-                                data_normalization=True, hidden_sizes=(16, 16))
-    mdn.fit(X, Y)
+  # fit the estimators
+  mdn = MixtureDensityNetwork('mdn_empirical' + str(ndim_x) + str(round_seed), ndim_x, ndim_y, n_centers=20,
+                              n_training_epochs=epochs,
+                              random_seed=round_seed, x_noise_std=x_noise, y_noise_std=y_noise,
+                              data_normalization=True, hidden_sizes=(16, 16))
+  mdn.fit(X, Y)
 
-    kmn = KernelMixtureNetwork('kmn_empirical' + str(ndim_x) + str(round_seed), ndim_x, ndim_y, n_centers=50,
-                               init_scales=[1.0, 0.5],
-                               n_training_epochs=epochs, random_seed=round_seed, x_noise_std=x_noise,
-                               y_noise_std=y_noise,
-                               data_normalization=True, keep_edges=True, hidden_sizes=(16, 16))
-    kmn.fit(X, Y)
+  kmn = KernelMixtureNetwork('kmn_empirical' + str(ndim_x) + str(round_seed), ndim_x, ndim_y, n_centers=50,
+                             init_scales=[1.0, 0.5],
+                             n_training_epochs=epochs, random_seed=round_seed, x_noise_std=x_noise,
+                             y_noise_std=y_noise,
+                             data_normalization=True, keep_edges=True, hidden_sizes=(16, 16))
+  kmn.fit(X, Y)
 
-    x_cond = np.array([np.zeros(ndim_x)])
+  x_cond = np.array([np.zeros(ndim_x)])
 
-    # estimate standard deviation
-    std_est_mdn = np.sqrt(mdn.covariance(x_cond)).flatten()
-    std_est_kmn = np.sqrt(kmn.covariance(x_cond)).flatten()
+  # estimate standard deviation
+  std_est_mdn = np.sqrt(mdn.covariance(x_cond)).flatten()
+  std_est_kmn = np.sqrt(kmn.covariance(x_cond)).flatten()
 
-    result_list.append(('MDN',i, j, std_est_mdn))
-    result_list.append(('KMN', i, j, std_est_kmn))
+  result_list.append(('MDN',i, j, std_est_mdn))
+  result_list.append(('KMN', i, j, std_est_kmn))
 
 
 indices = list(zip(*itertools.product(range(len(ndims)), range(len(seeds)))))
