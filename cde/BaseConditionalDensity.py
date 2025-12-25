@@ -10,7 +10,7 @@ from matplotlib import cm
 
 
 import scipy
-from cde.utils.optimizers import find_root_newton_method, find_root_by_bounding
+from cde.utils.numerical_optim import find_root_newton_method, find_root_by_bounding
 
 """ Default Numerical Integration Standards"""
 N_SAMPLES_INT = 10**5
