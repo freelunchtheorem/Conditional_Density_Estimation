@@ -4,6 +4,7 @@ from typing import Optional, Type
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import lr_scheduler
 
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
@@ -162,6 +163,28 @@ class BaseNNEstimator(BaseDensityEstimator, nn.Module):
 
     def score(self, X: np.ndarray, Y: np.ndarray) -> float:
         return float(np.mean(self.log_pdf(X, Y)))
+
+    def _add_entropy_regularization(self, loss: torch.Tensor, logits: torch.Tensor) -> torch.Tensor:
+        coef = getattr(self, "entropy_reg_coef", 0.0)
+        if coef <= 0:
+            return loss
+        weights = F.softmax(logits, dim=1)
+        entropy = -torch.sum(weights * torch.log(weights + 1e-12), dim=1).mean()
+        return loss + coef * entropy
+
+    def _add_l1_regularization(self, loss: torch.Tensor) -> torch.Tensor:
+        coef = getattr(self, "l1_reg", 0.0)
+        if coef <= 0:
+            return loss
+        penalty = sum(p.abs().sum() for p in self._model.parameters())
+        return loss + coef * penalty
+
+    def _add_l2_regularization(self, loss: torch.Tensor, penalty_scale: float = 1.0) -> torch.Tensor:
+        coef = getattr(self, "l2_reg", 0.0)
+        if coef <= 0:
+            return loss
+        penalty = sum((p ** 2).sum() for p in self._model.parameters())
+        return loss + coef * penalty_scale * penalty
 
     def pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         raise NotImplementedError("Subclasses must implement pdf evaluation.")

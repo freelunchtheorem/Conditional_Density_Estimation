@@ -173,14 +173,10 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         logits = outputs
         log_prob = self._log_mixture_density(logits, y)
         loss = -torch.mean(log_prob)
-        if self.entropy_reg_coef > 0:
-            weights = F.softmax(logits, dim=1)
-            entropy = -torch.sum(weights * torch.log(weights + 1e-12), dim=1).mean()
-            loss += self.entropy_reg_coef * entropy
-        if self.l2_reg > 0:
-            penalty_scale = 1.0 + self.epochs / 100.0
-            loss += self.l2_reg * penalty_scale * sum((p ** 2).sum() for p in self._model.parameters())
+        loss = self._add_entropy_regularization(loss, logits)
+        loss = self._add_l2_regularization(loss, penalty_scale=1.0)
         return loss
+
 
     def _component_means_tensor(self):
         locs = self._locs_buffer

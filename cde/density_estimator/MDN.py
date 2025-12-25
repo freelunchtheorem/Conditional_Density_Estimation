@@ -189,15 +189,11 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         logits, locs, scales = self._split_outputs(outputs)
         log_prob = self._log_mixture_density(logits, locs, scales, y)
         loss = -torch.mean(log_prob)
-        if self.entropy_reg_coef > 0:
-            weights = F.softmax(logits, dim=1)
-            entropy = -torch.sum(weights * F.log_softmax(logits, dim=1), dim=1).mean()
-            loss += self.entropy_reg_coef * entropy
-        if self.l1_reg > 0:
-            loss += self.l1_reg * sum(p.abs().sum() for p in self._model.parameters())
-        if self.l2_reg > 0:
-            loss += self.l2_reg * sum((p ** 2).sum() for p in self._model.parameters())
+        loss = self._add_entropy_regularization(loss, logits)
+        loss = self._add_l1_regularization(loss)
+        loss = self._add_l2_regularization(loss)
         return loss
+
 
     def _maybe_add_noise(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         noise_std = None

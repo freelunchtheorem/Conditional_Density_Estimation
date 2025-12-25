@@ -673,27 +673,14 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
       "keep_edges": [True]
     }
 
-    best_center = None
-    best_ll = -np.inf
-    for n_centers in [3, 10]:
-      candidate = KernelMixtureNetwork("kmn_cv", 1, 1, center_sampling_method="k_means",
-                                       keep_edges=True, n_centers=n_centers)
-      candidate.fit(X, Y)
-      y = np.arange(-1, 5, 0.5)
-      x = np.asarray([2 for i in range(y.shape[0])])
-      ll = candidate.log_pdf(x, y).mean()
-      if ll > best_ll:
-        best_ll = ll
-        best_center = n_centers
-    model = KernelMixtureNetwork("kmn_fit_by_cv", 1, 1, center_sampling_method="k_means",
-                                 keep_edges=True, n_centers=best_center)
-    model.fit(X, Y)
+    model = KernelMixtureNetwork(center_sampling_method="k_means", n_centers=20)
+    model.fit_by_cv(X, Y, param_grid=param_grid)
 
     y = np.arange(-1, 5, 0.5)
     x = np.asarray([2 for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertEqual(best_center, 50)
+    self.assertEqual(model.get_params()["n_centers"], 3)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 
@@ -704,25 +691,14 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
       "n_centers": [2, 10, 50]
     }
 
-    best_center = None
-    best_ll = -np.inf
-    for n_centers in [2, 10, 50]:
-      candidate = MixtureDensityNetwork("mdn_cv", 1, 1, n_centers=n_centers)
-      candidate.fit(X, Y)
-      y = np.arange(-1, 5, 0.5)
-      x = np.asarray([2 for i in range(y.shape[0])])
-      ll = candidate.log_pdf(x, y).mean()
-      if ll > best_ll:
-        best_ll = ll
-        best_center = n_centers
-    model = MixtureDensityNetwork("mdn_fit_by_cv", 1, 1, n_centers=best_center)
-    model.fit(X, Y)
+    model = MixtureDensityNetwork()
+    model.fit_by_cv(X, Y, param_grid=param_grid)
 
     y = np.arange(-1, 5, 0.5)
     x = np.asarray([2 for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertEqual(best_center, 10)
+    self.assertEqual(model.get_params()["n_centers"], 10)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 if __name__ == '__main__':
