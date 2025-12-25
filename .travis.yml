@@ -1,21 +1,13 @@
 language: python
 
 python:
-  - "3.6"
+  - "3.11"
 
-env:
-  - TENSORFLOW_VERSION=1.5
-  - TENSORFLOW_VERSION=1.6
-  - TENSORFLOW_VERSION=1.7
-
-before_install:
-
-# command to install dependencies
+# install the package + dependencies
 install:
-  - pip install -q .
-  - pip install numpy --upgrade # prevents TF1.5 and Python 3.6 from failing due to numpy error
-  - pip install -q tensorflow==$TENSORFLOW_VERSION
- 
+  - pip install --upgrade pip wheel
+  - pip install -q -r requirements.txt
+  - pip install --break-system-packages -e .
 
 # command to run tests
 script:
@@ -23,6 +15,8 @@ script:
   - python tests/unittests_evaluations.py
   - python tests/unittests_simulations.py
   - python tests/unittests_utils.py
+  #- python tests/test_nf_torch.py
+  #- python tests/test_kmn_torch.py
 
 notifications:
   email:
