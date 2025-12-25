@@ -1,14 +1,10 @@
-Keras==2.2.4
-tensorflow==1.7.0
-edward==1.3.5
 matplotlib
-numpy
+numpy>=1.26.4
 pandas
 seaborn
-scipy==1.2.1
+scipy>=1.11.3
 pytest
 scikit_learn
-git+https://github.com/jonasrothfuss/ml_logger.git
 statsmodels
 sphinx_rtd_theme
 progressbar2

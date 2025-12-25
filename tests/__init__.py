@@ -1,1 +1,1 @@
-from tests.dummies import *
+"""Tests package exports."""

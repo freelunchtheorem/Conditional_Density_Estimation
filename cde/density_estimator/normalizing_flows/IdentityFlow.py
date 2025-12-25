@@ -1,37 +1,27 @@
-import tensorflow as tf
+import torch
+
 from .BaseNormalizingFlow import BaseNormalizingFlow
 
 
 class IdentityFlow(BaseNormalizingFlow):
-    """
-    Implements the identity bijector y = x
-    """
+    """Identity bijector (y = x)."""
 
-    def __init__(self, params, n_dims, name='IdentityFlow'):
+    def __init__(self, params: torch.Tensor, n_dims: int):
         """
-        :param params: shape (?, 1), this will become alpha and define the slow of ReLU for x < 0
-        :param n_dims: Dimension of the distribution that's being transformed
+        Identity transformation requires no flow parameters.
+
+        Args:
+            params: tensor with dimension (batch_size, 0); unused.
+            n_dims: dimensionality of the target.
         """
-        super(IdentityFlow, self).__init__(params,
-                                           n_dims,
-                                           name=name)
+        super().__init__(params, n_dims)
 
     @staticmethod
-    def get_param_size(n_dims):
-        """
-        :param n_dims: The dimension of the distribution to be transformed by the flow. For this flow it's irrelevant
-        :return: (int) The dimension of the parameter space for the flow. This flow doesn't have parameters, hence it's always 0
-        """
+    def get_param_size(n_dims: int) -> int:
         return 0
 
-    def _forward(self, x):
-        return x
-
-    def _inverse(self, y):
+    def inverse(self, y: torch.Tensor) -> torch.Tensor:
         return y
 
-    def _forward_log_det_jacobian(self, x):
-        return tf.zeros((tf.shape(x)[0], 1))
-
-    def _ildj(self, y):
-        return tf.zeros((tf.shape(y)[0], 1))
+    def ildj(self, y: torch.Tensor) -> torch.Tensor:
+        return torch.zeros((y.shape[0], 1), device=y.device)

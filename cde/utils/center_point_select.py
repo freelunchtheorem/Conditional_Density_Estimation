@@ -73,7 +73,7 @@ def sample_center_points(Y, method='all', k=100, keep_edges=False, parallelize=F
 
     # use 1-D k-means clustering
     elif method == 'k_means':
-        model = KMeans(n_clusters=k, n_jobs=n_jobs, random_state=random_state)
+        model = KMeans(n_clusters=k, random_state=random_state)
         model.fit(Y)
         cluster_centers = model.cluster_centers_
 

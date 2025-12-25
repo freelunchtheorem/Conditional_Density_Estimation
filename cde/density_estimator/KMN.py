@@ -1,256 +1,279 @@
-#
-# code skeleton from https://github.com/janvdvegt/KernelMixtureNetwork
-# this version additionally supports fit_by_crossval and multidimentional Y
-#
 import math
+
 import numpy as np
-import sklearn
-import tensorflow as tf
-import edward as ed
-from edward.models import Categorical, Mixture, MultivariateNormalDiag
-from cde.utils.tf_utils.network import MLP
-import cde.utils.tf_utils.layers as L
-from cde.utils.tf_utils.layers_powered import LayersPowered
-from cde.utils.serializable import Serializable
-#import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-
-from cde.utils.center_point_select import sample_center_points
 from cde.density_estimator.BaseNNMixtureEstimator import BaseNNMixtureEstimator
+from cde.utils.center_point_select import sample_center_points
 
-import logging
-logging.getLogger("tensorflow").setLevel(logging.ERROR)
-tf.logging.set_verbosity(tf.logging.ERROR)
+LOG2PI = math.log(2 * math.pi)
 
 
 class KernelMixtureNetwork(BaseNNMixtureEstimator):
+    """PyTorch implementation of the Kernel Mixture Network."""
 
-  """ Kernel Mixture Network Estimator
+    ACTIVATIONS = {
+        "tanh": lambda: nn.Tanh(),
+        "relu": lambda: nn.ReLU(),
+        "elu": lambda: nn.ELU(),
+        "identity": lambda: nn.Identity(),
+    }
 
-      https://arxiv.org/abs/1705.07111
+    def __init__(
+        self,
+        name,
+        ndim_x,
+        ndim_y,
+        center_sampling_method="k_means",
+        n_centers=50,
+        keep_edges=True,
+        init_scales="default",
+        hidden_sizes=(16, 16),
+        hidden_nonlinearity="tanh",
+        train_scales=True,
+        n_training_epochs=1000,
+        batch_size=256,
+        learning_rate=2e-3,
+        x_noise_std=None,
+        y_noise_std=None,
+        adaptive_noise_fn=None,
+        entropy_reg_coef=0.0,
+        weight_decay=0.0,
+        data_normalization=True,
+        dropout=0.0,
+        random_seed=None,
+        **kwargs,
+    ):
+        """Initialize the Kernel Mixture Network.
 
-      Args:
-          name: (str) name space of MDN (should be unique in code, otherwise tensorflow namespace collitions may arise)
-          ndim_x: (int) dimensionality of x variable
-          ndim_y: (int) dimensionality of y variable
-          center_sampling_method: String that describes the method to use for finding kernel centers. Allowed values \
-                                  [all, random, distance, k_means, agglomerative]
-          n_centers: Number of kernels to use in the output
-          keep_edges: Keep the extreme y values as center to keep expressiveness
-          init_scales: List or scalar that describes (initial) values of bandwidth parameter
-          train_scales: Boolean that describes whether or not to make the scales trainable
-          x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X
-          y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y
-          adaptive_noise_fn: (callable) that takes the number of samples and the data dimensionality as arguments and returns
-                           the noise std as float - if used, the x_noise_std and y_noise_std have no effect
-          entropy_reg_coef: (optional) scalar float coefficient for shannon entropy penalty on the mixture component weight distribution
-          weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
-          l2_reg: (float) the amount of l2 penalty on neural network weights
-          l1_reg: (float) the amount of l1 penalty on neural network weights
-          weight_normalization: boolean specifying whether weight normalization shall be used
-          data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and std
-          dropout: (float) the probability of switching off nodes during training
-          random_seed: (optional) seed (int) of the random number generators used
-  """
+        Args:
+            name: estimator name.
+            ndim_x: conditioning input dimensionality.
+            ndim_y: target dimensionality.
+            center_sampling_method: method for selecting mixture centers.
+            n_centers: number of kernel centers.
+            keep_edges: whether to keep boundary centers.
+            init_scales: initial scale specification (defaults to [0.7,0.3]).
+            hidden_sizes: sizes of hidden layers.
+            hidden_nonlinearity: activation name or module factory.
+            train_scales: whether to learn kernel widths.
+            n_training_epochs: number of epochs.
+            batch_size: minibatch size.
+            learning_rate: optimizer learning rate.
+            x_noise_std: optional input noise standard deviation.
+            y_noise_std: optional target noise standard deviation.
+            adaptive_noise_fn: callable returning noise std based on sample count.
+            entropy_reg_coef: entropy regularization multiplier.
+            weight_decay: L2 weight decay.
+            data_normalization: whether to normalize X/Y each fit.
+            dropout: dropout probability for hidden layers.
+            random_seed: RNG seed for reproducibility.
+        """
+        super().__init__(
+            ndim_x,
+            ndim_y,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=n_training_epochs,
+            batch_size=batch_size,
+        )
 
-  def __init__(self, name, ndim_x, ndim_y, center_sampling_method='k_means', n_centers=50, keep_edges=True,
-               init_scales='default', hidden_sizes=(16, 16), hidden_nonlinearity=tf.nn.tanh, train_scales=True,
-               n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,  entropy_reg_coef=0.0,
-               weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
-               random_seed=None):
+        self.name = name
+        self.random_seed = random_seed
+        self.random_state = np.random.RandomState(seed=random_seed)
 
-    Serializable.quick_init(self, locals())
-    self._check_uniqueness_of_scope(name)
+        self.center_sampling_method = center_sampling_method
+        self.keep_edges = keep_edges
+        self.entropy_reg_coef = entropy_reg_coef
+        self.weight_decay = weight_decay
+        self.data_normalization = data_normalization
+        self.dropout = dropout
+        self.x_noise_std = x_noise_std
+        self.y_noise_std = y_noise_std
+        self.adaptive_noise_fn = adaptive_noise_fn
+        self.can_sample = True
+        self.has_pdf = True
+        self.has_cdf = True
 
-    self.name = name
-    self.ndim_x = ndim_x
-    self.ndim_y = ndim_y
+        self.n_centers = n_centers
+        self.hidden_sizes = tuple(hidden_sizes)
+        self.hidden_nonlinearity = hidden_nonlinearity
+        self.train_scales = train_scales
 
-    self.random_seed = random_seed
-    self.random_state = np.random.RandomState(seed=random_seed)
-    tf.set_random_seed(random_seed)
+        if isinstance(init_scales, str) and init_scales == "default":
+            init_scales = np.array([0.7, 0.3], dtype=np.float32)
+        else:
+            init_scales = np.array(init_scales, dtype=np.float32)
 
-    self.n_centers = n_centers
+        self.n_scales = len(init_scales)
+        self.init_scales = init_scales
+        self.init_scales_softplus = np.log(np.exp(init_scales) - 1.0)
+        self.hidden_activation = self._resolve_activation(hidden_nonlinearity)
 
-    self.hidden_sizes = hidden_sizes
-    self.hidden_nonlinearity = hidden_nonlinearity
+        self.register_buffer("_locs_buffer", torch.zeros(self.n_centers, self.ndim_y))
+        self.log_scales = nn.Parameter(
+            torch.tensor(self.init_scales_softplus, dtype=torch.float32), requires_grad=self.train_scales
+        )
 
-    self.n_training_epochs = n_training_epochs
+    def _resolve_activation(self, spec):
+        if isinstance(spec, str):
+            spec_lower = spec.lower()
+            if spec_lower not in self.ACTIVATIONS:
+                raise ValueError(f"Unsupported hidden activation '{spec}'")
+            return self.ACTIVATIONS[spec_lower]
+        if isinstance(spec, type) and issubclass(spec, nn.Module):
+            return lambda: spec()
+        if callable(spec):
+            return lambda: spec()
+        raise ValueError("hidden_nonlinearity must be a string or nn.Module class")
 
-    # center sampling parameters
-    self.center_sampling_method = center_sampling_method
-    self.keep_edges = keep_edges
+    def _build_model(self):
+        layers = []
+        input_dim = self.ndim_x
+        for size in self.hidden_sizes:
+            layers.append(nn.Linear(input_dim, size))
+            layers.append(self.hidden_activation())
+            if self.dropout > 0:
+                layers.append(nn.Dropout(self.dropout))
+            input_dim = size
+        layers.append(nn.Linear(input_dim, self.n_centers * self.n_scales))
+        return nn.Sequential(*layers)
 
-    # regularization parameters
-    self.x_noise_std = x_noise_std
-    self.y_noise_std = y_noise_std
-    self.adaptive_noise_fn = adaptive_noise_fn
-    self.entropy_reg_coef = entropy_reg_coef
-    self.weight_decay = weight_decay
-    self.l2_reg = l2_reg
-    self.l1_reg = l1_reg
-    self.weight_normalization = weight_normalization
-    self.data_normalization = data_normalization
-    self.dropout = dropout
+    def _model_parameters(self):
+        return list(self._model.parameters()) + [self.log_scales]
 
-    if type(init_scales) is str and init_scales == 'default':
-        init_scales = np.array([0.7, 0.3])
+    def _forward(self, x, y):
+        return self._model(x)
 
-    self.n_scales = len(init_scales)
-    self.train_scales = train_scales
-    self.init_scales = init_scales
-    # Transform scales so that the softplus will result in passed init_scales
-    self.init_scales_softplus = [np.log(np.exp(s) - 1) for s in init_scales]
+    def _loss(self, outputs, y):
+        logits = outputs
+        log_prob = self._log_mixture_density(logits, y)
+        loss = -torch.mean(log_prob)
+        if self.entropy_reg_coef > 0:
+            weights = F.softmax(logits, dim=1)
+            entropy = -torch.sum(weights * torch.log(weights + 1e-12), dim=1).mean()
+            loss += self.entropy_reg_coef * entropy
+        return loss
 
-    self.can_sample = True
-    self.has_pdf = True
-    self.has_cdf = True
+    def _component_means_tensor(self):
+        locs = self._locs_buffer
+        return locs.unsqueeze(1).expand(-1, self.n_scales, -1).reshape(-1, self.ndim_y)
 
-    self.fitted = False
+    def _component_scales_tensor(self):
+        scales = F.softplus(self.log_scales)
+        scale_vec = scales.unsqueeze(1).expand(-1, self.ndim_y)
+        return scale_vec.unsqueeze(0).expand(self.n_centers, -1, -1).reshape(-1, self.ndim_y)
 
-    # build tensorflow model
-    self._build_model()
+    def _component_log_probs(self, y):
+        component_means = self._component_means_tensor()
+        component_scales = self._component_scales_tensor()
+        diff = y.unsqueeze(1) - component_means.unsqueeze(0)
+        inv_var = 1.0 / (component_scales ** 2 + 1e-12)
+        quadratic = (diff ** 2 * inv_var).sum(dim=-1)
+        log_det = torch.log(component_scales).sum(dim=-1)
+        const = 0.5 * (self.ndim_y * LOG2PI)
+        return -0.5 * quadratic - log_det - const
 
-  def fit(self, X, Y, eval_set=None, verbose=True):
-    """ Fits the conditional density model with provided data
+    def _log_mixture_density(self, logits, y):
+        log_weights = F.log_softmax(logits, dim=1)
+        component_log_probs = self._component_log_probs(y)
+        return torch.logsumexp(log_weights + component_log_probs, dim=1)
 
-      Args:
-        X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        eval_set: (tuple) eval/test set - tuple (X_test, Y_test)
-        verbose: (boolean) controls the verbosity (console output)
-    """
-    X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+    def _normalize_for_eval(self, X, Y):
+        X_norm = self._normalize_array(X, self.x_mean, self.x_std)
+        Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
+        return (
+            torch.from_numpy(X_norm.astype(np.float32)).to(self.device),
+            torch.from_numpy(Y_norm.astype(np.float32)).to(self.device),
+        )
 
-    if eval_set is not None:
-      eval_set = self._handle_input_dimensionality(*eval_set)
+    def _evaluate_log_pdf(self, X, Y):
+        assert self.fitted, "model must be fitted"
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
+        X_tensor, Y_tensor = self._normalize_for_eval(X, Y)
+        self._ensure_model()
+        self._model.eval()
+        with torch.no_grad():
+            logits = self._model(X_tensor)
+            log_probs = self._log_mixture_density(logits, Y_tensor)
+        adjustment = np.sum(np.log(self.y_std + 1e-8))
+        return log_probs.cpu().numpy() - adjustment
 
-    self._setup_inference_and_initialize()
+    def log_pdf(self, X, Y):
+        return self._evaluate_log_pdf(X, Y)
 
-    # data normalization if desired
-    if self.data_normalization:  # this must happen after the initialization
-      self._compute_data_normalization(X, Y)  # computes mean & std of data and assigns it to tf graph for normalization
-      Y_normalized = (Y - self.data_statistics['Y_mean']) / (self.data_statistics['Y_std'] + 1e-8)
-    else:
-      Y_normalized = Y
+    def pdf(self, X, Y):
+        return np.exp(self.log_pdf(X, Y))
 
-    self._compute_noise_intensity(X, Y)
+    def _update_centers(self, Y):
+        normalized_Y = self._normalize_array(Y, self.y_mean, self.y_std)
+        sampled = sample_center_points(
+            normalized_Y,
+            method=self.center_sampling_method,
+            k=self.n_centers,
+            keep_edges=self.keep_edges,
+            random_state=self.random_state,
+        ).astype(np.float32)
+        with torch.no_grad():
+            self._locs_buffer.copy_(torch.from_numpy(sampled).to(self.device))
 
-    # sample locations and assign them to tf locs variable
-    sampled_locs = sample_center_points(Y_normalized, method=self.center_sampling_method, k=self.n_centers,
-                                     keep_edges=self.keep_edges, random_state=self.random_state)
-    self.sess.run(tf.assign(self.locs, sampled_locs))
+    def fit(self, X, Y, eval_set=None, verbose=True):
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        self._prepare_data(X, Y)
+        self._update_centers(Y)
+        super().fit(X, Y, verbose=verbose)
+        if verbose:
+            scales = self._denormalize_scales_numpy(self._component_scales_tensor().cpu().numpy())
+            print("optimal scales: {}".format(scales[: self.n_scales]))
 
-    # train the model
-    self._partial_fit(X, Y, n_epoch=self.n_training_epochs, eval_set=eval_set, verbose=verbose)
-    self.fitted = True
+    def _denormalize_locs_numpy(self, locs):
+        return locs * (self.y_std + 1e-8) + self.y_mean
 
-    if verbose:
-      print("optimal scales: {}".format(self.sess.run(self.scales)))
+    def _denormalize_scales_numpy(self, scales):
+        return scales * (self.y_std + 1e-8)
 
-  def _build_model(self):
-    """
-    implementation of the KMN
-    """
-    with tf.variable_scope(self.name):
-      # add placeholders, data_normalization and data_noise if desired. Also sets up the placeholder for dropout prob
-      self.layer_in_x, self.layer_in_y = self._build_input_layers()
+    def _component_normalized_means(self):
+        return self._component_means_tensor()
 
-      self.X_in = L.get_output(self.layer_in_x)
-      self.Y_in = L.get_output(self.layer_in_y)
+    def _component_normalized_scales(self):
+        return self._component_scales_tensor()
 
-      # get batch size
-      self.batch_size = tf.shape(self.X_ph)[0]
+    def _get_mixture_components(self, X):
+        X = self._handle_input_dimensionality(X)
+        X_norm = self._normalize_array(X, self.x_mean, self.x_std)
+        self._ensure_model()
+        self._model.eval()
+        with torch.no_grad():
+            logits = self._model(torch.from_numpy(X_norm.astype(np.float32)).to(self.device))
+            weights = F.softmax(logits, dim=1).cpu().numpy()
+        locs = self._component_normalized_means().detach().cpu().numpy()
+        scales = self._component_normalized_scales().detach().cpu().numpy()
+        locs = self._denormalize_locs_numpy(locs)
+        scales = self._denormalize_scales_numpy(scales)
+        locs = np.tile(locs[None], (X.shape[0], 1, 1))
+        scales = np.tile(scales[None], (X.shape[0], 1, 1))
+        return weights, locs, scales
 
-      # create core multi-layer perceptron
-      core_network = MLP(
-        name="core_network",
-        input_layer=self.layer_in_x,
-        output_dim=self.n_centers*self.n_scales,
-        hidden_sizes=self.hidden_sizes,
-        hidden_nonlinearity=self.hidden_nonlinearity,
-        output_nonlinearity=None,
-        dropout_ph=self.dropout_ph if self.dropout else None
-      )
-
-      self.core_output_layer = core_network.output_layer
-
-      # weights of the mixture components
-      self.logits = L.get_output(self.core_output_layer)
-      self.softmax_layer_weights = L.NonlinearityLayer(self.core_output_layer, nonlinearity=tf.nn.softmax)
-      self.weights = L.get_output(self.softmax_layer_weights)
-
-      # locations of the kernelfunctions
-      self.locs = tf.Variable(np.zeros((self.n_centers, self.ndim_y)), name="locs", trainable=False, dtype=tf.float32) # assign sampled locs when fitting
-      self.locs_layer = L.VariableLayer(core_network.input_layer, (self.n_centers, self.ndim_y), variable=self.locs, name="locs", trainable=False)
-
-      self.locs_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.n_centers, self.ndim_y)), self.locs), perm=[1, 0, 2]))
-      assert len(self.locs_array) == self.n_centers
-
-      # scales of the gaussian kernels
-      log_scales_layer = L.VariableLayer(core_network.input_layer, (self.n_scales,),
-                                         variable=tf.Variable(self.init_scales_softplus, dtype=tf.float32, trainable=self.train_scales),
-                                         name="log_scales", trainable=self.train_scales)
-
-      self.scales_layer = L.NonlinearityLayer(log_scales_layer, nonlinearity=tf.nn.softplus)
-      self.scales = L.get_output(self.scales_layer)
-      self.scales_array = scales_array = tf.unstack(tf.transpose(tf.multiply(tf.ones((self.batch_size, self.ndim_y, self.n_scales)), self.scales), perm=[2,0,1]))
-      assert len(self.scales_array) == self.n_scales
-
-      # put mixture components together
-      self.y_input = L.get_output(self.layer_in_y)
-      self.cat = cat = Categorical(logits=self.logits)
-      self.components = components = [MultivariateNormalDiag(loc=loc, scale_diag=scale) for loc in self.locs_array for scale in scales_array]
-      self.mixture = mixture = Mixture(cat=cat, components=components)
-
-      # regularization
-      self._add_softmax_entropy_regularization()
-      self._add_l1_l2_regularization(core_network)
-
-      # tensor to compute probabilities
-      if self.data_normalization:
-        self.pdf_ = mixture.prob(self.y_input) / tf.reduce_prod(self.std_y_sym)
-        self.log_pdf_ = mixture.log_prob(self.y_input) - tf.reduce_sum(tf.log(self.std_y_sym))
-      else:
-        self.pdf_ = mixture.prob(self.y_input)
-        self.log_pdf_ = mixture.log_prob(self.y_input)
-
-      # symbolic tensors for getting the unnormalized mixture components
-      if self.data_normalization:
-        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) * self.std_y_sym # shape = (n_scales, ndim_y)
-        self.locs_unnormalized = self.locs * self.std_y_sym + self.mean_y_sym
-      else:
-        self.scales_unnormalized = tf.transpose(tf.multiply(tf.ones((self.ndim_y, self.n_scales)), self.scales)) # shape = (n_scales, ndim_y)
-        self.locs_unnormalized = self.locs
-
-    # initialize LayersPowered --> provides functions for serializing tf models
-    LayersPowered.__init__(self, [self.core_output_layer, self.locs_layer, self.scales_layer, self.layer_in_y])
-
-  def _param_grid(self):
-    param_grid = {
+    def _param_grid(self):
+        return {
         "n_training_epochs": [500, 1000],
         "n_centers": [50, 200],
         "x_noise_std": [0.15, 0.2, 0.3],
-        "y_noise_std": [0.1, 0.15, 0.2]
-    }
-    return param_grid
+            "y_noise_std": [0.1, 0.15, 0.2],
+        }
 
-  def _get_mixture_components(self, X):
-    assert self.fitted
+    def __str__(self):
+        return (
+            f"\nEstimator type: {self.__class__.__name__}\n"
+            f" center sampling method: {self.center_sampling_method}\n"
+            f" n_centers: {self.n_centers}\n"
+            f" keep_edges: {self.keep_edges}\n"
+            f" init_scales: {self.init_scales_softplus}\n"
+            f" train_scales: {self.train_scales}\n"
+            f" n_training_epochs: {self.epochs}\n"
+            f" x_noise_std: {self.x_noise_std}\n"
+            f" y_noise_std: {self.y_noise_std}\n"
+        )
 
-    locs, weights, scales = self.sess.run([self.locs_unnormalized, self.weights, self.scales_unnormalized], feed_dict={self.X_ph: X})
-
-    locs = np.concatenate([np.tile(np.expand_dims(locs[i:i+1], axis=1), (X.shape[0], self.n_scales, 1)) for i in range(self.n_centers)], axis=1)
-    cov = np.tile(np.expand_dims(scales, axis=0), (X.shape[0], self.n_centers, 1))
-
-    assert weights.shape[0] == locs.shape[0] == cov.shape[0] == X.shape[0]
-    assert weights.shape[1] == locs.shape[1] == cov.shape[1] == self.n_centers*self.n_scales
-    assert locs.shape[2] == cov.shape[2] == self.ndim_y
-    assert locs.ndim == 3 and cov.ndim == 3 and weights.ndim == 2
-    return weights, locs, cov
-
-  def __str__(self):
-    return "\nEstimator type: {}\n center sampling method: {}\n n_centers: {}\n keep_edges: {}\n init_scales: {}\n train_scales: {}\n " \
-             "n_training_epochs: {}\n x_noise_std: {}\n y_noise_std: {}\n".format(self.__class__.__name__, self.center_sampling_method, self.n_centers,
-                                                                                  self.keep_edges, self.init_scales_softplus, self.train_scales, self.n_training_epochs, self.x_noise_std,
-                                                                                  self.y_noise_std)

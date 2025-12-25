@@ -1,7 +1,105 @@
+import json
 import sys
 import os
-import scipy.stats as stats
-import numpy as np
+import time
+
+_DEBUG_LOG_PATH = "/Users/fabioferreira/Library/CloudStorage/Dropbox/0_Promotion/0_projects/2026/Conditional_Density_Estimation/.cursor/debug.log"
+
+def _append_debug_log(log_entry):
+    with open(_DEBUG_LOG_PATH, "a") as _f:
+        _f.write(json.dumps(log_entry) + "\n")
+
+def _log_event(hypothesis_id, location, message, data):
+    entry = {
+        "sessionId": "debug-session",
+        "runId": "prefix",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    _append_debug_log(entry)
+
+
+# region agent log
+try:
+    _log_event(
+        "H2",
+        "tests/dummies.py:pre_import",
+        "sys.path snapshot before imports",
+        {"sys_path": sys.path[:5]},
+    )
+except Exception:
+    pass
+# endregion
+
+try:
+    # region agent log
+    import scipy.stats as stats
+    _log_event(
+        "H1",
+        "tests/dummies.py:scipy_import",
+        "scipy imported successfully",
+        {"scipy_file": getattr(stats, "__file__", None)},
+    )
+    # endregion
+except Exception as e:
+    # region agent log
+    _log_event(
+        "H3",
+        "tests/dummies.py:scipy_import",
+        "scipy import failed",
+        {"error": str(e)},
+    )
+    # endregion
+    raise
+
+try:
+    # region agent log
+    import numpy as np
+    _log_event(
+        "H1",
+        "tests/dummies.py:numpy_import",
+        "numpy imported successfully",
+        {"numpy_file": getattr(np, "__file__", None), "numpy_version": np.__version__},
+    )
+    # endregion
+except Exception as e:
+    # region agent log
+    _log_event(
+        "H3",
+        "tests/dummies.py:numpy_import",
+        "numpy import failed",
+        {"error": str(e)},
+    )
+    # endregion
+    raise
+
+try:
+    # region agent log
+    multiarray_path = getattr(getattr(np, "core", None), "multiarray", None)
+    multiarray_file = getattr(multiarray_path, "__file__", None)
+    _log_event(
+        "H4",
+        "tests/dummies.py:numpy_multiarray",
+        "numpy core multiarray path",
+        {
+            "multiarray_file": multiarray_file,
+            "sys_modules_numpy": str(sys.modules.get("numpy")),
+            "sys_modules_multiarray": str(sys.modules.get("numpy._core.multiarray")),
+        },
+    )
+    # endregion
+except Exception as e:
+    # region agent log
+    _log_event(
+        "H4",
+        "tests/dummies.py:numpy_multiarray",
+        "failed to log numpy multiarray info",
+        {"error": str(e)},
+    )
+    # endregion
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from cde.density_simulation import BaseConditionalDensitySimulation

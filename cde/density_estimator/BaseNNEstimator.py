@@ -1,302 +1,170 @@
-import numpy as np
-import tensorflow as tf
-import sklearn
-import os
-import itertools
-import warnings
-from multiprocessing import Manager
+import logging
+from typing import Optional, Type
 
-from cde.utils.tf_utils.layers_powered import LayersPowered
-import cde.utils.tf_utils.layers as L
-from cde.utils.serializable import Serializable
-from cde.utils.async_executor import AsyncExecutor
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.optim import lr_scheduler
+
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 
+logger = logging.getLogger(__name__)
 
-class BaseNNEstimator(LayersPowered, Serializable, BaseDensityEstimator):
-    """
-    Base class for a density estimator using a neural network to parametrize the distribution p(y|x)
-    To use this class, implement pdf_, cdf_ and log_pdf_ or overwrite the parent methods
-    To use the hyperparameter search, also implement reset_fit and (optionally) _param_grid()
-    """
 
-    # input data can be normalized before training
+class BaseNNEstimator(BaseDensityEstimator, nn.Module):
+    """PyTorch base estimator with training loop, normalization, and optimizer scaffolding."""
+
     data_normalization = False
-
-    # used for noise regularization of the data
-    x_noise_std = False
-    y_noise_std = False
-
-    # was the model fitted to the data or not
-    fitted = False
-
-    # set to >0. to use dropout during training. Determines the probability of dropping the output of a node
+    x_noise_std = 0.0
+    y_noise_std = 0.0
     dropout = 0.0
 
+    def __init__(
+        self,
+        ndim_x: int,
+        ndim_y: int,
+        *,
+        learning_rate: float = 1e-3,
+        weight_decay: float = 0.0,
+        epochs: int = 100,
+        batch_size: int = 256,
+        device: Optional[torch.device] = None,
+        optimizer_cls: Type[torch.optim.Optimizer] = torch.optim.Adam,
+        scheduler_cls: Optional[Type[lr_scheduler._LRScheduler]] = None,
+        scheduler_kwargs: Optional[dict] = None,
+        **kwargs,
+    ):
+        nn.Module.__init__(self)
+        BaseDensityEstimator.__init__(self)
+
+        self.ndim_x = ndim_x
+        self.ndim_y = ndim_y
+
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if device is None else device
+        self.optimizer_cls = optimizer_cls
+        self.scheduler_cls = scheduler_cls
+        self.scheduler_kwargs = scheduler_kwargs or {}
+
+        self._model: Optional[nn.Module] = None
+        self._optimizer: Optional[torch.optim.Optimizer] = None
+        self._scheduler: Optional[lr_scheduler._LRScheduler] = None
+
+        self.fitted = False
+        self.data_statistics = {}
+
     def reset_fit(self):
-        """
-        Reset all tensorflow objects to enable the model to be trained again
-        :return:
-        """
+        """Reset internal modules so the estimator can be re-trained."""
+        self._model = None
+        self._optimizer = None
+        self._scheduler = None
+        self.fitted = False
+
+    def _build_model(self) -> nn.Module:
+        """Override in subclasses to construct the nn.Module architecture."""
         raise NotImplementedError()
 
-    def fit_by_cv(self, X, Y, n_folds=3, param_grid=None, random_state=None, verbose=True, n_jobs=-1):
-        """ Fits the conditional density model with hyperparameter search and cross-validation.
+    def _forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Computes tensors needed for pdf/logpdf evaluation."""
+        raise NotImplementedError()
 
-        - Determines the best hyperparameter configuration from a pre-defined set using cross-validation. Thereby,
-          the conditional log-likelihood is used for simulation_eval.
-        - Fits the model with the previously selected hyperparameter configuration
+    def _loss(self, outputs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Loss used during training."""
+        raise NotImplementedError()
 
-        Args:
-          X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-          Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-          n_folds: number of cross-validation folds (positive integer)
-          param_grid: (optional) a dictionary with the hyperparameters of the model as key and and a list of respective
-                      parametrizations as value. The hyperparameter search is performed over the cartesian product of
-                      the provided lists.
-                      Example::
-                              {"n_centers": [20, 50, 100, 200],
-                               "center_sampling_method": ["agglomerative", "k_means", "random"],
-                               "keep_edges": [True, False]
-                              }
-          random_state: (int) seed used by the random number generator for shuffeling the data
-        """
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-        original_params = self.get_params()
+    def _model_parameters(self):
+        return list(self._model.parameters())
 
-        if param_grid is None:
-            param_grid = self._param_grid()
+    def _ensure_model(self):
+        if self._model is None:
+            self._model = self._build_model()
+            self._model = self._model.to(self.device)
+            self.to(self.device)
+            optimizer_params = self._model_parameters()
+            self._optimizer = self.optimizer_cls(
+                optimizer_params, lr=self.learning_rate, weight_decay=self.weight_decay
+            )
+            if self.scheduler_cls is not None and self.scheduler_kwargs is not None:
+                self._scheduler = self.scheduler_cls(self._optimizer, **self.scheduler_kwargs)
 
-        param_list = list(sklearn.model_selection.ParameterGrid(param_grid))
-        train_splits, test_splits = list(zip(*list(sklearn.model_selection.KFold(n_splits=n_folds, shuffle=False,
-                                                                                 random_state=random_state).split(X))))
+    def _normalize_array(self, array: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
+        if not self.data_normalization:
+            return array
+        std_safe = std + 1e-8
+        return (array - mean) / std_safe
 
-        param_ids, fold_ids = list(zip(*itertools.product(range(len(param_list)), range(n_folds))))
+    def _denormalize_array(self, array: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
+        if not self.data_normalization:
+            return array
+        return array * (std + 1e-8) + mean
 
-        # multiprocessing setup
-        manager = Manager()
-        score_dict = manager.dict()
-
-        def _fit_eval(param_idx, fold_idx, verbose=False, i_rand=-1):
-            train_indices, test_indices = train_splits[fold_idx], test_splits[fold_idx]
-            X_train, Y_train = X[train_indices], Y[train_indices]
-            X_test, Y_test = X[test_indices], Y[test_indices]
-
-            config = tf.ConfigProto(device_count={"CPU": 1},
-                                    inter_op_parallelism_threads=1,
-                                    intra_op_parallelism_threads=1)
-
-            with tf.Session(config=config):
-                kwargs_dict = {**original_params, **param_list[param_idx]}
-                kwargs_dict['name'] = 'cv_%i_%i_%i_' % (param_idx, fold_idx, i_rand) + self.name
-                model = self.__class__(**kwargs_dict)
-
-                model.fit(X_train, Y_train, verbose=verbose)
-                test_score = model.score(X_test, Y_test)
-                assert not np.isnan(test_score)
-                score_dict[(param_idx, fold_idx)] = test_score
-
-        # run the prepared tasks in multiple processes
-        executor = AsyncExecutor(n_jobs=n_jobs)
-        executor.run(_fit_eval, param_ids, fold_ids, verbose=verbose)
-
-
-        # check if all results are available and rerun failed fit_evals. Try three times
-        for i in range(3):
-            failed_runs = [x for x in zip(param_ids, fold_ids) if x not in score_dict]
-            if not failed_runs:
-                break
-            if verbose:
-                print("{} runs succeeded, {} runs failed. Rerunning failed runs".format(len(score_dict.keys()),
-                                                                                        len(failed_runs)))
-            for (p, f) in failed_runs:
-                try:
-                    _fit_eval(p, f, verbose=verbose, i_rand=i)
-                except Exception as e:
-                    print(e)
-
-        # make sure we ultimately have an output for every parameter - fold - combination
-        assert len(score_dict.keys()) == len(param_list) * len(train_splits)
-
-        # Select the best parameter setting
-        scores_array = np.zeros((len(param_list), len(train_splits)))
-        for (i, j), score in score_dict.items():
-            scores_array[i, j] = score
-        avg_scores = np.mean(scores_array, axis=-1)
-        best_idx = np.argmax(avg_scores)
-        selected_params = param_list[best_idx]
-        assert len(avg_scores) == len(param_list)
-
-        if verbose:
-            print("Completed grid search - Selected params: {}".format(selected_params))
-            print("Refitting model with selected params")
-
-        # Refit with best parameter set
-        self.set_params(**selected_params)
-        self.reset_fit()
-        self.fit(X, Y, verbose=False)
-        return selected_params
-
-    def pdf(self, X, Y):
-        """ Predicts the conditional probability p(y|x). Requires the model to be fitted.
-
-           Args:
-             X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-             Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-
-           Returns:
-              conditional probability p(y|x) - numpy array of shape (n_query_samples, )
-
-         """
-        assert self.fitted, "model must be fitted to compute likelihood score"
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1 and p.shape[0] == X.shape[0]
-        return p
-
-    def cdf(self, X, Y):
-        """ Predicts the conditional cumulative probability p(Y<=y|X=x). Requires the model to be fitted.
-
-           Args:
-             X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-             Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-
-           Returns:
-             conditional cumulative probability p(Y<=y|X=x) - numpy array of shape (n_query_samples, )
-
-        """
-        assert self.fitted, "model must be fitted to compute likelihood score"
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.cdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1 and p.shape[0] == X.shape[0]
-        return p
-
-    def log_pdf(self, X, Y):
-        """ Predicts the conditional log-probability log p(y|x). Requires the model to be fitted.
-
-           Args:
-             X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-             Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-
-           Returns:
-              onditional log-probability log p(y|x) - numpy array of shape (n_query_samples, )
-
-         """
-        assert self.fitted, "model must be fitted to compute likelihood score"
-        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
-        p = self.sess.run(self.log_pdf_, feed_dict={self.X_ph: X, self.Y_ph: Y})
-        assert p.ndim == 1 and p.shape[0] == X.shape[0]
-        return p
-
-    def _compute_data_normalization(self, X, Y):
-        # compute data statistics (mean & std)
-        self.x_mean = np.mean(X, axis=0)
-        self.x_std = np.std(X, axis=0)
-        self.y_mean = np.mean(Y, axis=0)
-        self.y_std = np.std(Y, axis=0)
+    def _prepare_data(self, X: np.ndarray, Y: np.ndarray):
+        assert X.ndim == 2 and Y.ndim == 2
+        if self.data_normalization:
+            self.x_mean = X.mean(axis=0)
+            self.x_std = X.std(axis=0)
+            self.y_mean = Y.mean(axis=0)
+            self.y_std = Y.std(axis=0)
+        else:
+            self.x_mean = np.zeros(self.ndim_x, dtype=np.float32)
+            self.x_std = np.ones(self.ndim_x, dtype=np.float32)
+            self.y_mean = np.zeros(self.ndim_y, dtype=np.float32)
+            self.y_std = np.ones(self.ndim_y, dtype=np.float32)
 
         self.data_statistics = {
-            'X_mean': self.x_mean,
-            'X_std': self.x_std,
-            'Y_mean': self.y_mean,
-            'Y_std': self.y_std,
+            "X_mean": self.x_mean,
+            "X_std": self.x_std,
+            "Y_mean": self.y_mean,
+            "Y_std": self.y_std,
         }
 
-        # assign them to tf variables
-        sess = tf.get_default_session()
-        sess.run([
-            tf.assign(self.mean_x_sym, self.x_mean),
-            tf.assign(self.std_x_sym, self.x_std),
-            tf.assign(self.mean_y_sym, self.y_mean),
-            tf.assign(self.std_y_sym, self.y_std)
-        ])
+        X_norm = self._normalize_array(X, self.x_mean, self.x_std)
+        Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
 
-    def _compute_noise_intensity(self, X, Y):
-        # computes the noise intensity based on the number of samples and dimensionality of the data
+        return (
+            torch.from_numpy(X_norm.astype(np.float32)).to(self.device),
+            torch.from_numpy(Y_norm.astype(np.float32)).to(self.device),
+        )
 
-        n_samples = X.shape[0]
+    def _normalize_XY(self, X: np.ndarray, Y: np.ndarray):
+        X_norm = self._normalize_array(X, self.x_mean, self.x_std)
+        Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
+        return X_norm, Y_norm
 
-        if self.adaptive_noise_fn is not None:
-            self.x_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x + self.ndim_y)
-            self.y_noise_std = self.adaptive_noise_fn(n_samples, self.ndim_x + self.ndim_y)
+    def fit(self, X: np.ndarray, Y: np.ndarray, verbose: bool = False):
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        self._ensure_model()
+        X_tensor, Y_tensor = self._prepare_data(X, Y)
 
-            assert self.x_noise_std >= 0.0 and self.y_noise_std >= 0.0
+        dataset = torch.utils.data.TensorDataset(X_tensor, Y_tensor)
+        loader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
-            # assign them to tf variables
-            sess = tf.get_default_session()
-            sess.run([
-                tf.assign(self.x_noise_std_sym, self.x_noise_std),
-                tf.assign(self.y_noise_std_sym, self.y_noise_std),
-            ])
+        for epoch in range(1, self.epochs + 1):
+            self._model.train()
+            epoch_loss = 0.0
+            for x_batch, y_batch in loader:
+                self._optimizer.zero_grad()
+                outputs = self._forward(x_batch, y_batch)
+                loss = self._loss(outputs, y_batch)
+                loss.backward()
+                self._optimizer.step()
+                epoch_loss += float(loss)
+            if self._scheduler:
+                self._scheduler.step()
+            if verbose and epoch % max(1, self.epochs // 10) == 0:
+                avg_loss = epoch_loss / len(loader)
+                logger.info("Epoch %d/%d training loss %.4f", epoch, self.epochs, avg_loss)
 
+        self.fitted = True
 
-    def _build_input_layers(self):
-        # Input_Layers & placeholders
-        self.X_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_x))
-        self.Y_ph = tf.placeholder(tf.float32, shape=(None, self.ndim_y))
-        self.train_phase = tf.placeholder_with_default(False, None)
+    def score(self, X: np.ndarray, Y: np.ndarray) -> float:
+        return float(np.mean(self.log_pdf(X, Y)))
 
-        layer_in_x = L.InputLayer(shape=(None, self.ndim_x), input_var=self.X_ph, name="input_x")
-        layer_in_y = L.InputLayer(shape=(None, self.ndim_y), input_var=self.Y_ph, name="input_y")
+    def pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("Subclasses must implement pdf evaluation.")
 
-        # add data normalization layer if desired
-        if self.data_normalization:
-            layer_in_x = L.NormalizationLayer(layer_in_x, self.ndim_x, name="data_norm_x")
-            self.mean_x_sym, self.std_x_sym = layer_in_x.get_params()
-            layer_in_y = L.NormalizationLayer(layer_in_y, self.ndim_y, name="data_norm_y")
-            self.mean_y_sym, self.std_y_sym = layer_in_y.get_params()
-
-        if self.x_noise_std is None:
-            self.x_noise_std = 0.0
-        if self.y_noise_std is None:
-            self.y_noise_std = 0.0
-
-        # add noise layer if desired
-        layer_in_x = L.GaussianNoiseLayer(layer_in_x, self.x_noise_std, noise_on_ph=self.train_phase, name='x')
-        self.x_noise_std_sym = layer_in_x.get_params()[0]
-        layer_in_y = L.GaussianNoiseLayer(layer_in_y, self.y_noise_std, noise_on_ph=self.train_phase, name='y')
-        self.y_noise_std_sym = layer_in_y.get_params()[0]
-
-        # setup dropout. This placeholder will remain unused if dropout is not implemented by the MLP
-        self.dropout_ph = tf.placeholder_with_default(0., shape=())
-
-        return layer_in_x, layer_in_y
-
-    def _add_l1_l2_regularization(self, core_network):
-        if self.l1_reg > 0 or self.l2_reg > 0:
-
-            # weight norm should not be combined with l1 / l2 regularization
-            if self.weight_normalization is True:
-                warnings.WarningMessage("l1 / l2 regularization has no effect when weigh normalization is used")
-
-            weight_vector = tf.concat(
-                [tf.reshape(param, (-1,)) for param in core_network.get_params_internal() if '/W' in param.name],
-                axis=0)
-            if self.l2_reg > 0:
-                self.l2_reg_loss = self.l2_reg * tf.reduce_sum(weight_vector ** 2)
-                tf.losses.add_loss(self.l2_reg_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
-            if self.l1_reg > 0:
-                self.l1_reg_loss = self.l1_reg * tf.reduce_sum(tf.abs(weight_vector))
-                tf.losses.add_loss(self.l1_reg_loss, tf.GraphKeys.REGULARIZATION_LOSSES)
-
-    def __getstate__(self):
-        state = LayersPowered.__getstate__(self)
-        state['fitted'] = self.fitted
-        return state
-
-    def __setstate__(self, state):
-        LayersPowered.__setstate__(self, state)
-        self.fitted = state['fitted']
-        self.sess = tf.get_default_session()
-
-    def _handle_input_dimensionality(self, X, Y=None, fitting=False):
-        assert (self.ndim_x == 1 and X.ndim == 1) or (X.ndim == 2 and X.shape[1] == self.ndim_x), "expected X to have shape (?, %i) but received %s"%(self.ndim_x, str(X.shape))
-        assert (Y is None) or (self.ndim_y == 1 and Y.ndim == 1) or (Y.ndim == 2 and Y.shape[1] == self.ndim_y), "expected Y to have shape (?, %i) but received %s"%(self.ndim_y, str(Y.shape))
-        return BaseDensityEstimator._handle_input_dimensionality(self, X, Y, fitting=fitting)
-
-    @staticmethod
-    def _check_uniqueness_of_scope(name):
-        current_scope = tf.get_variable_scope().name
-        scopes = set([variable.name.split('/')[0] for variable in tf.global_variables(scope=current_scope)])
-        assert name not in scopes, "%s is already in use for a tensorflow scope - please choose another estimator name"%name
-
+    def log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        raise NotImplementedError("Subclasses must implement log_pdf evaluation.")

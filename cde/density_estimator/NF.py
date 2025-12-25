@@ -1,265 +1,304 @@
 import numpy as np
-import tensorflow as tf
+from typing import Any, Callable, Iterable, Sequence, Tuple, Union
 
-import cde.utils.tf_utils.layers as L
-from cde.utils.tf_utils.layers_powered import LayersPowered
-from cde.utils.tf_utils.network import MLP
-from cde.utils.tf_utils.adamW import AdamWOptimizer
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.distributions import MultivariateNormal, Normal
+from torch.utils.data import DataLoader, TensorDataset
+
 from .BaseNNEstimator import BaseNNEstimator
 from .normalizing_flows import FLOWS
-from cde.utils.serializable import Serializable
 
 
 class NormalizingFlowEstimator(BaseNNEstimator):
-    """ Normalizing Flow Estimator
+    """PyTorch port of the original normalizing flow estimator."""
 
+    ACTIVATIONS = {
+        "tanh": lambda: nn.Tanh(),
+        "relu": lambda: nn.ReLU(),
+        "elu": lambda: nn.ELU(),
+        "identity": lambda: nn.Identity(),
+    }
+
+    def __init__(
+        self,
+        name: str,
+        ndim_x: int,
+        ndim_y: int,
+        flows_type: Tuple[str, ...] | None = None,
+        n_flows: int = 10,
+        hidden_sizes: Sequence[int] = (16, 16),
+        hidden_nonlinearity: Union[str, Callable[[], nn.Module]] = "tanh",
+        n_training_epochs: int = 1000,
+        batch_size: int = 256,
+        learning_rate: float = 1e-2,
+        x_noise_std: float | None = None,
+        y_noise_std: float | None = None,
+        adaptive_noise_fn: Callable[[int, int], float] | None = None,
+        weight_decay: float = 0.0,
+        weight_normalization: bool = True,
+        data_normalization: bool = True,
+        dropout: float = 0.0,
+        l2_reg: float = 0.0,
+        l1_reg: float = 0.0,
+        random_seed: int | None = None,
+        **kwargs: Any,
+    ):
+        """
         Args:
-            name: (str) name space of the network (should be unique in code, otherwise tensorflow namespace collisions may arise)
-            ndim_x: (int) dimensionality of x variable
-            ndim_y: (int) dimensionality of y variable
-            flows_type: (tuple of strings) The chain of individual flows that together make up the full flow. The
-                        individual flows can be any of: *affine*, *planar*, *radial*, *identity*. They will be applied in order
-                        going from the base distribution to the transformed distribution.
-            n_flows: (int) number of radial flows - if flows_type is set, this parameter is ignored
-            hidden_sizes: (tuple of int) sizes of the hidden layers of the neural network
-            hidden_nonlinearity: (tf function) nonlinearity of the hidden layers
-            n_training_epochs: (int) Number of epochs for training
-            x_noise_std: (optional) standard deviation of Gaussian noise over the the training data X -> regularization through noise
-            y_noise_std: (optional) standard deviation of Gaussian noise over the the training data Y -> regularization through noise
-            adaptive_noise_fn: (callable) that takes the number of samples and the data dimensionality as arguments and returns
-                                   the noise std as float - if used, the x_noise_std and y_noise_std have no effect
-            weight_decay: (float) the amount of decoupled (http://arxiv.org/abs/1711.05101) weight decay to apply
-            weight_normalization: (boolean) whether weight normalization shall be used for the neural network
-            data_normalization: (boolean) whether to normalize the data (X and Y) to exhibit zero-mean and uniform-std
-            dropout: (float) the probability of switching off nodes during training
-            random_seed: (optional) seed (int) of the random number generators used
-    """
-
-    def __init__(self, name, ndim_x, ndim_y, flows_type=None, n_flows=10, hidden_sizes=(16, 16),
-                 hidden_nonlinearity=tf.tanh, n_training_epochs=1000, x_noise_std=None, y_noise_std=None, adaptive_noise_fn=None,
-                 weight_decay=0.0, weight_normalization=True, data_normalization=True, dropout=0.0, l2_reg=0.0, l1_reg=0.0,
-                 random_seed=None):
-        Serializable.quick_init(self, locals())
-        self._check_uniqueness_of_scope(name)
-
+            name: estimator name (used for logging / serialization).
+            ndim_x: dimensionality of the conditioning input.
+            ndim_y: dimensionality of the target variable.
+            flows_type: tuple of flow identifiers defining the chain.
+            n_flows: fallback count of radial flows if flows_type is None.
+            hidden_sizes: sizes of the hidden MLP layers.
+            hidden_nonlinearity: activation key or constructor.
+            n_training_epochs: number of training epochs.
+            batch_size: minibatch size used during training.
+            learning_rate: optimizer learning rate.
+            x_noise_std/y_noise_std: optional additive noise.
+            adaptive_noise_fn: callable returning adaptive noise std.
+            weight_decay: optimizer L2 weight decay.
+            weight_normalization: applies weight normalization if True.
+            data_normalization: z-score normalizes X/Y before training.
+            dropout: dropout probability used inside the MLP.
+            l2_reg/l1_reg: additional penalties applied inside `_loss`.
+            random_seed: RNG seed for reproducibility.
+        """
+        super().__init__(
+            ndim_x,
+            ndim_y,
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            epochs=n_training_epochs,
+            batch_size=batch_size,
+        )
 
         self.name = name
-        self.ndim_x = ndim_x
-        self.ndim_y = ndim_y
-
         self.random_seed = random_seed
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
         self.random_state = np.random.RandomState(seed=random_seed)
-        tf.set_random_seed(random_seed)
 
-        # charateristics of the flows to be used
         if flows_type is None:
-            flows_type = ['affine'] + ['radial' for _ in range(n_flows)]
-        assert all([f in FLOWS.keys() for f in flows_type])
+            flows_type = ("affine",) + ("radial",) * n_flows
+        assert all(flow in FLOWS for flow in flows_type)
         self.flows_type = flows_type
+        self.flow_classes = [FLOWS[flow_name] for flow_name in flows_type]
+        self._param_split_sizes = [
+            flow.get_param_size(self.ndim_y) for flow in self.flow_classes
+        ]
 
-        # specification of the network
-        self.hidden_sizes = hidden_sizes
+        self.hidden_sizes = tuple(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
+        self.hidden_activation_factory = self._resolve_activation(hidden_nonlinearity)
 
         self.n_training_epochs = n_training_epochs
-
-        # regularization parameters
         self.x_noise_std = x_noise_std
         self.y_noise_std = y_noise_std
         self.adaptive_noise_fn = adaptive_noise_fn
-
-        # decoupled weight decay
-        self.weight_decay = weight_decay
-
-        # l1 / l2 regularization
+        self.weight_normalization = weight_normalization
+        self.data_normalization = data_normalization
+        self.dropout = dropout
         self.l2_reg = l2_reg
         self.l1_reg = l1_reg
 
+        self.gradient_clipping = "planar" in flows_type
 
-        # normalizing the network weights
-        self.weight_normalization = weight_normalization
-
-        # whether to normalize the data to zero mean, and uniform variance
-        self.data_normalization = data_normalization
-
-        # the prob of dropping a node
-        self.dropout = dropout
-
-        # gradients for planar flows tend to explode -> clip them by global norm
-        self.gradient_clipping = True if 'planar' in flows_type else False
-
-        # as we'll be using reversed flows, sampling is too slow to be useful
         self.can_sample = False
         self.has_pdf = True
-        # tf has a cdf implementation only for 1-D Normal Distribution
-        self.has_cdf = True if self.ndim_y == 1 else False
-
+        self.has_cdf = self.ndim_y == 1
         self.fitted = False
 
-        # build tensorflow model
-        self._build_model()
+        self._ensure_model()
 
-    def fit(self, X, Y, random_seed=None, verbose=True, eval_set=None, **kwargs):
-        """
-        Fit the model with to the provided data
+    def _resolve_activation(
+        self, spec: Union[str, Callable[[], nn.Module]]
+    ) -> Callable[[], nn.Module]:
+        if isinstance(spec, str):
+            spec_lower = spec.lower()
+            if spec_lower not in self.ACTIVATIONS:
+                raise ValueError(f"Unsupported activation '{spec}'")
+            return self.ACTIVATIONS[spec_lower]
+        if isinstance(spec, type) and issubclass(spec, nn.Module):
+            return lambda: spec()
+        if callable(spec):
+            return lambda: spec()
+        raise ValueError("hidden_nonlinearity must be a string or callable returning nn.Module")
 
-        :param X: numpy array to be conditioned on - shape: (n_samples, n_dim_x)
-        :param Y: numpy array of y targets - shape: (n_samples, n_dim_y)
-        :param eval_set: (tuple) eval/test dataset - tuple (X_test, Y_test)
-        :param verbose: (boolean) controls the verbosity of console output
-        """
+    def _linear(self, in_features: int, out_features: int) -> nn.Module:
+        linear = nn.Linear(in_features, out_features)
+        if self.weight_normalization:
+            return nn.utils.weight_norm(linear)
+        return linear
 
+    def _build_model(self) -> nn.Module:
+        layers: list[nn.Module] = []
+        input_dim = self.ndim_x
+        for size in self.hidden_sizes:
+            layers.append(self._linear(input_dim, size))
+            layers.append(self.hidden_activation_factory())
+            if self.dropout > 0:
+                layers.append(nn.Dropout(self.dropout))
+            input_dim = size
+        output_dim = sum(self._param_split_sizes)
+        layers.append(self._linear(input_dim, output_dim))
+        return nn.Sequential(*layers)
+
+    def _forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return self._model(x)
+
+    def _build_flows(self, outputs: torch.Tensor):
+        splits = torch.split(outputs, self._param_split_sizes, dim=1)
+        return [
+            flow_class(params, self.ndim_y)
+            for flow_class, params in zip(self.flow_classes, splits)
+        ]
+
+    def _inverse_flows(self, y: torch.Tensor, flows):
+        current = y
+        total_log_det = torch.zeros((y.shape[0], 1), device=y.device)
+        for flow in reversed(flows):
+            current, log_det = flow.inverse_and_log_det(current)
+            total_log_det = total_log_det + log_det
+        return current, total_log_det
+
+    def _base_log_prob(self, z: torch.Tensor) -> torch.Tensor:
+        if self.ndim_y == 1:
+            dist = Normal(
+                torch.tensor(0.0, device=z.device),
+                torch.tensor(1.0, device=z.device),
+            )
+            return dist.log_prob(z.squeeze(-1))
+        mean = torch.zeros(self.ndim_y, device=z.device)
+        cov = torch.eye(self.ndim_y, device=z.device)
+        dist = MultivariateNormal(mean, covariance_matrix=cov)
+        return dist.log_prob(z)
+
+    def _flow_log_prob(self, outputs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        flows = self._build_flows(outputs)
+        base_z, log_det = self._inverse_flows(y, flows)
+        log_det = log_det.squeeze(-1)
+        return self._base_log_prob(base_z) + log_det
+
+    def _loss(self, outputs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        log_prob = self._flow_log_prob(outputs, y)
+        loss = -torch.mean(log_prob)
+        if self.l1_reg > 0:
+            loss = loss + self.l1_reg * sum(p.abs().sum() for p in self._model.parameters())
+        if self.l2_reg > 0:
+            loss = loss + self.l2_reg * sum((p ** 2).sum() for p in self._model.parameters())
+        return loss
+
+    def _maybe_add_noise(
+        self, X: np.ndarray, Y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        noise_std = None
+        if self.adaptive_noise_fn is not None:
+            noise_std = float(self.adaptive_noise_fn(X.shape[0], self.ndim_x))
+        x_noise = noise_std if noise_std is not None else self.x_noise_std
+        y_noise = noise_std if noise_std is not None else self.y_noise_std
+        if x_noise is not None and x_noise > 0:
+            X = X + self.random_state.normal(scale=x_noise, size=X.shape)
+        if y_noise is not None and y_noise > 0:
+            Y = Y + self.random_state.normal(scale=y_noise, size=Y.shape)
+        return X, Y
+
+    def fit(self, X: np.ndarray, Y: np.ndarray, verbose: bool = False, eval_set=None, **kwargs: Any):
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        if eval_set is not None:
+            tuple(self._handle_input_dimensionality(*eval_set))
+        X, Y = self._maybe_add_noise(X, Y)
+        X_tensor, Y_tensor = self._prepare_data(X, Y)
+        dataset = TensorDataset(X_tensor, Y_tensor)
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        self._ensure_model()
 
-        if eval_set:
-            eval_set = tuple(self._handle_input_dimensionality(x) for x in eval_set)
-
-        # If no session has yet been created, create one and make it the default
-        self.sess = tf.get_default_session() if tf.get_default_session() else tf.InteractiveSession()
-
-        var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
-        tf.initializers.variables(var_list, name='init').run()
-
-        if self.data_normalization:
-            self._compute_data_normalization(X, Y)
-
-        self._compute_noise_intensity(X, Y)
-
-        for i in range(0, self.n_training_epochs + 1):
-            self.sess.run(self.train_step,
-                          feed_dict={self.X_ph: X, self.Y_ph: Y, self.train_phase: True, self.dropout_ph: self.dropout})
-            if verbose and not i % 100:
-                log_loss = self.sess.run(self.log_loss, feed_dict={self.X_ph: X, self.Y_ph: Y})
-                if not eval_set:
-                    print('Step {:4}: train log-loss {: .4f}'.format(i, log_loss))
-                else:
-                    eval_ll = self.sess.run(self.log_loss, feed_dict={self.X_ph: eval_set[0], self.Y_ph: eval_set[1]})
-                    print('Step {:4}: train log-loss {: .4f} eval log-loss {: .4f}'.format(i, log_loss, eval_ll))
+        for epoch in range(1, self.epochs + 1):
+            self._model.train()
+            epoch_loss = 0.0
+            for x_batch, y_batch in loader:
+                self._optimizer.zero_grad()
+                outputs = self._model(x_batch)
+                loss = self._loss(outputs, y_batch)
+                loss.backward()
+                if self.gradient_clipping:
+                    torch.nn.utils.clip_grad_norm_(self._model.parameters(), 3e5)
+                self._optimizer.step()
+                epoch_loss += float(loss)
+            if self._scheduler is not None:
+                self._scheduler.step()
+            if verbose and epoch % max(1, self.epochs // 10) == 0:
+                avg_loss = epoch_loss / len(loader)
+                print(f"Epoch {epoch}/{self.epochs} training loss {avg_loss:.4f}")
 
         self.fitted = True
 
-    def reset_fit(self):
-        """
-        Resets all tensorflow objects and enables this model to be fitted anew
-        """
-        tf.reset_default_graph()
-        self._build_model()
-        self.fitted = False
+    def _normalize_for_eval(self, X: np.ndarray, Y: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
+        X_norm = self._normalize_array(X, self.x_mean, self.x_std)
+        Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
+        return (
+            torch.from_numpy(X_norm.astype(np.float32)).to(self.device),
+            torch.from_numpy(Y_norm.astype(np.float32)).to(self.device),
+        )
 
-    def _param_grid(self):
+    def _evaluate_log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        assert self.fitted, "model must be fitted"
+        X_tensor, Y_tensor = self._normalize_for_eval(X, Y)
+        self._ensure_model()
+        self._model.eval()
+        with torch.no_grad():
+            outputs = self._model(X_tensor)
+            log_probs = self._flow_log_prob(outputs, Y_tensor)
+        adjustment = np.sum(np.log(self.y_std + 1e-8))
+        return log_probs.cpu().numpy() - adjustment
+
+    def log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        return self._evaluate_log_pdf(X, Y)
+
+    def pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        return np.exp(self.log_pdf(X, Y))
+
+    def cdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+        assert self.has_cdf, "CDF implemented only for 1-D outputs"
+        X_tensor, Y_tensor = self._normalize_for_eval(X, Y)
+        self._ensure_model()
+        self._model.eval()
+        with torch.no_grad():
+            outputs = self._model(X_tensor)
+            flows = self._build_flows(outputs)
+            base_z, _ = self._inverse_flows(Y_tensor, flows)
+        dist = Normal(0.0, 1.0)
+        cdf_vals = dist.cdf(base_z.squeeze(-1))
+        return cdf_vals.cpu().numpy()
+
+    def _param_grid(self) -> dict[str, Iterable]:
         return {
-            'n_training_epochs': [500, 1000, 1500],
-            'hidden_sizes': [(16, 16), (32, 32)],
-            'flows_type': [
-                # radial
-                ('affine', 'radial', 'radial', 'radial'),
-                ('affine', 'radial', 'radial', 'radial', 'radial'),
-                ('affine', 'radial', 'radial', 'radial', 'radial', 'radial'),
-                # planar
-                ('planar', 'planar', 'planar'),
-                ('affine', 'planar', 'planar', 'planar'),
-                ('affine', 'planar', 'planar', 'planar', 'planar'),
-                # mix
-                ('affine', 'radial', 'planar', 'radial', 'planar',),
-                ('affine', 'radial', 'planar', 'radial', 'planar', 'radial'),
+            "n_training_epochs": [500, 1000, 1500],
+            "hidden_sizes": [(16, 16), (32, 32)],
+            "flows_type": [
+                ("affine", "radial", "radial", "radial"),
+                ("affine", "radial", "radial", "radial", "radial"),
+                ("affine", "radial", "radial", "radial", "radial", "radial"),
+                ("planar", "planar", "planar"),
+                ("affine", "planar", "planar", "planar"),
+                ("affine", "planar", "planar", "planar", "planar"),
+                ("affine", "radial", "planar", "radial", "planar"),
+                ("affine", "radial", "planar", "radial", "planar", "radial"),
             ],
-            'x_noise_std': [0.1, 0.2, 0.4, None],
-            'y_noise_std': [0.01, 0.02, 0.05, 0.1, 0.2, None],
-            'weight_decay': [1e-5, 0.0]
+            "x_noise_std": [0.1, 0.2, 0.4, None],
+            "y_noise_std": [0.01, 0.02, 0.05, 0.1, 0.2, None],
+            "weight_decay": [1e-5, 0.0],
         }
 
-    def _build_model(self):
-        """
-        implementation of the flow model
-        """
-        with tf.variable_scope(self.name):
-            # adds placeholders, data normalization and data noise to graph as desired. Also sets up a placeholder
-            # for dropout
-            self.layer_in_x, self.layer_in_y = self._build_input_layers()
-            self.y_input = L.get_output(self.layer_in_y)
-
-            flow_classes = [FLOWS[flow_name] for flow_name in self.flows_type]
-            # get the individual parameter sizes for each flow
-            param_split_sizes = [flow.get_param_size(self.ndim_y) for flow in flow_classes]
-            mlp_output_dim = sum(param_split_sizes)
-            core_network = MLP(
-                name="core_network",
-                input_layer=self.layer_in_x,
-                output_dim=mlp_output_dim,
-                hidden_sizes=self.hidden_sizes,
-                hidden_nonlinearity=self.hidden_nonlinearity,
-                output_nonlinearity=None,
-                weight_normalization=self.weight_normalization,
-                dropout_ph=self.dropout_ph if self.dropout else None
-            )
-            outputs = L.get_output(core_network.output_layer)
-            flow_params = tf.split(value=outputs, num_or_size_splits=param_split_sizes, axis=1)
-
-            # instanciate the flows with their parameters
-            flows = [flow(params, self.ndim_y) for flow, params in zip(flow_classes, flow_params)]
-
-            # build up the base distribution that will be transformed by the flows
-            if self.ndim_y == 1:
-                # this is faster for 1-D than the multivariate version
-                # it also supports a cdf, which isn't implemented for Multivariate
-                base_dist = tf.distributions.Normal(loc=0., scale=1.)
-            else:
-                base_dist = tf.contrib.distributions.MultivariateNormalDiag(loc=[0.] * self.ndim_y,
-                                                                            scale_diag=[1.] * self.ndim_y)
-
-            # chain the flows together and build the transformed distribution using the base_dist + flows
-            # Chaining applies the flows in reverse, Chain([a,b]).forward(x) being a.forward(b.forward(x))
-            # We reverse them so the flows are stacked ontop of the base distribution in the original order
-            flows.reverse()
-            chain = tf.contrib.distributions.bijectors.Chain(flows)
-            target_dist = tf.contrib.distributions.TransformedDistribution(distribution=base_dist, bijector=chain)
-
-            # since we operate with matrices not vectors, the output would have dimension (?,1)
-            # and therefor has to be reduce first to have shape (?,)
-            if self.ndim_y == 1:
-                # for x shape (batch_size, 1) normal_distribution.pdf(x) outputs shape (batch_size, 1) -> squeeze
-                self.pdf_ = tf.squeeze(target_dist.prob(self.y_input), axis=1)
-                self.log_pdf_ = tf.squeeze(target_dist.log_prob(self.y_input), axis=1)
-                self.cdf_ = tf.squeeze(target_dist.cdf(self.y_input), axis=1)
-            else:
-                # no squeezing necessary for multivariate_normal, but we don't have a cdf
-                self.pdf_ = target_dist.prob(self.y_input)
-                self.log_pdf_ = target_dist.log_prob(self.y_input)
-
-
-            if self.data_normalization:
-                self.pdf_ = self.pdf_ / tf.reduce_prod(self.std_y_sym)
-                self.log_pdf_ = self.log_pdf_ - tf.reduce_sum(tf.log(self.std_y_sym))
-                # cdf is only implemented for 1-D
-                if self.ndim_y == 1:
-                    self.cdf_ = self.cdf_ / tf.reduce_prod(self.std_y_sym)
-
-            # regularization
-            self._add_l1_l2_regularization(core_network)
-
-            self.loss = -tf.reduce_prod(self.pdf_)
-            self.reg_loss = tf.reduce_sum(tf.losses.get_regularization_losses(scope=self.name)) #r egularization losses
-            self.log_loss = -tf.reduce_sum(self.log_pdf_) + self.reg_loss
-
-            optimizer = AdamWOptimizer(self.weight_decay, learning_rate=5e-3) if self.weight_decay else tf.train.AdamOptimizer()
-
-            if self.gradient_clipping:
-                gradients, variables = zip(*optimizer.compute_gradients(self.log_loss))
-                gradients, _ = tf.clip_by_global_norm(gradients, 3e5)
-                self.train_step = optimizer.apply_gradients(zip(gradients, variables))
-            else:
-                self.train_step = optimizer.minimize(self.log_loss)
-
-        # initialize LayersPowered -> provides functions for serializing tf models
-        LayersPowered.__init__(self, [self.layer_in_y, core_network.output_layer])
-
-    def __str__(self):
-        return "\nEstimator type: {}" \
-               "\n flows_type: {}" \
-               "\n data_normalization: {}" \
-               "\n weight_normalization: {}" \
-               "\n n_training_epochs: {}" \
-               "\n x_noise_std: {}" \
-               "\n y_noise_std: {}" \
-               "\n ".format(self.__class__.__name__, self.flows_type, self.data_normalization,
-                            self.weight_normalization, self.n_training_epochs, self.x_noise_std, self.y_noise_std)
+    def __str__(self) -> str:
+        return (
+            f"\nEstimator type: {self.__class__.__name__}\n"
+            f" flows_type: {self.flows_type}\n"
+            f" data_normalization: {self.data_normalization}\n"
+            f" weight_normalization: {self.weight_normalization}\n"
+            f" n_training_epochs: {self.n_training_epochs}\n"
+            f" x_noise_std: {self.x_noise_std}\n"
+            f" y_noise_std: {self.y_noise_std}\n"
+        )
