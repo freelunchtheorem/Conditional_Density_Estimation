@@ -34,7 +34,7 @@ class TestArmaJump(unittest.TestCase):
     arj = ArmaJump(c=0.1, jump_prob=0.00)
     x_cond = np.asarray([0.1])
     mean = arj.mean_(x_cond).flatten()
-    self.assertAlmostEqual(float(mean), 0.1)
+    self.assertAlmostEqual(mean.item(), 0.1)
 
     arj = ArmaJump(c=0.1, jump_prob=0.1)
     mean = arj.mean_(x_cond).flatten()

@@ -98,7 +98,11 @@ def _divergence_mc(p, q, x_cond, divergenc_fun, n_samples=10 ** 5, n_measures=1)
   for i in range(x_cond.shape[0]):
     x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
     func = lambda y: _make_2d(_div(x, y))
-    distances[i] = mc_integration_student_t(func, q.ndim_y, n_samples=n_samples, loc_proposal=mu_proposal, scale_proposal=std_proposal)
+        result = mc_integration_student_t(func, q.ndim_y, n_samples=n_samples, loc_proposal=mu_proposal, scale_proposal=std_proposal)
+        if n_measures == 1:
+            distances[i] = result.reshape(-1)[0]
+        else:
+            distances[i] = result
   assert distances.shape[0] == x_cond.shape[0]
   return distances
 
