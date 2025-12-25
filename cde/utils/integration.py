@@ -4,7 +4,6 @@ from math import exp as _exp
 
 import numpy as np
 import numbers
-from numpy import trapz as np_trapz
 
 try:
     from scipy import integrate
@@ -31,8 +30,10 @@ def numeric_integation(func, n_samples=10 ** 5, bound_lower=-10**3, bound_upper=
   values = func(y_samples)
   trapz = getattr(integrate, "trapz", None)
   if trapz is None:
-      trapz = np_trapz
-  integral = trapz(values, y_samples)
+      dx = np.diff(y_samples)
+      integral = np.sum((values[:-1] + values[1:]) * dx / 2)
+  else:
+      integral = trapz(values, y_samples)
   return integral
 
 
