@@ -79,7 +79,8 @@ class ConfigRunner():
     self.use_gpu = use_gpu
     self.tail_measures = tail_measures
 
-    logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix, color='green')
+    self._logger_config = dict(log_directory=config.DATA_DIR, prefix=exp_prefix)
+    logger.configure(**self._logger_config)
 
     ''' ---------- Either load or generate the configs ----------'''
     config_pkl_path = os.path.join(logger.log_directory, logger.prefix, EXP_CONFIG_FILE)
@@ -200,7 +201,7 @@ class ConfigRunner():
     ''' Run the configurations '''
 
     logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
-    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
+    logger.log("{:<70s} {:<30s}".format("Number of already finished tasks (found in results pickle): ",
                                          str(len(self.gof_single_res_collection))))
 
 
@@ -229,6 +230,7 @@ class ConfigRunner():
 
       # run task when it has not been completed
       else:
+        logger.configure(**self._logger_config)
         logger.log(
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))
@@ -256,13 +258,19 @@ class ConfigRunner():
         time_to_fit = time.time() - t
 
         if self.dump_models:
-          logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
+          dump_dir = os.path.join(logger.log_directory, logger.prefix, 'model_dumps')
+          os.makedirs(dump_dir, exist_ok=True)
           logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
+          estimator_state_path = os.path.join(dump_dir, "{}.pth".format(task['task_name']))
+          gof.estimator.save_state(estimator_state_path)
 
         ''' perform tests with the fitted model '''
         t = time.time()
         gof_results = gof.compute_results()
         time_to_evaluate = time.time() - t
+
+        results_df = GoodnessOfFitResults({task_hash: gof_results}).generate_results_dataframe(keys_of_interest=self.keys_of_interest)
+        logger.save_dataframe(results_df)
 
         gof_results.task_name = task['task_name']
 
@@ -354,18 +362,25 @@ class ConfigRunner():
 
 def _add_seeds_to_sim_params(n_seeds, sim_params):
   seeds = [20 + i for i in range(n_seeds)]
-  for sim_name, sim_param_dict in sim_params:
+  iterable = sim_params.items() if isinstance(sim_params, dict) else sim_params
+  for sim_name, sim_param_dict in iterable:
     sim_param_dict['random_seed'] = seeds
-  return sim_params
+  if isinstance(sim_params, dict):
+    return sim_params
+  return list(iterable)
 
 
-def _create_configurations(params_tuples, verbose=False):
+def _create_configurations(params, verbose=False):
+  if isinstance(params, dict):
+    params_iter = params.items()
+  else:
+    params_iter = params
   confs = {}
-  for conf_instance, conf_dict in params_tuples:
+  for conf_instance, conf_dict in params_iter:
     if verbose: print(conf_instance)
     conf_product = list(itertools.product(*list(conf_dict.values())))
     conf_product_dicts = [(dict(zip(conf_dict.keys(), conf))) for conf in conf_product]
-    if conf_instance in confs.keys():
+    if conf_instance in confs:
       confs[conf_instance].extend(conf_product_dicts)
     else:
       confs[conf_instance] = conf_product_dicts

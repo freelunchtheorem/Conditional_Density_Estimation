@@ -1,4 +1,6 @@
 import logging
+import pickle
+from pathlib import Path
 from typing import Optional, Type
 
 import numpy as np
@@ -6,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import lr_scheduler
+from torch.serialization import add_safe_globals
 
 from cde.density_estimator.BaseDensityEstimator import BaseDensityEstimator
 
@@ -191,3 +194,37 @@ class BaseNNEstimator(BaseDensityEstimator, nn.Module):
 
     def log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         raise NotImplementedError("Subclasses must implement log_pdf evaluation.")
+
+    def save_state(self, path: str) -> None:
+        """Persist model state and dataset statistics to disk."""
+        self._ensure_model()
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "state_dict": self.state_dict(),
+            "data_statistics": self.data_statistics,
+        }
+        torch.save(payload, target)
+
+    def load_state(self, path: str, map_location: Optional[torch.device] = None) -> None:
+        """Load previously saved weights and statistics."""
+        self._ensure_model()
+        target = Path(path)
+        try:
+            checkpoint = torch.load(target, map_location=(map_location or self.device), weights_only=True)
+        except (RuntimeError, pickle.UnpicklingError) as exc:
+            add_safe_globals([np.core.multiarray._reconstruct])
+            checkpoint = torch.load(target, map_location=(map_location or self.device), weights_only=False)
+        state_dict = checkpoint["state_dict"]
+        locs_buffer = state_dict.get("_locs_buffer")
+        if locs_buffer is not None:
+            self._locs_buffer = torch.zeros_like(locs_buffer, device=self.device)
+        self.load_state_dict(state_dict)
+        data_statistics = checkpoint.get("data_statistics", {})
+        self.data_statistics = data_statistics
+        for key, value in data_statistics.items():
+            setattr(self, key, value)
+            lower_key = key.lower()
+            if lower_key != key:
+                setattr(self, lower_key, value)
+        self.fitted = True

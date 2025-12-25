@@ -82,7 +82,8 @@ class ConfigRunnerLogProb():
     self.exp_prefix = exp_prefix
     self.use_gpu = use_gpu
 
-    logger.configure(log_directory=config.DATA_DIR, prefix=exp_prefix, color='green')
+    self._logger_config = dict(log_directory=config.DATA_DIR, prefix=exp_prefix)
+    logger.configure(**self._logger_config)
 
     ''' ---------- Either load or generate the configs ----------'''
     config_pkl_path = os.path.join(logger.log_directory, logger.prefix, EXP_CONFIG_FILE)
@@ -194,7 +195,7 @@ class ConfigRunnerLogProb():
     ''' Run the configurations '''
 
     logger.log("{:<70s} {:<30s}".format("Number of total tasks in pipeline:", str(len(self.configs))))
-    logger.log("{:<70s} {:<30s}".format("Number of aleady finished tasks (found in results pickle): ",
+    logger.log("{:<70s} {:<30s}".format("Number of already finished tasks (found in results pickle): ",
                                          str(len(self.gof_single_res_collection))))
 
 
@@ -223,6 +224,7 @@ class ConfigRunnerLogProb():
 
       # run task when it has not been completed
       else:
+        logger.configure(**self._logger_config)
         logger.log(
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))

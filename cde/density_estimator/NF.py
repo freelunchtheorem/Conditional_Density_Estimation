@@ -105,6 +105,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         self._param_split_sizes = [
             flow.get_param_size(self.ndim_y) for flow in self.flow_classes
         ]
+        self.n_flows = n_flows
 
         self.hidden_sizes = tuple(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity

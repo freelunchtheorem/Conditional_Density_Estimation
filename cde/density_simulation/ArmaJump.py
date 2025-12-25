@@ -21,6 +21,7 @@ class ArmaJump(BaseConditionalDensitySimulation):
 
     # AR(1) params
     self.arma_c = c
+    self.c = c
     self.arma_a1 = arma_a1
 
     # Jump component

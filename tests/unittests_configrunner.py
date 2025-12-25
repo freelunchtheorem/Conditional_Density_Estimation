@@ -4,6 +4,7 @@ import config
 import shutil
 import sys
 import os
+import importlib
 from ml_logger import logger
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -20,6 +21,8 @@ class configrunner(unittest.TestCase):
 
   def test_store_load_configrunner_pipeline(self):
 
+    os.environ.setdefault("WANDB_MODE", "offline")
+    os.environ.setdefault("WANDB_PROJECT", "conditional-density-estimation")
     logger.configure(log_directory=config.DATA_DIR, prefix=EXP_PREFIX)
     test_dir = os.path.join(logger.log_directory, logger.prefix)
     if os.path.exists(test_dir):
@@ -40,8 +43,6 @@ class configrunner(unittest.TestCase):
     conf_runner.configs = random.sample(conf_runner.configs, NUM_CONFIGS_TO_TEST)
 
     conf_runner.run_configurations(dump_models=True, multiprocessing=False)
-    results_from_pkl_file = dict({logger.load_pkl(RESULTS_FILE)})
-
     """ check if model dumps have all been created """
     dump_dir = os.path.join(logger.log_directory, logger.prefix, 'model_dumps')
     model_dumps_list = os.listdir(dump_dir) # get list of all model files
@@ -52,11 +53,29 @@ class configrunner(unittest.TestCase):
 
 
     """ check if model dumps can be used successfully"""
+    config_map = {conf['task_name']: conf for conf in conf_runner.configs}
+
+    simulator_module = importlib.import_module("cde.density_simulation")
+    estimator_module = importlib.import_module("cde.density_estimator")
+
     for model_dump_i in model_dumps_list:
-      model = logger.load_pkl("model_dumps/" + model_dump_i)
-      self.assertTrue(model)
-      if model.ndim_x == 1 and model.ndim_y == 1:
-        self.assertTrue(model.plot3d(show=False))
+      path = os.path.join(dump_dir, model_dump_i)
+      if model_dump_i.endswith(".pth"):
+        task_name = os.path.splitext(model_dump_i)[0]
+        conf = config_map[task_name]
+        simulator_cls = getattr(simulator_module, conf["simulator_name"])
+        simulator = simulator_cls(**conf["simulator_config"])
+        estimator_cls = getattr(estimator_module, conf["estimator_name"])
+        estimator = estimator_cls(task_name, simulator.ndim_x, simulator.ndim_y, **conf["estimator_config"])
+        estimator.load_state(path)
+        self.assertTrue(estimator)
+        if estimator.ndim_x == 1 and estimator.ndim_y == 1:
+          self.assertTrue(estimator.plot3d(show=False))
+      else:
+        model = logger.load_pkl("model_dumps/" + model_dump_i)
+        self.assertTrue(model)
+        if model.ndim_x == 1 and model.ndim_y == 1:
+          self.assertTrue(model.plot3d(show=False))
 
 
 

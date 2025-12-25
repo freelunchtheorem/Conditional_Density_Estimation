@@ -393,7 +393,7 @@ class ConditionalDensity(BaseEstimator):
     X, Y, Z = X.reshape([resolution, resolution]), Y.reshape([resolution, resolution]), Z.reshape(
       [resolution, resolution])
     fig = plt.figure(dpi=300)
-    ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
     surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, rcount=resolution, ccount=resolution,
                            linewidth=100, antialiased=True)
     plt.xlabel("x")

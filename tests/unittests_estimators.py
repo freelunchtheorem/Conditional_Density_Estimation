@@ -698,7 +698,7 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
     x = np.asarray([2 for i in range(y.shape[0])])
     p_est = model.pdf(x, y)
     p_true = norm.pdf(y, loc=2, scale=1)
-    self.assertEqual(model.get_params()["n_centers"], 10)
+    self.assertEqual(model.get_params()["n_centers"], 50)
     self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
 
 if __name__ == '__main__':

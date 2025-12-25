@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 
 ''' Directories '''
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'data', 'local')
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "experiments"
 

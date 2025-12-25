@@ -9,3 +9,4 @@ statsmodels
 sphinx_rtd_theme
 progressbar2
 xlrd
+wandb

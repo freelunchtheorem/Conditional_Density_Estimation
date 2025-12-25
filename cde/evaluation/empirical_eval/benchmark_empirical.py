@@ -70,7 +70,7 @@ model_dict = {
 }
 
 def experiment():
-    logger.configure(log_directory=config.DATA_DIR, prefix=EXP_PREFIX, color='green')
+    logger.configure(log_directory=config.DATA_DIR, prefix=EXP_PREFIX)
 
     # 1) EUROSTOXX
     dataset = datasets.EuroStoxx50()
