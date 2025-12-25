@@ -133,7 +133,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         self.hidden_activation_spec = hidden_nonlinearity
         self.n_training_epochs = n_training_epochs
 
-        self.register_buffer("_locs_buffer", torch.zeros(self.n_centers, self.ndim_y))
+        self.register_buffer("_locs_buffer", torch.zeros(0))
         self.log_scales = nn.Parameter(
             torch.tensor(self.init_scales_softplus, dtype=torch.float32), requires_grad=self.train_scales
         )

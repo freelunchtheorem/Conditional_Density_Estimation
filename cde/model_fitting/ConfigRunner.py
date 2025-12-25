@@ -14,7 +14,6 @@ from cde.utils.async_executor import AsyncExecutor
 from ml_logger import logger
 import hashlib
 import base64
-import tensorflow as tf
 import os
 import config
 import time
@@ -234,8 +233,6 @@ class ConfigRunner():
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))
 
-        tf.reset_default_graph()
-
         ''' build simulator and estimator model given the specified configurations '''
 
         simulator = globals()[task['simulator_name']](**task['simulator_config'])
@@ -249,30 +246,27 @@ class ConfigRunner():
         if not self.use_gpu:
           os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        with tf.Session() as sess:
-          sess.run(tf.global_variables_initializer())
+        ''' train the model '''
+        gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
+                            n_observations=task['n_obs'], n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'],
+                            task_name = task['task_name'], tail_measures=self.tail_measures)
 
-          ''' train the model '''
-          gof = GoodnessOfFit(estimator=estimator, probabilistic_model=simulator, X=task['X'], Y=task['Y'],
-                              n_observations=task['n_obs'], n_mc_samples=task['n_mc_samples'], x_cond=task['x_cond'],
-                              task_name = task['task_name'], tail_measures=self.tail_measures)
+        t = time.time()
+        gof.fit_estimator(print_fit_result=True)
+        time_to_fit = time.time() - t
 
-          t = time.time()
-          gof.fit_estimator(print_fit_result=True)
-          time_to_fit = time.time() - t
+        if self.dump_models:
+          logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
+          logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
 
-          if self.dump_models:
-            logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
-            logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
+        ''' perform tests with the fitted model '''
+        t = time.time()
+        gof_results = gof.compute_results()
+        time_to_evaluate = time.time() - t
 
-          ''' perform tests with the fitted model '''
-          t = time.time()
-          gof_results = gof.compute_results()
-          time_to_evaluate = time.time() - t
+        gof_results.task_name = task['task_name']
 
-          gof_results.task_name = task['task_name']
-
-          gof_results.hash = task_hash
+        gof_results.hash = task_hash
 
         logger.log_pkl(data=(task_hash, gof_results), path=RESULTS_FILE)
         logger.flush(file_name=RESULTS_FILE)
@@ -430,9 +424,8 @@ def load_dumped_estimators(gof_result, task_id=None):
 
 
   for key, single_result in results_to_use:
-    with tf.Session(graph=tf.Graph()):
-      single_result.estimator = load_dumped_estimator(single_result)
-      gof_result.single_results_dict[key] = single_result
+    single_result.estimator = load_dumped_estimator(single_result)
+    gof_result.single_results_dict[key] = single_result
 
   return gof_result
 
@@ -442,8 +435,7 @@ def load_dumped_estimator(dict_entry):
   if type(dict_entry) == dict and len(dict_entry) == 1:
     dict_entry = list(dict_entry.values())[0]
 
-  with tf.Session(graph=tf.Graph()) as sess:
-    dict_entry.estimator = logger.load_pkl("model_dumps/" + dict_entry.task_name + ".pkl")
-    print("loaded estimator for entry " + dict_entry.task_name)
+  dict_entry.estimator = logger.load_pkl("model_dumps/" + dict_entry.task_name + ".pkl")
+  print("loaded estimator for entry " + dict_entry.task_name)
 
   return dict_entry

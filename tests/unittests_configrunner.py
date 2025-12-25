@@ -2,7 +2,6 @@ import random
 import unittest
 import config
 import shutil
-import tensorflow as tf
 import sys
 import os
 from ml_logger import logger
@@ -54,12 +53,10 @@ class configrunner(unittest.TestCase):
 
     """ check if model dumps can be used successfully"""
     for model_dump_i in model_dumps_list:
-      #tf.reset_default_graph()
-      with tf.Session(graph=tf.Graph()):
-        model = logger.load_pkl("model_dumps/"+model_dump_i)
-        self.assertTrue(model)
-        if model.ndim_x == 1 and model.ndim_y == 1:
-          self.assertTrue(model.plot3d(show=False))
+      model = logger.load_pkl("model_dumps/" + model_dump_i)
+      self.assertTrue(model)
+      if model.ndim_x == 1 and model.ndim_y == 1:
+        self.assertTrue(model.plot3d(show=False))
 
 
 

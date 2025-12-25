@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import sys
 import os
+import torch
 import scipy.stats as stats
 from scipy.stats import norm
 
@@ -12,6 +13,10 @@ from cde.density_estimator import MixtureDensityNetwork, KernelMixtureNetwork, B
 from cde.model_fitting.divergences import kl_divergence_pdf, js_divergence_pdf, hellinger_distance_pdf, divergence_measures_pdf
 
 alpha = 0.05
+
+def _set_random_seeds(seed):
+  np.random.seed(seed)
+  torch.manual_seed(seed)
 
 class TestRiskMeasures(unittest.TestCase):
 
@@ -110,9 +115,7 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(mean_est[0][1], mu[1], places=2)
 
   def test_mean_mixture(self):
-    np.random.seed(24)
-    from tensorflow import set_random_seed
-    set_random_seed(24)
+    _set_random_seeds(24)
 
     data = np.random.normal([2, 2, 7, -2], 1, size=(5000, 4))
     X = data[:, 0:2]
@@ -181,9 +184,7 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(std_est[0][1]**2, sigma[1][1], places=2)
 
   def test_covariance_mixture(self):
-    np.random.seed(24)
-    from tensorflow import set_random_seed
-    set_random_seed(24)
+    _set_random_seeds(24)
 
     scale = 2.0
     data = np.random.normal(loc=[2, 2, 7, -2], scale=scale, size=(10000, 4))
