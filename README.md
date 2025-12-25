@@ -24,16 +24,15 @@ For the parametric models (MDN, KMN, NF), we recommend the usage of noise regula
 
 ## Installation
 
-Clone the repository and run the provided script to create a new Conda environment that bundles Python 3.11/3.10, CPU PyTorch, pinned NumPy/SciPy, and the helper dependencies (aiohttp, multidict, yarl):
+Clone the repository and run the provided script to create the `cde-pytorch` Conda environment (Python 3.11/3.10 with CPU PyTorch plus the pinned NumPy/SciPy versions that are tested with CDE):
 ```bash
 bash scripts/setup_pytorch_env.sh
 ```
-Once the `cde-pytorch` environment is activated you can install CDE in editable mode:
+After you activate the environment, install the local package in editable mode:
 ```bash
 pip install --break-system-packages -e .
 ```
-The package is built to work with PyTorch; if you already have a compatible PyTorch installation you can install directly via `pip install cde`.
-This branch also assumes the usual scientific stack (numpy, scipy, pandas, matplotlib) is available, as well as `ml_logger`.
+If you already have a PyTorch environment, you can install the package with `pip install cde`; the runtime expects the usual scientific stack (`numpy`, `scipy`, `pandas`, `matplotlib`) and `ml_logger`.
 ## Documentation and paper
 See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
 
