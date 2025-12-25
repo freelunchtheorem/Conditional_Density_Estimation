@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/freelunchtheorem/Conditional_Density_Estimation.svg?branch=main)](https://travis-ci.org/freelunchtheorem/Conditional_Density_Estimation) [![Downloads](https://pepy.tech/badge/cde)](https://pepy.tech/project/cde)
+[![CI](https://github.com/freelunchtheorem/Conditional_Density_Estimation/actions/workflows/ci.yml/badge.svg)](https://github.com/freelunchtheorem/Conditional_Density_Estimation/actions/workflows/ci.yml) [![Downloads](https://pepy.tech/badge/cde)](https://pepy.tech/project/cde)
 
 # Conditional Density Estimation (CDE)
 
