@@ -123,13 +123,14 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         self.train_scales = train_scales
 
         if isinstance(init_scales, str) and init_scales == "default":
-            init_scales = np.array([0.7, 0.3], dtype=np.float32)
+            init_scales_array = np.array([0.7, 0.3], dtype=np.float32)
         else:
-            init_scales = np.array(init_scales, dtype=np.float32)
+            init_scales_array = np.array(init_scales, dtype=np.float32)
 
-        self.n_scales = len(init_scales)
+        self.n_scales = len(init_scales_array)
+        self._init_scales_array = init_scales_array
         self.init_scales = init_scales
-        self.init_scales_softplus = np.log(np.exp(init_scales) - 1.0)
+        self.init_scales_softplus = np.log(np.exp(self._init_scales_array) - 1.0)
         self.hidden_activation_spec = hidden_nonlinearity
         self.n_training_epochs = n_training_epochs
 
@@ -251,8 +252,12 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
             keep_edges=self.keep_edges,
             random_state=self.random_state,
         ).astype(np.float32)
+        locs_tensor = torch.from_numpy(sampled).to(self.device)
         with torch.no_grad():
-            self._locs_buffer.copy_(torch.from_numpy(sampled).to(self.device))
+            if self._locs_buffer.shape != locs_tensor.shape:
+                self._locs_buffer = locs_tensor.clone()
+            else:
+                self._locs_buffer.copy_(locs_tensor)
 
     def fit(self, X, Y, eval_set=None, verbose=True):
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
