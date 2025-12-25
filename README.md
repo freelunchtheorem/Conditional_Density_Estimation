@@ -2,7 +2,7 @@
 
 # Conditional Density Estimation (CDE)
 
-**Update:** The project now targets PyTorch as its runtime; the `pytorch-migration` branch is the default, and support for TensorFlow has been moved to a legacy branch. All core estimators, runners, and examples are tested with the latest PyTorch release.
+**Update:** Conditional Density Estimation now runs with PyTorch on the `pytorch-migration` (soon `main`) branch; the legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with the latest PyTorch release.
 
 ## Description
 Implementations of various methods for conditional density estimation
