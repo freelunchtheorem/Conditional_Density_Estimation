@@ -6,26 +6,42 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cde.density_estimator.BaseNNMixtureEstimator import BaseNNMixtureEstimator
-
 LOG2PI = math.log(2 * math.pi)
+
+
+def _mdn_tanh():
+    return nn.Tanh()
+
+
+def _mdn_relu():
+    return nn.ReLU()
+
+
+def _mdn_elu():
+    return nn.ELU()
+
+
+def _mdn_identity():
+    return nn.Identity()
+
+from cde.density_estimator.BaseNNMixtureEstimator import BaseNNMixtureEstimator
 
 
 class MixtureDensityNetwork(BaseNNMixtureEstimator):
     """Torch-based Mixture Density Network estimator."""
 
     ACTIVATIONS = {
-        "tanh": lambda: nn.Tanh(),
-        "relu": lambda: nn.ReLU(),
-        "elu": lambda: nn.ELU(),
-        "identity": lambda: nn.Identity(),
+        "tanh": _mdn_tanh,
+        "relu": _mdn_relu,
+        "elu": _mdn_elu,
+        "identity": _mdn_identity,
     }
 
     def __init__(
         self,
-        name: str,
-        ndim_x: int,
-        ndim_y: int,
+        name: str = "MixtureDensityNetwork",
+        ndim_x: Optional[int] = None,
+        ndim_y: Optional[int] = None,
         n_centers: int = 10,
         hidden_sizes: Sequence[int] = (16, 16),
         hidden_nonlinearity: Union[str, Callable[[], nn.Module]] = "tanh",
@@ -88,6 +104,8 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         self.hidden_sizes = tuple(hidden_sizes)
         self.hidden_nonlinearity = hidden_nonlinearity
         self.n_training_epochs = n_training_epochs
+        self.ndim_x = ndim_x
+        self.ndim_y = ndim_y
 
         self.data_normalization = data_normalization
         self.x_noise_std = x_noise_std
@@ -104,7 +122,6 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         self.has_cdf = True
 
         self.hidden_activation_factory = self._resolve_activation(hidden_nonlinearity)
-        self._ensure_model()
 
     def _resolve_activation(self, spec: Union[str, Callable[[], nn.Module]]) -> Callable[[], nn.Module]:
         if isinstance(spec, str):
@@ -203,12 +220,17 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
         **kwargs: Any,
     ) -> None:
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        if self.ndim_x is None:
+            self.ndim_x = X.shape[1]
+        if self.ndim_y is None:
+            self.ndim_y = Y.shape[1]
         if eval_set is not None:
             tuple(self._handle_input_dimensionality(*eval_set))
         X, Y = self._maybe_add_noise(X, Y)
         super().fit(X, Y, verbose=verbose)
 
     def _normalize_for_eval(self, X: np.ndarray, Y: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
         X_norm = self._normalize_array(X, self.x_mean, self.x_std)
         Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
         return (
@@ -227,7 +249,7 @@ class MixtureDensityNetwork(BaseNNMixtureEstimator):
             logits, locs, scales = self._split_outputs(outputs)
             log_probs = self._log_mixture_density(logits, locs, scales, Y_tensor)
         adjustment = np.sum(np.log(self.y_std + 1e-8))
-        return log_probs.cpu().numpy() - adjustment
+        return log_probs.detach().cpu().numpy() - adjustment
 
     def log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         return self._evaluate_log_pdf(X, Y)

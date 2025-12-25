@@ -11,14 +11,30 @@ from .BaseNNEstimator import BaseNNEstimator
 from .normalizing_flows import FLOWS
 
 
+def _nf_tanh():
+    return nn.Tanh()
+
+
+def _nf_relu():
+    return nn.ReLU()
+
+
+def _nf_elu():
+    return nn.ELU()
+
+
+def _nf_identity():
+    return nn.Identity()
+
+
 class NormalizingFlowEstimator(BaseNNEstimator):
     """PyTorch port of the original normalizing flow estimator."""
 
     ACTIVATIONS = {
-        "tanh": lambda: nn.Tanh(),
-        "relu": lambda: nn.ReLU(),
-        "elu": lambda: nn.ELU(),
-        "identity": lambda: nn.Identity(),
+        "tanh": _nf_tanh,
+        "relu": _nf_relu,
+        "elu": _nf_elu,
+        "identity": _nf_identity,
     }
 
     def __init__(
@@ -122,9 +138,9 @@ class NormalizingFlowEstimator(BaseNNEstimator):
                 raise ValueError(f"Unsupported activation '{spec}'")
             return self.ACTIVATIONS[spec_lower]
         if isinstance(spec, type) and issubclass(spec, nn.Module):
-            return lambda: spec()
+            return spec
         if callable(spec):
-            return lambda: spec()
+            return spec
         raise ValueError("hidden_nonlinearity must be a string or callable returning nn.Module")
 
     def _linear(self, in_features: int, out_features: int) -> nn.Module:
@@ -236,6 +252,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
         self.fitted = True
 
     def _normalize_for_eval(self, X: np.ndarray, Y: np.ndarray) -> Tuple[torch.Tensor, torch.Tensor]:
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
         X_norm = self._normalize_array(X, self.x_mean, self.x_std)
         Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
         return (
@@ -252,7 +269,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             outputs = self._model(X_tensor)
             log_probs = self._flow_log_prob(outputs, Y_tensor)
         adjustment = np.sum(np.log(self.y_std + 1e-8))
-        return log_probs.cpu().numpy() - adjustment
+        return log_probs.detach().cpu().numpy() - adjustment
 
     def log_pdf(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         return self._evaluate_log_pdf(X, Y)
@@ -271,7 +288,7 @@ class NormalizingFlowEstimator(BaseNNEstimator):
             base_z, _ = self._inverse_flows(Y_tensor, flows)
         dist = Normal(0.0, 1.0)
         cdf_vals = dist.cdf(base_z.squeeze(-1))
-        return cdf_vals.cpu().numpy()
+        return cdf_vals.detach().cpu().numpy()
 
     def _param_grid(self) -> dict[str, Iterable]:
         return {

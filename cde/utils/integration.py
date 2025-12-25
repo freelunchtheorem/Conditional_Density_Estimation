@@ -5,7 +5,10 @@ from math import exp as _exp
 import numpy as np
 import numbers
 
-import scipy.integrate as integrate
+try:
+    from scipy import integrate
+except (ImportError, AttributeError):
+    integrate = None
 
 from cde.utils.distribution import multidim_t_pdf, multidim_t_rvs, multivariate_t_rvs
 
@@ -25,7 +28,10 @@ def numeric_integation(func, n_samples=10 ** 5, bound_lower=-10**3, bound_upper=
   # proposal distribution
   y_samples = np.squeeze(np.linspace(bound_lower, bound_upper, num=n_samples))
   values = func(y_samples)
-  integral = integrate.trapz(values, y_samples)
+  trapz = getattr(integrate, "trapz", None)
+  if trapz is None:
+      trapz = np.trapz
+  integral = trapz(values, y_samples)
   return integral
 
 

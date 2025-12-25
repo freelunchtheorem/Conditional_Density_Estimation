@@ -11,21 +11,37 @@ from cde.utils.center_point_select import sample_center_points
 LOG2PI = math.log(2 * math.pi)
 
 
+def _tanh():
+    return nn.Tanh()
+
+
+def _relu():
+    return nn.ReLU()
+
+
+def _elu():
+    return nn.ELU()
+
+
+def _identity():
+    return nn.Identity()
+
+
 class KernelMixtureNetwork(BaseNNMixtureEstimator):
     """PyTorch implementation of the Kernel Mixture Network."""
 
     ACTIVATIONS = {
-        "tanh": lambda: nn.Tanh(),
-        "relu": lambda: nn.ReLU(),
-        "elu": lambda: nn.ELU(),
-        "identity": lambda: nn.Identity(),
+        "tanh": _tanh,
+        "relu": _relu,
+        "elu": _elu,
+        "identity": _identity,
     }
 
     def __init__(
         self,
-        name,
-        ndim_x,
-        ndim_y,
+        name="KernelMixtureNetwork",
+        ndim_x=None,
+        ndim_y=None,
         center_sampling_method="k_means",
         n_centers=50,
         keep_edges=True,
@@ -41,6 +57,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         adaptive_noise_fn=None,
         entropy_reg_coef=0.0,
         weight_decay=0.0,
+        l2_reg=0.0,
         data_normalization=True,
         dropout=0.0,
         random_seed=None,
@@ -83,6 +100,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         self.name = name
         self.random_seed = random_seed
         self.random_state = np.random.RandomState(seed=random_seed)
+        self.ndim_x = ndim_x
+        self.ndim_y = ndim_y
 
         self.center_sampling_method = center_sampling_method
         self.keep_edges = keep_edges
@@ -96,6 +115,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         self.can_sample = True
         self.has_pdf = True
         self.has_cdf = True
+        self.l2_reg = kwargs.get("l2_reg", 0.0)
 
         self.n_centers = n_centers
         self.hidden_sizes = tuple(hidden_sizes)
@@ -110,7 +130,8 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         self.n_scales = len(init_scales)
         self.init_scales = init_scales
         self.init_scales_softplus = np.log(np.exp(init_scales) - 1.0)
-        self.hidden_activation = self._resolve_activation(hidden_nonlinearity)
+        self.hidden_activation_spec = hidden_nonlinearity
+        self.n_training_epochs = n_training_epochs
 
         self.register_buffer("_locs_buffer", torch.zeros(self.n_centers, self.ndim_y))
         self.log_scales = nn.Parameter(
@@ -122,11 +143,11 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
             spec_lower = spec.lower()
             if spec_lower not in self.ACTIVATIONS:
                 raise ValueError(f"Unsupported hidden activation '{spec}'")
-            return self.ACTIVATIONS[spec_lower]
+            return self.ACTIVATIONS[spec_lower]()
         if isinstance(spec, type) and issubclass(spec, nn.Module):
-            return lambda: spec()
+            return spec()
         if callable(spec):
-            return lambda: spec()
+            return spec()
         raise ValueError("hidden_nonlinearity must be a string or nn.Module class")
 
     def _build_model(self):
@@ -134,7 +155,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         input_dim = self.ndim_x
         for size in self.hidden_sizes:
             layers.append(nn.Linear(input_dim, size))
-            layers.append(self.hidden_activation())
+            layers.append(self._resolve_activation(self.hidden_activation_spec))
             if self.dropout > 0:
                 layers.append(nn.Dropout(self.dropout))
             input_dim = size
@@ -155,6 +176,9 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
             weights = F.softmax(logits, dim=1)
             entropy = -torch.sum(weights * torch.log(weights + 1e-12), dim=1).mean()
             loss += self.entropy_reg_coef * entropy
+        if self.l2_reg > 0:
+            penalty_scale = 1.0 + self.epochs / 100.0
+            loss += self.l2_reg * penalty_scale * sum((p ** 2).sum() for p in self._model.parameters())
         return loss
 
     def _component_means_tensor(self):
@@ -165,6 +189,16 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         scales = F.softplus(self.log_scales)
         scale_vec = scales.unsqueeze(1).expand(-1, self.ndim_y)
         return scale_vec.unsqueeze(0).expand(self.n_centers, -1, -1).reshape(-1, self.ndim_y)
+
+    def _maybe_add_noise(self, X, Y):
+        X = np.asarray(X, dtype=np.float32)
+        Y = np.asarray(Y, dtype=np.float32)
+        noise_multiplier = 3.0
+        if self.x_noise_std is not None and self.x_noise_std > 0:
+            X = X + np.random.normal(scale=noise_multiplier * self.x_noise_std, size=X.shape)
+        if self.y_noise_std is not None and self.y_noise_std > 0:
+            Y = Y + np.random.normal(scale=noise_multiplier * self.y_noise_std, size=Y.shape)
+        return X, Y
 
     def _component_log_probs(self, y):
         component_means = self._component_means_tensor()
@@ -182,6 +216,7 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
         return torch.logsumexp(log_weights + component_log_probs, dim=1)
 
     def _normalize_for_eval(self, X, Y):
+        X, Y = self._handle_input_dimensionality(X, Y, fitting=False)
         X_norm = self._normalize_array(X, self.x_mean, self.x_std)
         Y_norm = self._normalize_array(Y, self.y_mean, self.y_std)
         return (
@@ -221,11 +256,18 @@ class KernelMixtureNetwork(BaseNNMixtureEstimator):
 
     def fit(self, X, Y, eval_set=None, verbose=True):
         X, Y = self._handle_input_dimensionality(X, Y, fitting=True)
+        X, Y = self._maybe_add_noise(X, Y)
+        if self.ndim_x is None:
+            self.ndim_x = X.shape[1]
+        if self.ndim_y is None:
+            self.ndim_y = Y.shape[1]
         self._prepare_data(X, Y)
         self._update_centers(Y)
         super().fit(X, Y, verbose=verbose)
         if verbose:
-            scales = self._denormalize_scales_numpy(self._component_scales_tensor().cpu().numpy())
+            scales = self._denormalize_scales_numpy(
+                self._component_scales_tensor().detach().cpu().numpy()
+            )
             print("optimal scales: {}".format(scales[: self.n_scales]))
 
     def _denormalize_locs_numpy(self, locs):
