@@ -3,9 +3,11 @@ import sys
 import os
 import time
 
-_DEBUG_LOG_PATH = "/Users/fabioferreira/Library/CloudStorage/Dropbox/0_Promotion/0_projects/2026/Conditional_Density_Estimation/.cursor/debug.log"
+_DEBUG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".debug_logs"))
+_DEBUG_LOG_PATH = os.path.join(_DEBUG_DIR, "debug.log")
 
 def _append_debug_log(log_entry):
+    os.makedirs(_DEBUG_DIR, exist_ok=True)
     with open(_DEBUG_LOG_PATH, "a") as _f:
         _f.write(json.dumps(log_entry) + "\n")
 
