@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip wheel
+          python -m pip install -r requirements.txt
+          python -m pip install torch
+          python -m pip install --break-system-packages -e .
+
+      - name: Run estimator tests
+        run: |
+          python tests/unittests_estimators.py
+          python tests/unittests_evaluations.py
+          python tests/unittests_simulations.py
+          python tests/unittests_utils.py
+          python -m pytest tests/test_nf_torch.py
+          python -m pytest tests/test_kmn_torch.py
+
+      - name: Build distributions
+        run: |
+          python -m pip install build
+          python -m build --sdist --wheel
+
+
