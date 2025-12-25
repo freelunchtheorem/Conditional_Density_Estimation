@@ -13,7 +13,6 @@ from cde.model_fitting.ConfigRunner import load_dumped_estimators, _hash_task_di
 from cde.utils import io
 from cde.utils.async_executor import AsyncExecutor
 from ml_logger import logger
-import tensorflow as tf
 import os
 import config
 import time
@@ -229,8 +228,6 @@ class ConfigRunnerLogProb():
           "Task {:<1} {:<63} {:<10} {:<1} {:<1} {:<1}".format(i + 1, "running:", "Estimator:", task['estimator_name'],
                                                               " Simulator: ", task["simulator_name"]))
 
-        tf.reset_default_graph()
-
         ''' build simulator and estimator model given the specified configurations '''
 
         simulator = globals()[task['simulator_name']](**task['simulator_config'])
@@ -244,29 +241,26 @@ class ConfigRunnerLogProb():
         if not self.use_gpu:
           os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        with tf.Session() as sess:
-          sess.run(tf.global_variables_initializer())
+        ''' train the model '''
+        gof = GoodnessOfFitLogProb(estimator=estimator, probabilistic_model=simulator, X_train=task['X'], Y_train=task['Y'],
+                                   X_test=task['X_test'], Y_test=task['Y_test'], task_name = task['task_name'])
 
-          ''' train the model '''
-          gof = GoodnessOfFitLogProb(estimator=estimator, probabilistic_model=simulator, X_train=task['X'], Y_train=task['Y'],
-                                     X_test=task['X_test'], Y_test=task['Y_test'], task_name = task['task_name'])
+        t = time.time()
+        gof.fit_estimator(print_fit_result=True)
+        time_to_fit = time.time() - t
 
-          t = time.time()
-          gof.fit_estimator(print_fit_result=True)
-          time_to_fit = time.time() - t
+        if self.dump_models:
+          logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
+          logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
 
-          if self.dump_models:
-            logger.dump_pkl(data=gof.estimator, path="model_dumps/{}.pkl".format(task['task_name']))
-            logger.dump_pkl(data=gof.probabilistic_model, path="model_dumps/{}.pkl".format(task['task_name'] + "_simulator"))
+        ''' perform tests with the fitted model '''
+        t = time.time()
+        gof_results = gof.compute_results()
+        time_to_evaluate = time.time() - t
 
-          ''' perform tests with the fitted model '''
-          t = time.time()
-          gof_results = gof.compute_results()
-          time_to_evaluate = time.time() - t
+        gof_results.task_name = task['task_name']
 
-          gof_results.task_name = task['task_name']
-
-          gof_results.hash = task_hash
+        gof_results.hash = task_hash
 
         logger.log_pkl(data=(task_hash, gof_results), path=RESULTS_FILE)
         logger.flush(file_name=RESULTS_FILE)
