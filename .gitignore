@@ -1,3 +1,6 @@
+# Experiment results and checkpoints
+experiments/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
