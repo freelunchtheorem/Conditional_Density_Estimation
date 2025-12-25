@@ -4,6 +4,11 @@ import multiprocessing
 import numpy as np
 from progressbar.bar import ProgressBar
 
+try:
+    multiprocessing.set_start_method('fork')
+except RuntimeError:
+    pass
+
 class AsyncExecutor:
 
     def __init__(self, n_jobs=1):

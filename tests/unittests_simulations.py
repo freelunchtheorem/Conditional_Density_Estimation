@@ -204,7 +204,7 @@ class TestEconDensity(unittest.TestCase):
     p_sim = sim_model.pdf(x,y)
     p_true = stats.norm.pdf(y, loc=1, scale=2)
     diff = np.sum(np.abs(p_sim - p_true))
-    self.assertAlmostEquals(diff, 0.0, places=2)
+    self.assertAlmostEqual(diff, 0.0, places=2)
 
   def test_cdf(self):
     sim_model = EconDensity()
@@ -213,7 +213,7 @@ class TestEconDensity(unittest.TestCase):
     p_sim = sim_model.cdf(x,y)
     p_true = stats.norm.cdf(y, loc=1, scale=2)
     diff = np.sum(np.abs(p_sim - p_true))
-    self.assertAlmostEquals(diff, 0.0, places=2)
+    self.assertAlmostEqual(diff, 0.0, places=2)
 
   def test_value_at_risk(self):
     sim_model = EconDensity()
@@ -252,8 +252,8 @@ class TestEconDensity(unittest.TestCase):
 
     diff_x = np.sum(np.abs(X1[:100] - X2[:]))
     diff_y = np.sum(np.abs(Y1[:100] - Y2[:]))
-    self.assertAlmostEquals(diff_x, 0, places=2)
-    self.assertAlmostEquals(diff_y, 0, places=2)
+    self.assertAlmostEqual(diff_x, 0, places=2)
+    self.assertAlmostEqual(diff_y, 0, places=2)
 
 class TetsSkewNormal(unittest.TestCase):
   def setUp(self):
@@ -518,7 +518,9 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
 
-def mean_pdf(density, x_cond, n_samples=10 ** 6):
+_DEFAULT_MC_SAMPLES = 5 * 10 ** 6
+
+def mean_pdf(density, x_cond, n_samples=_DEFAULT_MC_SAMPLES):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
   for i in range(x_cond.shape[0]):
     x = x = np.tile(x_cond[i].reshape((1, x_cond[i].shape[0])), (n_samples, 1))
@@ -527,7 +529,7 @@ def mean_pdf(density, x_cond, n_samples=10 ** 6):
     means[i] = integral
   return means
 
-def covariance_pdf(density, x_cond, n_samples=10 ** 6):
+def covariance_pdf(density, x_cond, n_samples=_DEFAULT_MC_SAMPLES):
   covs = np.zeros((x_cond.shape[0], density.ndim_y, density.ndim_y))
   mean = density.mean_(x_cond)
   for i in range(x_cond.shape[0]):

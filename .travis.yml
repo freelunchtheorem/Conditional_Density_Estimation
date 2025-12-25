@@ -9,14 +9,18 @@ install:
   - pip install -q -r requirements.txt
   - pip install --break-system-packages -e .
 
+before_deploy:
+  - python -m pip install build
+  - python -m build --sdist --wheel
+
 # command to run tests
 script:
   - python tests/unittests_estimators.py
   - python tests/unittests_evaluations.py
   - python tests/unittests_simulations.py
   - python tests/unittests_utils.py
-  #- python -m pytest tests/test_nf_torch.py
-  #- python -m pytest tests/test_kmn_torch.py
+  - python tests/test_nf_torch.py
+  - python tests/test_kmn_torch.py
 
 notifications:
   email:
@@ -25,3 +29,13 @@ notifications:
       - fabioferreira@mailbox.org
     on_success: never
     on_failure: never
+
+deploy:
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: "REPLACE_WITH_ENCRYPTED_TOKEN"
+  distributions: "sdist bdist_wheel"
+  on:
+    branch: main
+    tags: true
