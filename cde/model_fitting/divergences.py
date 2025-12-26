@@ -101,9 +101,9 @@ def _divergence_mc(p, q, x_cond, divergenc_fun, n_samples=10 ** 5, n_measures=1)
     result = mc_integration_student_t(func, q.ndim_y, n_samples=n_samples, loc_proposal=mu_proposal, scale_proposal=std_proposal)
     result = np.asarray(result).reshape(-1)
     if n_measures == 1:
-        distances[i] = result[0]
+      distances[i] = result[0]
     else:
-        distances[i] = result[:n_measures]
+      distances[i] = result[:n_measures]
   assert distances.shape[0] == x_cond.shape[0]
   return distances
 
