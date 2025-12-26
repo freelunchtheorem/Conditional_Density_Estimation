@@ -6,6 +6,7 @@ with open("README.md", "r") as fh:
 setup(name='cde',
       version='1.0',
       long_description=long_description,
+      long_description_content_type='text/markdown',
       description='Framework for conditional density estimation',
       url='https://github.com/freelunchtheorem/Conditional_Density_Estimation',
       author='Jonas Rothfuss, Fabio Ferreira',
