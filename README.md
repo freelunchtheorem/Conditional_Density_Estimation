@@ -24,9 +24,17 @@ Beyond estimating conditional probability densities, the package features extens
 
 For the parametric models (MDN, KMN, NF), we recommend the usage of noise regularization which is supported by our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
 
+## Dependencies
+
+- Python 3.11
+- PyTorch
+- NumPy
+- pandas
+- Edward (legacy TensorFlow analyses)
+
 ## Installation
 
-Clone the repository and run the provided script to create the `cde-pytorch` Conda environment (Python 3.11/3.10 with CPU PyTorch plus the pinned NumPy/SciPy versions that are tested with CDE):
+Clone the repository and run the provided script to create the `cde-pytorch` Conda environment (Python 3.11 with CPU PyTorch plus the pinned NumPy/SciPy versions that are tested with CDE):
 ```bash
 bash scripts/setup_pytorch_env.sh
 ```
