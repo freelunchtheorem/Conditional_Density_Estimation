@@ -8,7 +8,7 @@
 Implementations of various methods for conditional density estimation
 
 * **Parametric neural network based methods**
-    * Mixture Density Network (MDN)
+    * [Mixture Density Network (MDN)](https://publications.aston.ac.uk/id/eprint/373/)
     * Kernel Mixture Network (KMN)
     * Normalizing Flows (NF)
 * **Nonparametric methods**
@@ -25,12 +25,11 @@ Beyond estimating conditional probability densities, the package features extens
 For the parametric models (MDN, KMN, NF), we recommend the usage of noise regularization which is supported by our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
 
 ## Dependencies
-
+The core dependencies of cde are minimal:
 - Python 3.11
 - PyTorch
 - NumPy
 - pandas
-- Edward (legacy TensorFlow analyses)
 
 ## Installation
 
