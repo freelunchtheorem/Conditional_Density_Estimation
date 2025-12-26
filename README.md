@@ -30,6 +30,9 @@ The core dependencies of cde are minimal:
 - PyTorch
 - NumPy
 - pandas
+- scipy
+- scikit-learn
+- wandb
 
 ## Installation
 

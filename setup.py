@@ -4,10 +4,10 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='cde',
-      version='0.5.1',
+      version='1.0',
       long_description=long_description,
       description='Framework for conditional density estimation',
-      url='https://jonasrothfuss.github.io/Nonparametric_Density_Estimation',
+      url='https://github.com/freelunchtheorem/Conditional_Density_Estimation',
       author='Jonas Rothfuss, Fabio Ferreira',
       author_email='jonas.rothfuss@gmx.de, fabioferreira@mailbox.org',
       license='MIT',
@@ -22,7 +22,5 @@ setup(name='cde',
         'scikit_learn',
         'statsmodels',
         'wandb',
-        'progressbar2',
-        'xlrd'
       ],
       zip_safe=False)
