@@ -2,10 +2,10 @@
 
 # Conditional Density Estimation (CDE)
 
-**Update:** Conditional Density Estimation now runs with PyTorch (with the help of cursor + GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with the latest PyTorch release.
+**Update:** Conditional Density Estimation now runs with PyTorch (with the help of cursor + GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with the latest PyTorch release. Logging is now done via wandb (offline/online mode & additional csv/pd dataframes outputs).
 
 ## Description
-Implementations of various methods for conditional density estimation
+Python/PyTorch implementations of various methods for conditional density estimation
 
 * **Parametric neural network based methods**
     * [Mixture Density Network (MDN)](https://publications.aston.ac.uk/id/eprint/373/)
@@ -44,6 +44,8 @@ After you activate the environment, install the local package in editable mode:
 ```bash
 pip install --break-system-packages -e .
 ```
+Prior to running experiments, set your Weights & Biases API key so wandb logging works (`export WANDB_API_KEY=<your-key>` or configure it via `wandb login` for online runs). You can store that key in a `.env` file (`WANDB_API_KEY=…`) and source it before launch. The tracking helpers also write CSV/PD outputs into `wandb/` when enabled.
+
 If you already have a PyTorch environment, you can install the package with `pip install cde`; the runtime expects the usual scientific stack (`numpy`, `scipy`, `pandas`, `matplotlib`) and `ml_logger`.
 ## Documentation and paper
 See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
