@@ -98,6 +98,3 @@ If you use noise regularization for regularizing the MDN, KMN or NF conditional 
     journal={arXiv:1907.08982},
 }
 ```
-
-## Todo
-- track configuration for the new PyTorch branch and keep the legacy TensorFlow branch discoverable
