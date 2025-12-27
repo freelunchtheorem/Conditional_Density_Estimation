@@ -2,7 +2,7 @@
 
 # Conditional Density Estimation (CDE)
 
-**Update:** Conditional Density Estimation now runs with PyTorch (with the help of cursor + GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with Python 3.12 and PyTorch 2.9.1. Logging is now done via wandb (offline/online mode & additional csv/pd dataframes outputs).
+**Update:** Conditional Density Estimation now runs with **PyTorch** (with the help of cursor + Opus 4.5 & GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `deprecated/tensorflow` branch. All core estimators, runners, and examples are tested with Python 3.12 and PyTorch 2.9.1. Logging is now done via wandb (offline/online mode & additional csv/pd dataframes outputs).
 
 ## Description
 Python/PyTorch implementations of various methods for conditional density estimation
