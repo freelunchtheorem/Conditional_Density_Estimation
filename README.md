@@ -35,7 +35,7 @@ For the parametric models (MDN, KMN, NF), we recommend the usage of noise regula
 
 ## Installation
 
-Clone the repository and run the provided script to create the `cde-pytorch` Conda environment (Python 3.11 with CPU PyTorch plus the pinned NumPy/SciPy versions that are tested with CDE):
+Clone the repository and run the provided script to create the `cde-pytorch` Conda environment (Python 3.12, PyTorch 2.9):
 ```bash
 bash scripts/setup_pytorch_env.sh
 ```
@@ -46,8 +46,8 @@ pip install --break-system-packages -e .
 Prior to running experiments, set your Weights & Biases API key so wandb logging works (`export WANDB_API_KEY=<your-key>` or configure it via `wandb login` for online runs). You can store that key in a `.env` file (`WANDB_API_KEY=…`) and source it before launch. The tracking helpers also write CSV/PD outputs into `wandb/` when enabled.
 
 If you already have a PyTorch environment, you can install the package with `pip install cde`; the runtime expects the usual scientific stack (`numpy`, `scipy`, `pandas`, `matplotlib`) and `ml_logger`.
-## Documentation and paper
-See the documentation [here](https://freelunchtheorem.github.io/Conditional_Density_Estimation). A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
+## Paper
+A paper on best practices and benchmarks on conditional density estimation with neural networks that makes extensive use of this library can be found [here](https://arxiv.org/abs/1903.00954).
 
 ## Usage
 The following code snipped holds an easy example that demonstrates how to use the cde package.
