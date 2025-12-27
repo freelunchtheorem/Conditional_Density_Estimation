@@ -27,7 +27,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ MEAN """
 
-  def _mean_mc(self, x_cond, n_samples=10 ** 6):
+  def _mean_mc(self, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -42,7 +42,7 @@ class ConditionalDensity(BaseEstimator):
       means[i, :] = np.mean(samples, axis=0)
     return means
 
-  def _mean_pdf(self, x_cond, n_samples=10 ** 6):
+  def _mean_pdf(self, x_cond, n_samples=2 * 10 ** 6):
     means = np.zeros((x_cond.shape[0], self.ndim_y))
     for i in range(x_cond.shape[0]):
       mean_fun = lambda y: y
@@ -60,7 +60,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ STANDARD DEVIATION """
 
-  def _std_pdf(self, x_cond, n_samples=10**6, mean=None):
+  def _std_pdf(self, x_cond, n_samples=2 * 10 ** 6, mean=None):
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
 
@@ -80,7 +80,7 @@ class ConditionalDensity(BaseEstimator):
 
     return stds
 
-  def _std_mc(self, x_cond, n_samples=10**6):
+  def _std_mc(self, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -97,7 +97,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ COVARIANCE """
 
-  def _covariance_pdf(self, x_cond, n_samples=10 ** 6, mean=None):
+  def _covariance_pdf(self, x_cond, n_samples=2 * 10 ** 6, mean=None):
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
     assert mean is None or mean.shape == (x_cond.shape[0], self.ndim_y)
@@ -128,7 +128,7 @@ class ConditionalDensity(BaseEstimator):
       covs[i] = integral.reshape((self.ndim_y, self.ndim_y))
     return covs
 
-  def _covariance_mc(self, x_cond, n_samples=10 ** 6):
+  def _covariance_mc(self, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -147,7 +147,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ SKEWNESS """
 
-  def _skewness_pdf(self, x_cond, n_samples=10 ** 6, mean=None, std=None):
+  def _skewness_pdf(self, x_cond, n_samples=2 * 10 ** 6, mean=None, std=None):
     assert self.ndim_y == 1, "this function does not support co-skewness - target variable y must be one-dimensional"
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
@@ -169,7 +169,7 @@ class ConditionalDensity(BaseEstimator):
 
     return skewness
 
-  def _skewness_mc(self, x_cond, n_samples=10 ** 6):
+  def _skewness_mc(self, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -187,7 +187,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ KURTOSIS """
 
-  def _kurtosis_pdf(self, x_cond, n_samples=10 ** 6, mean=None, std=None):
+  def _kurtosis_pdf(self, x_cond, n_samples=2 * 10 ** 6, mean=None, std=None):
     assert self.ndim_y == 1, "this function does not support co-kurtosis - target variable y must be one-dimensional"
     assert hasattr(self, "mean_")
     assert hasattr(self, "pdf")
@@ -209,7 +209,7 @@ class ConditionalDensity(BaseEstimator):
 
     return kurtosis - 3 # excess kurtosis
 
-  def _kurtosis_mc(self, x_cond, n_samples=10 ** 6):
+  def _kurtosis_mc(self, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -227,7 +227,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ QUANTILES / VALUE-AT-RISK """
 
-  def _quantile_mc(self, x_cond, alpha=0.01, n_samples=10 ** 6):
+  def _quantile_mc(self, x_cond, alpha=0.01, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):
@@ -252,7 +252,7 @@ class ConditionalDensity(BaseEstimator):
 
   """ CONDITONAL VALUE-AT-RISK """
 
-  def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=10 ** 6):
+  def _conditional_value_at_risk_mc_pdf(self, VaRs, x_cond, alpha=0.01, n_samples=2 * 10 ** 6):
     assert VaRs.shape[0] == x_cond.shape[0], "same number of x_cond must match the number of values_at_risk provided"
     assert self.ndim_y == 1, 'this function only supports only ndim_y = 1'
     assert x_cond.ndim == 2
@@ -269,7 +269,7 @@ class ConditionalDensity(BaseEstimator):
 
     return CVaRs
 
-  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, n_samples=10 ** 6):
+  def _conditional_value_at_risk_sampling(self, VaRs, x_cond, n_samples=2 * 10 ** 6):
     if hasattr(self, 'sample'):
       sample = self.sample
     elif hasattr(self, 'simulate_conditional'):

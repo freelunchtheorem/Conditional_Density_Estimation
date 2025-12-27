@@ -17,8 +17,8 @@ echo "Sourcing conda to enable activation..."
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${ENV_NAME}"
 
-echo "Installing PyTorch and essentials (CPU only)..."
-conda install -y -c pytorch pytorch torchvision torchaudio cpuonly
+echo "Installing PyTorch 2.9.1 and essentials (CPU only)..."
+conda install -y -c pytorch pytorch=2.9.1 torchvision torchaudio cpuonly
 echo "Installing compatible NumPy/SciPy builds..."
 conda install -y -c conda-forge numpy=1.26.4 scipy=1.11.3
 echo "Installing multidict/aiohttp dependencies via conda-forge..."

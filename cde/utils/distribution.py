@@ -21,7 +21,7 @@ def batched_univ_t_rvs(loc, scale, dof, random_state=None):
   loc, scale, dof = np.squeeze(loc), np.squeeze(scale), np.squeeze(dof)
   assert loc.shape == scale.shape == dof.shape and loc.ndim == 1
   if random_state is None:
-    random_state = np.random.RandomState(None)
+    random_state = np.random.mtrand._rand
   rvs = random_state.standard_t(df=dof)
   return rvs * scale + loc
 

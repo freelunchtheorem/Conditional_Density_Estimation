@@ -37,7 +37,7 @@ def numeric_integation(func, n_samples=10 ** 5, bound_lower=-10**3, bound_upper=
   return integral
 
 
-def mc_integration_student_t(func, ndim, n_samples=10 ** 6, batch_size=None, loc_proposal=0,
+def mc_integration_student_t(func, ndim, n_samples=2 * 10 ** 6, batch_size=None, loc_proposal=0,
                              scale_proposal=2, dof=6):
     """ Monte carlo integration using importance sampling with a cauchy distribution
 

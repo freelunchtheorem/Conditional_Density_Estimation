@@ -27,7 +27,7 @@ class BaseNNMixtureEstimator(BaseNNEstimator, ABC):
             means[i, :] = weights[i].dot(locs[i])
         return means
 
-    def std_(self, x_cond, n_samples=10 ** 6):
+    def std_(self, x_cond, n_samples=2 * 10 ** 6):
         covs = self.covariance(x_cond, n_samples=n_samples)
         return np.sqrt(np.diagonal(covs, axis1=1, axis2=2))
 

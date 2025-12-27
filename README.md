@@ -2,7 +2,7 @@
 
 # Conditional Density Estimation (CDE)
 
-**Update:** Conditional Density Estimation now runs with PyTorch (with the help of cursor + GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with the latest PyTorch release. Logging is now done via wandb (offline/online mode & additional csv/pd dataframes outputs).
+**Update:** Conditional Density Estimation now runs with PyTorch (with the help of cursor + GPT-5.1 Codex Mini). The legacy TensorFlow implementation lives in the `tensorflow` branch. All core estimators, runners, and examples are tested with Python 3.12.1 and PyTorch 2.9.1. Logging is now done via wandb (offline/online mode & additional csv/pd dataframes outputs).
 
 ## Description
 Python/PyTorch implementations of various methods for conditional density estimation
@@ -25,9 +25,8 @@ Beyond estimating conditional probability densities, the package features extens
 For the parametric models (MDN, KMN, NF), we recommend the usage of noise regularization which is supported by our implementation. For details, we refer to the paper [Noise Regularization for Conditional Density Estimation](https://arxiv.org/abs/1907.08982).
 
 ## Dependencies
-The core dependencies of cde are minimal:
-- Python 3.11
-- PyTorch
+- Python 3.12
+- PyTorch 2.9.1
 - NumPy
 - pandas
 - scipy

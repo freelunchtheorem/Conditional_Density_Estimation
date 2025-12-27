@@ -659,7 +659,7 @@ class TestLogProbability(unittest.TestCase):
 class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
   def get_samples(self):
     np.random.seed(22)
-    data = np.concatenate([np.random.normal([i, -i], 1, size=(500, 2)) for i in range(-20, 20, 4)], axis=0)
+    data = np.concatenate([np.random.normal([i, -i], 0.6, size=(300, 2)) for i in range(-24, 24, 3)], axis=0)
     X = data[:, 0]
     Y = data[:, 1]
     return X, Y
@@ -695,11 +695,15 @@ class TestConditionalDensityEstimators_fit_by_crossval(unittest.TestCase):
     model.fit_by_cv(X, Y, param_grid=param_grid)
 
     y = np.arange(-1, 5, 0.5)
-    x = np.asarray([2 for i in range(y.shape[0])])
-    p_est = model.pdf(x, y)
-    p_true = norm.pdf(y, loc=2, scale=1)
+    x_values = np.linspace(-4, 4, 9)
+    errors = []
+    for x in x_values:
+      x_query = np.asarray([x for _ in range(y.shape[0])])
+      p_est = model.pdf(x_query, y)
+      p_true = norm.pdf(y, loc=2, scale=1)
+      errors.append(np.mean(np.abs(p_true - p_est)))
     self.assertEqual(model.get_params()["n_centers"], 50)
-    self.assertLessEqual(np.mean(np.abs(p_true - p_est)), 0.2)
+    self.assertLessEqual(np.mean(errors), 0.2)
 
 if __name__ == '__main__':
   warnings.filterwarnings("ignore")

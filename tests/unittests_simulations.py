@@ -391,7 +391,8 @@ class TestLinearStudentT(unittest.TestCase):
     assert std.shape == (200, model.ndim_y)
 
   def test_serializarion(self):
-    import pickle, dill
+    import pickle
+    import dill
     model = LinearStudentT(ndim_x=5, mu=5, random_seed=22)
     X, Y = model.simulate(200)
 
@@ -518,7 +519,8 @@ class TestRiskMeasures(unittest.TestCase):
     self.assertAlmostEqual(cov_est[0][1][0], sigma[1][0], places=2)
 
 
-_DEFAULT_MC_SAMPLES = 5 * 10 ** 6
+_DEFAULT_MC_SAMPLES = 15 * 10 ** 6
+
 
 def mean_pdf(density, x_cond, n_samples=_DEFAULT_MC_SAMPLES):
   means = np.zeros((x_cond.shape[0], density.ndim_y))
@@ -528,6 +530,7 @@ def mean_pdf(density, x_cond, n_samples=_DEFAULT_MC_SAMPLES):
     integral = mc_integration_student_t(func, ndim=2, n_samples=n_samples)
     means[i] = integral
   return means
+
 
 def covariance_pdf(density, x_cond, n_samples=_DEFAULT_MC_SAMPLES):
   covs = np.zeros((x_cond.shape[0], density.ndim_y, density.ndim_y))

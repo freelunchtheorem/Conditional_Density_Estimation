@@ -146,7 +146,7 @@ class LSConditionalDensityEstimation(BaseDensityEstimator):
     else:
       return self._log_pdf(X, Y)
     
-  def mean_std(self, X, n_samples=10 ** 6):
+  def mean_std(self, X, n_samples=2 * 10 ** 6):
     """ sample from the conditional mixture distributions - requires the model to be fitted
 
     Args:

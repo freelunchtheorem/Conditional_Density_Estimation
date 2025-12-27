@@ -24,7 +24,7 @@ KEYS_OF_INTEREST_LOGPROB = [
 ]
 
 
-def launch_experiment(conf_est, conf_sim, observations, exp_prefix, n_mc_samples=10**6, n_x_cond=10, n_seeds=5, tail_measures=False):
+def launch_experiment(conf_est, conf_sim, observations, exp_prefix, n_mc_samples=2 * 10**6, n_x_cond=10, n_seeds=5, tail_measures=False):
     """
     :param conf_est: Dict with keys: Name of estimator, value: params for the estimator
     :param conf_sim: Dict with keys: Name of the density simulator, value: params for the simulator

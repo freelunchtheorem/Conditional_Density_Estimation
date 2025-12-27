@@ -127,7 +127,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
 
     return fig
 
-  def mean_(self, x_cond, n_samples=10**6):
+  def mean_(self, x_cond, n_samples=2 * 10**6):
     """ Mean of the fitted distribution conditioned on x_cond
     Args:
       x_cond: different x values to condition on - numpy array of shape (n_values, ndim_x)
@@ -142,7 +142,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       return self._mean_pdf(x_cond)
 
-  def std_(self, x_cond, n_samples=10 ** 6):
+  def std_(self, x_cond, n_samples=2 * 10 ** 6):
     """ Standard deviation of the fitted distribution conditioned on x_cond
 
     Args:
@@ -155,7 +155,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     assert x_cond.ndim == 2
     return self._std_pdf(x_cond, n_samples=n_samples)
 
-  def covariance(self, x_cond, n_samples=10**6):
+  def covariance(self, x_cond, n_samples=2 * 10**6):
     """ Covariance of the fitted distribution conditioned on x_cond
 
     Args:
@@ -172,7 +172,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError()
 
-  def skewness(self, x_cond, n_samples=10 ** 6):
+  def skewness(self, x_cond, n_samples=2 * 10 ** 6):
     """ Skewness of the fitted distribution conditioned on x_cond
 
        Args:
@@ -190,7 +190,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError()
 
-  def kurtosis(self, x_cond, n_samples=10 ** 6):
+  def kurtosis(self, x_cond, n_samples=2 * 10 ** 6):
     """ Kurtosis of the fitted distribution conditioned on x_cond
 
        Args:
@@ -208,7 +208,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError()
 
-  def value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
+  def value_at_risk(self, x_cond, alpha=0.01, n_samples=2 * 10**6):
     """ Computes the Value-at-Risk (VaR) of the fitted distribution. Only if ndim_y = 1
 
     Args:
@@ -229,7 +229,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError()
 
-  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=10**6):
+  def conditional_value_at_risk(self, x_cond, alpha=0.01, n_samples=2 * 10**6):
     """ Computes the Conditional Value-at-Risk (CVaR) / Expected Shortfall of the fitted distribution. Only if ndim_y = 1
 
        Args:
@@ -253,7 +253,7 @@ class BaseConditionalDensitySimulation(ConditionalDensity):
     else:
       raise NotImplementedError("Distribution object must either support pdf or sampling in order to compute CVaR")
 
-  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=10**6):
+  def tail_risk_measures(self, x_cond, alpha=0.01, n_samples=2 * 10**6):
     """ Computes the Value-at-Risk (VaR) and Conditional Value-at-Risk (CVaR)
 
         Args:
